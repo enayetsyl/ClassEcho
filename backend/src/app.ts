@@ -1,12 +1,8 @@
-/* eslint-disable no-undef */
-/* eslint-disable no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Application, Request, Response } from 'express';
 // import router from './app/routes';
-// import notFound from './app/middlewares/notFound';
+import notFound from './app/middlewares/not-found';
 // import globalErrorHandler from './app/middlewares/globalErrorhandler';
 
 const app: Application = express();
@@ -27,6 +23,6 @@ app.get('/', (req: Request, res: Response) => {
 // app.use(globalErrorHandler);  // This is connected with the globalErrorhandler.ts file at the middleware folder.
 
 //Not Found
-// app.use(notFound);  // This is connected with the notFound.ts file at the middleware folder.
+app.use(notFound);
 
 export default app;
