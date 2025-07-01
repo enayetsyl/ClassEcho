@@ -81,4 +81,4 @@ res.status(statusCode).json({
 };
 
 
-
+export default globalErrorHandler

@@ -2,7 +2,7 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { StringValue } from 'ms';
 
 export const createToken = (
-  jwtPayload: { userId: string; role: string },
+  jwtPayload: { userId: string; roles: string[]; mustChangePassword?: boolean  },
   secret: string,
   expiresIn: number | StringValue 
 ) => {

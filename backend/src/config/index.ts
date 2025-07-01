@@ -25,4 +25,6 @@ export default {
   max_video_size_mb: process.env.max_video_size_mb,
   log_level: process.env.log_level,
   bcrypt_salt_rounds: process.env.bcrypt_salt_rounds,
+  super_admin_email:process.env.super_admin_email,
+  super_admin_password:process.env.super_admin_password,
 };

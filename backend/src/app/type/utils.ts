@@ -12,3 +12,12 @@ export type TResponse<T> = {
   meta?: TMeta;
   data?: T;
 };
+
+
+export type  SendMailOptions = {
+  to: string;
+  subject: string;
+  text?: string;
+  html?: string;
+  from?: string; 
+}
