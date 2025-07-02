@@ -1,0 +1,34 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+exports.default = {
+    port: process.env.port,
+    database_url: process.env.database_url,
+    node_env: process.env.node_env,
+    jwt_secret: process.env.jwt_secret,
+    jwt_expires_in: process.env.jwt_expires_in,
+    initial_admin_email: process.env.initial_admin_email,
+    initial_admin_password: process.env.initial_admin_password,
+    google_client_id: process.env.google_client_id,
+    google_client_secret: process.env.google_client_secret,
+    google_redirect_uri: process.env.google_redirect_uri,
+    youtube_upload_scopes: process.env.youtube_upload_scopes,
+    smtp_host: process.env.smtp_host,
+    smtp_port: process.env.smtp_port,
+    smtp_user: process.env.smtp_user,
+    smtp_pass: process.env.smtp_pass,
+    smtp_secure: process.env.smtp_secure,
+    mail_from: process.env.mail_from,
+    cors_origin: process.env.cors_origin,
+    app_base_url: process.env.app_base_url,
+    upload_tmp_dir: process.env.upload_tmp_dir,
+    max_video_size_mb: process.env.max_video_size_mb,
+    log_level: process.env.log_level,
+    bcrypt_salt_rounds: process.env.bcrypt_salt_rounds,
+    super_admin_email: process.env.super_admin_email,
+    super_admin_password: process.env.super_admin_password,
+};
