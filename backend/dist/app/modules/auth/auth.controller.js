@@ -23,8 +23,9 @@ const login = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0,
     res.cookie('token', token, {
         httpOnly: true,
         secure: config_1.default.node_env === 'production',
-        sameSite: 'strict',
+        sameSite: 'none',
         maxAge: Number(config_1.default.jwt_expires_in) * 1000,
+        path: "/"
     });
     (0, send_response_1.default)(res, {
         statusCode: 200,

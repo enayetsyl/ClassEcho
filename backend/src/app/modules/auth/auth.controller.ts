@@ -11,8 +11,9 @@ const login = catchAsync(async (req: Request, res: Response) => {
      res.cookie('token', token, {
     httpOnly: true,  
     secure: config.node_env === 'production',  
-    sameSite: 'strict',
+    sameSite: 'none',
     maxAge: Number(config.jwt_expires_in) * 1000,
+    path: "/"
   });
 
   sendResponse(res, {
