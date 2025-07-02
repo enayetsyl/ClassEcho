@@ -8,19 +8,19 @@ import config from '../../../config';
 const login = catchAsync(async (req: Request, res: Response) => {
    const { token, user } = await AuthServices.login(req.body);
 
-     res.cookie('token', token, {
-    httpOnly: true,  
-    secure: config.node_env === 'production',  
-    sameSite: 'none',
-    maxAge: Number(config.jwt_expires_in) * 1000,
-    path: "/"
-  });
+  //    res.cookie('token', token, {
+  //   httpOnly: true,  
+  //   secure: config.node_env === 'production',  
+  //   sameSite: 'none',
+  //   maxAge: Number(config.jwt_expires_in) * 1000,
+  //   path: "/"
+  // });
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: 'Login successful',
-    data: user,
+    data: { token, user },
   });
 });
 
