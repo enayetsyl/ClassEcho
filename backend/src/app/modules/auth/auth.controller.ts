@@ -6,15 +6,15 @@ import config from '../../../config';
 
 // User login
 const login = catchAsync(async (req: Request, res: Response) => {
-   const { token, user } = await AuthServices.login(req.body);
+   const user = await AuthServices.login(req.body);
 
- 
+ console.log(user)
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: 'Login successful',
-    data: { token, user },
+    data: user
   });
 });
 
