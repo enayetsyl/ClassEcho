@@ -1,2 +1,0 @@
-// inside doLogin(), or inline:
-
