@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import catchAsync from '../../utils/catch-async';
 import { AuthServices } from './auth.service';
 import sendResponse from '../../utils/send-response';
-import config from '../../../config';
+
 
 // User login
 const login = catchAsync(async (req: Request, res: Response) => {

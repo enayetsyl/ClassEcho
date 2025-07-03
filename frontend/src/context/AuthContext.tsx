@@ -8,6 +8,7 @@ import React, {
   ReactNode,
 } from 'react'
 import {jwtDecode} from 'jwt-decode'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 interface DecodedToken {
   userId: string
@@ -37,6 +38,8 @@ const AuthContext = createContext<AuthContextType>({
   login: () => {},
   logout: () => {},
 })
+
+const queryClient = new QueryClient()
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null)
@@ -75,11 +78,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
+    <QueryClientProvider client={queryClient}>
+      
     <AuthContext.Provider
       value={{ token, user, loading, login, logout }}
-    >
+      >
       {children}
     </AuthContext.Provider>
+      </QueryClientProvider>
   )
 }
 

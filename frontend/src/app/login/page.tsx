@@ -3,65 +3,86 @@
 
 import { FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/context/AuthContext'
+import { useLogin } from '@/hooks/use-auth'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 export default function LoginPage() {
+  const router = useRouter()
+  const { mutate: login, isPending, isError, error } = useLogin()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
-  const { login } = useAuth()
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
-    setError(null)
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-      if (!res.ok) throw new Error('Invalid credentials')
-      const user = await res.json()
-    console.log('login',  user)
-    const {token, user1} = user?.data;
-      login( token, user1)
-      router.push('/dashboard/profile')
-    } catch (err: unknown) {
-      console.log(err)
-      setError( 'Something went wrong')
-    }
+    login(
+      { email, password },
+      {
+        onSuccess: () => {
+          router.push('/dashboard/profile')
+        },
+      }
+    )
   }
 
   return (
-    <div className="max-w-md mx-auto mt-20 p-4 border rounded">
-      <h1 className="text-xl mb-4">Login</h1>
-      {error && <p className="text-red-500 mb-2">{error}</p>}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block mb-1">Email</label>
-          <input
-            type="email"
-            className="w-full border p-2"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className="block mb-1">Password</label>
-          <input
-            type="password"
-            className="w-full border p-2"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit" className="w-full py-2 bg-blue-600 text-white">
-          Sign In
-        </button>
-      </form>
-    </div>
+    <Card className="max-w-md mx-auto mt-20">
+      <CardHeader>
+        <CardTitle>Sign In</CardTitle>
+        <CardDescription>
+          Enter your email and password to continue
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent>
+        {isError && (
+          <p className="mb-4 text-sm text-red-600">
+            {/* error is typed as Error by our hook */}
+            {(error as Error).message}
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-1">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <CardFooter className="p-0">
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? 'Signing in…' : 'Sign In'}
+            </Button>
+          </CardFooter>
+        </form>
+      </CardContent>
+    </Card>
   )
 }
