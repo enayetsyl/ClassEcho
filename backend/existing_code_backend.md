@@ -1155,6 +1155,9 @@ export const updateProfileValidation = z.object({
 import { Router } from 'express';
 import { UserRoutes } from '../modules/user/user.routes';
 import { AuthRoutes } from '../modules/auth/auth.routes';
+import { ClassRoutes } from '../modules/master/class/class.routes';
+import { SectionRoutes } from '../modules/master/section/section.routes';
+import { SubjectRoutes } from '../modules/master/subject/subject.routes';
 
 
 const router = Router();
@@ -1168,6 +1171,19 @@ const moduleRoutes = [
     path: '/auth',
     route: AuthRoutes,
   }, 
+  {
+    path: '/admin/classes',
+    route: ClassRoutes,
+  }, 
+  {
+    path: '/admin/sections',
+    route: SectionRoutes,
+  }, 
+  {
+    path: '/admin/subjects',
+    route: SubjectRoutes,
+  }, 
+
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));  // This will automatically loop your routes that you will add in the moduleRoutes array
@@ -1510,125 +1526,7 @@ process.on('uncaughtException', () => {
 ```
 
 ---
-## `tsconfig.json`
 
-```json
-{
-  "compilerOptions": {
-    /* Visit https://aka.ms/tsconfig to read more about this file */
-
-    /* Projects */
-    // "incremental": true,                              /* Save .tsbuildinfo files to allow for incremental compilation of projects. */
-    // "composite": true,                                /* Enable constraints that allow a TypeScript project to be used with project references. */
-    // "tsBuildInfoFile": "./.tsbuildinfo",              /* Specify the path to .tsbuildinfo incremental compilation file. */
-    // "disableSourceOfProjectReferenceRedirect": true,  /* Disable preferring source files instead of declaration files when referencing composite projects. */
-    // "disableSolutionSearching": true,                 /* Opt a project out of multi-project reference checking when editing. */
-    // "disableReferencedProjectLoad": true,             /* Reduce the number of projects loaded automatically by TypeScript. */
-
-    /* Language and Environment */
-    "target": "es2016",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
-    // "lib": [],                                        /* Specify a set of bundled library declaration files that describe the target runtime environment. */
-    // "jsx": "preserve",                                /* Specify what JSX code is generated. */
-    // "libReplacement": true,                           /* Enable lib replacement. */
-    // "experimentalDecorators": true,                   /* Enable experimental support for legacy experimental decorators. */
-    // "emitDecoratorMetadata": true,                    /* Emit design-type metadata for decorated declarations in source files. */
-    // "jsxFactory": "",                                 /* Specify the JSX factory function used when targeting React JSX emit, e.g. 'React.createElement' or 'h'. */
-    // "jsxFragmentFactory": "",                         /* Specify the JSX Fragment reference used for fragments when targeting React JSX emit e.g. 'React.Fragment' or 'Fragment'. */
-    // "jsxImportSource": "",                            /* Specify module specifier used to import the JSX factory functions when using 'jsx: react-jsx*'. */
-    // "reactNamespace": "",                             /* Specify the object invoked for 'createElement'. This only applies when targeting 'react' JSX emit. */
-    // "noLib": true,                                    /* Disable including any library files, including the default lib.d.ts. */
-    // "useDefineForClassFields": true,                  /* Emit ECMAScript-standard-compliant class fields. */
-    // "moduleDetection": "auto",                        /* Control what method is used to detect module-format JS files. */
-
-    /* Modules */
-    "module": "commonjs",                                /* Specify what module code is generated. */
-    "rootDir": "./src",                                  /* Specify the root folder within your source files. */
-    // "moduleResolution": "node10",                     /* Specify how TypeScript looks up a file from a given module specifier. */
-    // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
-    // "paths": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
-    // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
-    // "typeRoots": [],                                  /* Specify multiple folders that act like './node_modules/@types'. */
-    // "types": [],                                      /* Specify type package names to be included without being referenced in a source file. */
-    // "allowUmdGlobalAccess": true,                     /* Allow accessing UMD globals from modules. */
-    // "moduleSuffixes": [],                             /* List of file name suffixes to search when resolving a module. */
-    // "allowImportingTsExtensions": true,               /* Allow imports to include TypeScript file extensions. Requires '--moduleResolution bundler' and either '--noEmit' or '--emitDeclarationOnly' to be set. */
-    // "rewriteRelativeImportExtensions": true,          /* Rewrite '.ts', '.tsx', '.mts', and '.cts' file extensions in relative import paths to their JavaScript equivalent in output files. */
-    // "resolvePackageJsonExports": true,                /* Use the package.json 'exports' field when resolving package imports. */
-    // "resolvePackageJsonImports": true,                /* Use the package.json 'imports' field when resolving imports. */
-    // "customConditions": [],                           /* Conditions to set in addition to the resolver-specific defaults when resolving imports. */
-    // "noUncheckedSideEffectImports": true,             /* Check side effect imports. */
-    // "resolveJsonModule": true,                        /* Enable importing .json files. */
-    // "allowArbitraryExtensions": true,                 /* Enable importing files with any extension, provided a declaration file is present. */
-    // "noResolve": true,                                /* Disallow 'import's, 'require's or '<reference>'s from expanding the number of files TypeScript should add to a project. */
-
-    /* JavaScript Support */
-    // "allowJs": true,                                  /* Allow JavaScript files to be a part of your program. Use the 'checkJS' option to get errors from these files. */
-    // "checkJs": true,                                  /* Enable error reporting in type-checked JavaScript files. */
-    // "maxNodeModuleJsDepth": 1,                        /* Specify the maximum folder depth used for checking JavaScript files from 'node_modules'. Only applicable with 'allowJs'. */
-
-    /* Emit */
-    // "declaration": true,                              /* Generate .d.ts files from TypeScript and JavaScript files in your project. */
-    // "declarationMap": true,                           /* Create sourcemaps for d.ts files. */
-    // "emitDeclarationOnly": true,                      /* Only output d.ts files and not JavaScript files. */
-    // "sourceMap": true,                                /* Create source map files for emitted JavaScript files. */
-    // "inlineSourceMap": true,                          /* Include sourcemap files inside the emitted JavaScript. */
-    // "noEmit": true,                                   /* Disable emitting files from a compilation. */
-    // "outFile": "./",                                  /* Specify a file that bundles all outputs into one JavaScript file. If 'declaration' is true, also designates a file that bundles all .d.ts output. */
-    "outDir": "./dist",                                   /* Specify an output folder for all emitted files. */
-    // "removeComments": true,                           /* Disable emitting comments. */
-    // "importHelpers": true,                            /* Allow importing helper functions from tslib once per project, instead of including them per-file. */
-    // "downlevelIteration": true,                       /* Emit more compliant, but verbose and less performant JavaScript for iteration. */
-    // "sourceRoot": "",                                 /* Specify the root path for debuggers to find the reference source code. */
-    // "mapRoot": "",                                    /* Specify the location where debugger should locate map files instead of generated locations. */
-    // "inlineSources": true,                            /* Include source code in the sourcemaps inside the emitted JavaScript. */
-    // "emitBOM": true,                                  /* Emit a UTF-8 Byte Order Mark (BOM) in the beginning of output files. */
-    // "newLine": "crlf",                                /* Set the newline character for emitting files. */
-    // "stripInternal": true,                            /* Disable emitting declarations that have '@internal' in their JSDoc comments. */
-    // "noEmitHelpers": true,                            /* Disable generating custom helper functions like '__extends' in compiled output. */
-    // "noEmitOnError": true,                            /* Disable emitting files if any type checking errors are reported. */
-    // "preserveConstEnums": true,                       /* Disable erasing 'const enum' declarations in generated code. */
-    // "declarationDir": "./",                           /* Specify the output directory for generated declaration files. */
-
-    /* Interop Constraints */
-    // "isolatedModules": true,                          /* Ensure that each file can be safely transpiled without relying on other imports. */
-    // "verbatimModuleSyntax": true,                     /* Do not transform or elide any imports or exports not marked as type-only, ensuring they are written in the output file's format based on the 'module' setting. */
-    // "isolatedDeclarations": true,                     /* Require sufficient annotation on exports so other tools can trivially generate declaration files. */
-    // "erasableSyntaxOnly": true,                       /* Do not allow runtime constructs that are not part of ECMAScript. */
-    // "allowSyntheticDefaultImports": true,             /* Allow 'import x from y' when a module doesn't have a default export. */
-    "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
-    // "preserveSymlinks": true,                         /* Disable resolving symlinks to their realpath. This correlates to the same flag in node. */
-    "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
-
-    /* Type Checking */
-    "strict": true,                                      /* Enable all strict type-checking options. */
-    // "noImplicitAny": true,                            /* Enable error reporting for expressions and declarations with an implied 'any' type. */
-    // "strictNullChecks": true,                         /* When type checking, take into account 'null' and 'undefined'. */
-    // "strictFunctionTypes": true,                      /* When assigning functions, check to ensure parameters and the return values are subtype-compatible. */
-    // "strictBindCallApply": true,                      /* Check that the arguments for 'bind', 'call', and 'apply' methods match the original function. */
-    // "strictPropertyInitialization": true,             /* Check for class properties that are declared but not set in the constructor. */
-    // "strictBuiltinIteratorReturn": true,              /* Built-in iterators are instantiated with a 'TReturn' type of 'undefined' instead of 'any'. */
-    // "noImplicitThis": true,                           /* Enable error reporting when 'this' is given the type 'any'. */
-    // "useUnknownInCatchVariables": true,               /* Default catch clause variables as 'unknown' instead of 'any'. */
-    // "alwaysStrict": true,                             /* Ensure 'use strict' is always emitted. */
-    // "noUnusedLocals": true,                           /* Enable error reporting when local variables aren't read. */
-    // "noUnusedParameters": true,                       /* Raise an error when a function parameter isn't read. */
-    // "exactOptionalPropertyTypes": true,               /* Interpret optional property types as written, rather than adding 'undefined'. */
-    // "noImplicitReturns": true,                        /* Enable error reporting for codepaths that do not explicitly return in a function. */
-    // "noFallthroughCasesInSwitch": true,               /* Enable error reporting for fallthrough cases in switch statements. */
-    // "noUncheckedIndexedAccess": true,                 /* Add 'undefined' to a type when accessed using an index. */
-    // "noImplicitOverride": true,                       /* Ensure overriding members in derived classes are marked with an override modifier. */
-    // "noPropertyAccessFromIndexSignature": true,       /* Enforces using indexed accessors for keys declared using an indexed type. */
-    // "allowUnusedLabels": true,                        /* Disable error reporting for unused labels. */
-    // "allowUnreachableCode": true,                     /* Disable error reporting for unreachable code. */
-
-    /* Completeness */
-    // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
-    "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
-  }
-}
-```
-
----
 ## `vercel.json`
 
 ```json
@@ -1662,4 +1560,753 @@ process.on('uncaughtException', () => {
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "prettier.configPath": ".prettierrc"
 }
+```
+
+---
+## `src/app/modules/master/class/class.type.ts`
+
+```typescript
+// src/app/modules/master/class/class.type.ts
+
+export interface IClass {
+  /** MongoDB document ID */
+  _id?: string;
+
+  /** Display name of the class (e.g. “Class 10”) */
+  name: string;
+
+  /** Timestamps added by Mongoose */
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+```
+
+---
+## `src/app/modules/master/class/class.routes.ts`
+
+```typescript
+import express from 'express';
+import { ClassControllers } from './class.controller';
+
+import {
+  createClassValidation,
+  updateClassValidation,
+} from './class.validation';
+
+import validateRequest from '../../../middlewares/validate-request';
+import { requireAuth, requireRole } from '../../../middlewares/auth-middleware';
+
+const router = express.Router();
+
+// List all classes
+router.get(
+  '/',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  ClassControllers.getAllClasses
+);
+
+// Create a new class
+router.post(
+  '/',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  validateRequest(createClassValidation),
+  ClassControllers.createClass
+);
+
+// Rename (update) a class
+router.put(
+  '/:id',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  validateRequest(updateClassValidation),
+  ClassControllers.updateClass
+);
+
+// (Optionally) Delete a class
+router.delete(
+  '/:id',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  ClassControllers.deleteClass
+);
+
+export const ClassRoutes = router;
+```
+---
+## `src/app/modules/master/class/class.controller.ts`
+
+```typescript
+import { Request, Response } from 'express';
+import catchAsync from '../../../utils/catch-async';
+import sendResponse from '../../../utils/send-response';
+import { ClassServices } from './class.service';
+
+const getAllClasses = catchAsync(async (req: Request, res: Response) => {
+  const classes = await ClassServices.getAllClasses();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Classes retrieved successfully',
+    data: classes,
+  });
+});
+
+const createClass = catchAsync(async (req: Request, res: Response) => {
+  const newClass = await ClassServices.createClass(req.body);
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'Class created successfully',
+    data: newClass,
+  });
+});
+
+const updateClass = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updatedClass = await ClassServices.updateClass(id, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Class updated successfully',
+    data: updatedClass,
+  });
+});
+
+const deleteClass = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await ClassServices.deleteClass(id);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Class deleted successfully',
+  });
+});
+
+export const ClassControllers = {
+  getAllClasses,
+  createClass,
+  updateClass,
+  deleteClass,
+};
+```
+
+---
+## `src/app/modules/master/class/class.model.ts`
+
+```typescript
+// src/app/modules/master/class/class.model.ts
+
+import { Schema, model, Document } from 'mongoose';
+import { IClass } from './class.type';
+
+export interface IClassDocument extends Omit<IClass, '_id'>, Document {}
+
+const ClassSchema = new Schema<IClassDocument>(
+  {
+    name: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export const Class = model<IClassDocument>('Class', ClassSchema);
+```
+
+---
+## `src/app/modules/master/class/class.service.ts`
+
+```typescript
+import { Class } from './class.model';
+import { IClass } from './class.type';
+import AppError from '../../../errors/app-error';
+import httpStatus from 'http-status';
+
+const getAllClasses = async (): Promise<IClass[]> => {
+  const docs = await Class.find().sort('name');
+  return docs.map(doc => ({
+    _id: doc.id,               // string
+    name: doc.name,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  }));
+};
+
+const createClass = async (data: IClass): Promise<IClass> => {
+  const existing = await Class.findOne({ name: data.name });
+  if (existing) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Class name already exists');
+  }
+  const doc = await Class.create(data);
+  return {
+    _id: doc.id,
+    name: doc.name,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
+
+const updateClass = async (
+  id: string,
+  data: Partial<IClass>
+): Promise<IClass> => {
+  const doc = await Class.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true,
+  });
+  if (!doc) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Class not found');
+  }
+  return {
+    _id: doc.id,
+    name: doc.name,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
+
+const deleteClass = async (id: string): Promise<void> => {
+  const deleted = await Class.findByIdAndDelete(id);
+  if (!deleted) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Class not found');
+  }
+};
+
+export const ClassServices = {
+  getAllClasses,
+  createClass,
+  updateClass,
+  deleteClass,
+};
+```
+
+---
+## `src/app/modules/master/class/class.validation.ts`
+
+```typescript
+import { z } from 'zod';
+
+export const createClassValidation = z.object({
+  body: z.object({
+    name: z.string({
+      required_error: 'Class name is required',
+      invalid_type_error: 'Class name must be a string',
+    }).min(1, 'Class name cannot be empty'),
+  }),
+});
+
+export const updateClassValidation = z.object({
+  body: z.object({
+    name: z.string({
+      required_error: 'Class name is required',
+      invalid_type_error: 'Class name must be a string',
+    }).min(1, 'Class name cannot be empty'),
+  }),
+});
+```
+--- 
+## `src/app/modules/master/section/section.controller.ts`
+
+```typescript
+import { Request, Response } from 'express';
+import catchAsync from '../../../utils/catch-async';
+import sendResponse from '../../../utils/send-response';
+import { SectionServices } from './section.service';
+
+const getAllSections = catchAsync(async (req: Request, res: Response) => {
+  const sections = await SectionServices.getAllSections();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Sections retrieved successfully',
+    data: sections,
+  });
+});
+
+const createSection = catchAsync(async (req: Request, res: Response) => {
+  const newSection = await SectionServices.createSection(req.body);
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'Section created successfully',
+    data: newSection,
+  });
+});
+
+const updateSection = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updatedSection = await SectionServices.updateSection(id, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Section updated successfully',
+    data: updatedSection,
+  });
+});
+
+const deleteSection = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await SectionServices.deleteSection(id);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Section deleted successfully',
+  });
+});
+
+export const SectionControllers = {
+  getAllSections,
+  createSection,
+  updateSection,
+  deleteSection,
+};
+```
+
+---
+## `src/app/modules/master/section/section.model.ts`
+
+```typescript
+// src/app/modules/master/section/section.model.ts
+
+import { Schema, model, Document } from 'mongoose';
+import { ISection } from './section.type';
+
+export interface ISectionDocument extends Omit<ISection, '_id'>, Document {}
+
+const SectionSchema = new Schema<ISectionDocument>(
+  {
+    name: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export const Section = model<ISectionDocument>('Section', SectionSchema);
+```
+
+---
+## `src/app/modules/master/section/section.routes.ts`
+
+```typescript
+import express from 'express';
+import { SectionControllers } from './section.controller';
+
+import {
+  createSectionValidation,
+  updateSectionValidation,
+} from './section.validation';
+import { requireAuth, requireRole } from '../../../middlewares/auth-middleware';
+import validateRequest from '../../../middlewares/validate-request';
+
+const router = express.Router();
+
+// List all sections
+router.get(
+  '/',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  SectionControllers.getAllSections
+);
+
+// Create a new section
+router.post(
+  '/',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  validateRequest(createSectionValidation),
+  SectionControllers.createSection
+);
+
+// Rename (update) a section
+router.put(
+  '/:id',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  validateRequest(updateSectionValidation),
+  SectionControllers.updateSection
+);
+
+// (Optionally) Delete a section
+router.delete(
+  '/:id',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  SectionControllers.deleteSection
+);
+
+export const SectionRoutes = router;
+```
+
+---
+## `src/app/modules/master/section/section.service.ts`
+
+```typescript
+import { Section } from './section.model';
+import { ISection } from './section.type';
+import AppError from '../../../errors/app-error';
+import httpStatus from 'http-status';
+
+const getAllSections = async (): Promise<ISection[]> => {
+  const docs = await Section.find().sort('name');
+  return docs.map(doc => ({
+    _id: doc.id,
+    name: doc.name,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  }));
+};
+
+const createSection = async (data: ISection): Promise<ISection> => {
+  const existing = await Section.findOne({ name: data.name });
+  if (existing) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Section name already exists');
+  }
+  const doc = await Section.create(data);
+  return {
+    _id: doc.id,
+    name: doc.name,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
+
+const updateSection = async (
+  id: string,
+  data: Partial<ISection>
+): Promise<ISection> => {
+  const doc = await Section.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true,
+  });
+  if (!doc) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Section not found');
+  }
+  return {
+    _id: doc.id,
+    name: doc.name,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
+
+const deleteSection = async (id: string): Promise<void> => {
+  const deleted = await Section.findByIdAndDelete(id);
+  if (!deleted) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Section not found');
+  }
+};
+
+export const SectionServices = {
+  getAllSections,
+  createSection,
+  updateSection,
+  deleteSection,
+};
+```
+
+---
+## `src/app/modules/master/section/section.type.ts`
+
+```typescript
+// src/app/modules/master/section/section.type.ts
+
+export interface ISection {
+  /** MongoDB document ID */
+  _id?: string;
+
+  /** Display name of the section (e.g. “A”, “B”) */
+  name: string;
+
+  /** Timestamps added by Mongoose */
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+```
+
+---
+## `src/app/modules/master/section/section.validation.ts`
+
+```typescript
+import { z } from 'zod';
+
+export const createSectionValidation = z.object({
+  body: z.object({
+    name: z.string({
+      required_error: 'Section name is required',
+      invalid_type_error: 'Section name must be a string',
+    }).min(1, 'Section name cannot be empty'),
+  }),
+});
+
+export const updateSectionValidation = z.object({
+  body: z.object({
+    name: z.string({
+      required_error: 'Section name is required',
+      invalid_type_error: 'Section name must be a string',
+    }).min(1, 'Section name cannot be empty'),
+  }),
+});
+```
+
+---
+## `src/app/modules/master/subject/subject.controller.ts`
+
+```typescript
+import { Request, Response } from 'express';
+import catchAsync from '../../../utils/catch-async';
+import sendResponse from '../../../utils/send-response';
+import { SubjectServices } from './subject.service';
+
+const getAllSubjects = catchAsync(async (req: Request, res: Response) => {
+  const subjects = await SubjectServices.getAllSubjects();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Subjects retrieved successfully',
+    data: subjects,
+  });
+});
+
+const createSubject = catchAsync(async (req: Request, res: Response) => {
+  const newSubject = await SubjectServices.createSubject(req.body);
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'Subject created successfully',
+    data: newSubject,
+  });
+});
+
+const updateSubject = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const updatedSubject = await SubjectServices.updateSubject(id, req.body);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Subject updated successfully',
+    data: updatedSubject,
+  });
+});
+
+const deleteSubject = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await SubjectServices.deleteSubject(id);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Subject deleted successfully',
+  });
+});
+
+export const SubjectControllers = {
+  getAllSubjects,
+  createSubject,
+  updateSubject,
+  deleteSubject,
+};
+```
+
+---
+## `src/app/modules/master/subject/subject.model.ts`
+
+```typescript
+// src/app/modules/master/subject/subject.model.ts
+
+import { Schema, model, Document } from 'mongoose';
+import { ISubject } from './subject.type';
+
+export interface ISubjectDocument extends Omit<ISubject, '_id'>, Document {}
+
+const SubjectSchema = new Schema<ISubjectDocument>(
+  {
+    name: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export const Subject = model<ISubjectDocument>('Subject', SubjectSchema);
+```
+
+---
+## `src/app/modules/master/subject/subject.routes.ts`
+
+```typescript
+import express from 'express';
+import { SubjectControllers } from './subject.controller';
+import {
+  createSubjectValidation,
+  updateSubjectValidation,
+} from './subject.validation';
+import { requireAuth, requireRole } from '../../../middlewares/auth-middleware';
+import validateRequest from '../../../middlewares/validate-request';
+
+
+const router = express.Router();
+
+// List all subjects
+router.get(
+  '/',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  SubjectControllers.getAllSubjects
+);
+
+// Create a new subject
+router.post(
+  '/',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  validateRequest(createSubjectValidation),
+  SubjectControllers.createSubject
+);
+
+// Rename (update) a subject
+router.put(
+  '/:id',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  validateRequest(updateSubjectValidation),
+  SubjectControllers.updateSubject
+);
+
+// (Optionally) Delete a subject
+router.delete(
+  '/:id',
+  requireAuth,
+  requireRole(['Admin', 'SeniorAdmin']),
+  SubjectControllers.deleteSubject
+);
+
+export const SubjectRoutes = router;
+```
+
+---
+## `src/app/modules/master/subject/subject.service.ts`
+
+```typescript
+import { Subject } from './subject.model';
+import { ISubject } from './subject.type';
+import AppError from '../../../errors/app-error';
+import httpStatus from 'http-status';
+
+const getAllSubjects = async (): Promise<ISubject[]> => {
+  const docs = await Subject.find().sort('name');
+  return docs.map(doc => ({
+    _id: doc.id,
+    name: doc.name,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  }));
+};
+
+const createSubject = async (data: ISubject): Promise<ISubject> => {
+  const existing = await Subject.findOne({ name: data.name });
+  if (existing) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Subject name already exists');
+  }
+  const doc = await Subject.create(data);
+  return {
+    _id: doc.id,
+    name: doc.name,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
+
+const updateSubject = async (
+  id: string,
+  data: Partial<ISubject>
+): Promise<ISubject> => {
+  const doc = await Subject.findByIdAndUpdate(id, data, {
+    new: true,
+    runValidators: true,
+  });
+  if (!doc) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Subject not found');
+  }
+  return {
+    _id: doc.id,
+    name: doc.name,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
+
+const deleteSubject = async (id: string): Promise<void> => {
+  const deleted = await Subject.findByIdAndDelete(id);
+  if (!deleted) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Subject not found');
+  }
+};
+
+export const SubjectServices = {
+  getAllSubjects,
+  createSubject,
+  updateSubject,
+  deleteSubject,
+};
+```
+
+---
+## `src/app/modules/master/subject/subject.type.ts`
+
+```typescript
+// src/app/modules/master/subject/subject.type.ts
+
+export interface ISubject {
+  /** MongoDB document ID */
+  _id?: string;
+
+  /** Display name of the subject (e.g. “Mathematics”) */
+  name: string;
+
+  /** Timestamps added by Mongoose */
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+```
+
+---
+## `src/app/modules/master/subject/subject.validation.ts`
+
+```typescript
+import { z } from 'zod';
+
+export const createSubjectValidation = z.object({
+  body: z.object({
+    name: z.string({
+      required_error: 'Subject name is required',
+      invalid_type_error: 'Subject name must be a string',
+    }).min(1, 'Subject name cannot be empty'),
+  }),
+});
+
+export const updateSubjectValidation = z.object({
+  body: z.object({
+    name: z.string({
+      required_error: 'Subject name is required',
+      invalid_type_error: 'Subject name must be a string',
+    }).min(1, 'Subject name cannot be empty'),
+  }),
+});
 ```
