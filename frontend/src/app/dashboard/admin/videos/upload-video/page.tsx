@@ -65,6 +65,7 @@ const UploadVideoPage: React.FC = () => {
   };
 
   const handleAuthClick = () => {
+
     if (tokenClientRef.current) {
       tokenClientRef.current.requestAccessToken({ prompt: "" });
     }
@@ -85,15 +86,32 @@ const UploadVideoPage: React.FC = () => {
     if (!file) return;
     setIsUploading(true);
 
+   // build dynamic metadata from selected IDs
+    const selectedClass = classes.find(c => c._id === classId)?.name ?? "";
+    const selectedSection = sections.find(s => s._id === sectionId)?.name ?? "";
+    const selectedSubject = subjects.find(s => s._id === subjectId)?.name ?? "";
+    const selectedTeacher = teachers.find(t => t._id === teacherId)?.name ?? "";
+    const formattedDate = date?.toISOString().split("T")[0] ?? "";
+
+    const dynamicTitle = `${selectedClass}-${selectedSection}-${selectedSubject}-${selectedTeacher}-${formattedDate}`;
+    const dynamicDescription = [
+      `Class - ${selectedClass}`,
+      `Section - ${selectedSection}`,
+      `Subject - ${selectedSubject}`,
+      `Teacher - ${selectedTeacher}`,
+      `Class Date - ${formattedDate}`,
+    ].join("\n");
+
     // build YouTube metadata
     const metadata = {
-      snippet: { title: file.name, description: "Uploaded via Class Review App" },
+      snippet: { title: dynamicTitle, description: dynamicDescription },
       status: { privacyStatus: "unlisted", selfDeclaredMadeForKids: false }
     };
 
     const formData = new FormData();
     formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-    formData.append("file", file);
+    const ext = file.name.split(".").pop();
+    formData.append("file", file, `${dynamicTitle}${ext ? `.${ext}` : ""}`);
 
     const tokenRes = window.gapi.client.getToken();
   if (!tokenRes?.access_token) {
@@ -271,7 +289,7 @@ const UploadVideoPage: React.FC = () => {
                 disabled={!allSelected || isUploading}
                 className="w-full sm:w-auto"
               >
-                {isUploading ? "Uploading…" : "Upload & Save"}
+                {isUploading ? "Uploading…" : "Upload Complete"}
               </Button>
             </div>
           </CardContent>
