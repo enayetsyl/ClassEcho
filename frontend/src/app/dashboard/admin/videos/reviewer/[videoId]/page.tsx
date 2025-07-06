@@ -46,7 +46,8 @@ const handleSubmit = () => {
 
 
   return (
-    <Card className="my-8">
+   <div className="px-5">
+     <Card className="my-8">
       <CardHeader>
         <CardTitle>Review Class Recording</CardTitle>
         <CardDescription>Provide feedback in three areas</CardDescription>
@@ -76,5 +77,6 @@ const handleSubmit = () => {
         </Button>
       </CardContent>
     </Card>
+   </div>
   );
 }

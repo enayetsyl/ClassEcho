@@ -169,86 +169,114 @@ const UploadVideoPage: React.FC = () => {
         strategy="afterInteractive"
         onLoad={() => window.gapi.load("client", initGapiClient)}
       />
-
-      <Card className="max-w-xl mx-auto my-8">
+  <div className="px-4 py-8">
+     <Card className="max-w-xl w-full mx-auto">
         <CardHeader>
           <CardTitle>Upload Class Recording</CardTitle>
           <CardDescription>
             Choose metadata, upload to YouTube, then save the link.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Dropdowns */}
-          <Select onValueChange={setTeacherId} value={teacherId}>
-            <SelectTrigger><SelectValue placeholder="Select Teacher" /></SelectTrigger>
-            <SelectContent className="bg-amber-400">
-              {teachers.map(t => (
-                <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <CardContent className="space-y-6">
+            {/* dropdowns in 2-col grid on md+ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Select onValueChange={setTeacherId} value={teacherId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Teacher" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map((t) => (
+                    <SelectItem key={t._id} value={t._id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          <Select onValueChange={setClassId} value={classId}>
-            <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
-            <SelectContent className="bg-amber-400">
-              {classes.map(c => (
-                <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <Select onValueChange={setClassId} value={classId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          <Select onValueChange={setSectionId} value={sectionId}>
-            <SelectTrigger><SelectValue placeholder="Select Section" /></SelectTrigger>
-            <SelectContent className="bg-amber-400">
-              {sections.map(s => (
-                <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <Select onValueChange={setSectionId} value={sectionId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sections.map((s) => (
+                    <SelectItem key={s._id} value={s._id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          <Select onValueChange={setSubjectId} value={subjectId}>
-            <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
-            <SelectContent className="bg-amber-400">
-              {subjects.map(s => (
-                <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <Select onValueChange={setSubjectId} value={subjectId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((s) => (
+                    <SelectItem key={s._id} value={s._id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Calendar */}
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={(d) => setDate(d || undefined)}
-          />
+            {/* calendar centered on small screens */}
+            <div className="flex justify-center">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(d) => setDate(d || undefined)}
+              />
+            </div>
 
-          {/* File input */}
-          <Input
-            type="file"
-            accept="video/*"
-            onChange={e => setFile(e.target.files?.[0] || null)}
-          />
+            {/* file input */}
+            <Input
+              type="file"
+              accept="video/*"
+              className="w-full"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
 
-          {/* Auth / Upload controls */}
-          {!isSignedIn ? (
-            <Button onClick={handleAuthClick}>Authorize YouTube</Button>
-          ) : (
-            <Button
-              variant="destructive"
-              onClick={handleSignout}
-            >
-              Sign out of YouTube
-            </Button>
-          )}
+            {/* action buttons */}
+            <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
+              {!isSignedIn ? (
+                <Button onClick={handleAuthClick} className="w-full sm:w-auto">
+                  Authorize YouTube
+                </Button>
+              ) : (
+                <Button
+                  variant="destructive"
+                  onClick={handleSignout}
+                  className="w-full sm:w-auto"
+                >
+                  Sign out of YouTube
+                </Button>
+              )}
 
-          <Button
-            onClick={handleUpload}
-            disabled={!allSelected || isUploading}
-          >
-            {isUploading ? "Uploading…" : "Upload & Save"}
-          </Button>
-        </CardContent>
+              <Button
+                onClick={handleUpload}
+                disabled={!allSelected || isUploading}
+                className="w-full sm:w-auto"
+              >
+                {isUploading ? "Uploading…" : "Upload & Save"}
+              </Button>
+            </div>
+          </CardContent>
       </Card>
+      </div>
     </>
   );
 };

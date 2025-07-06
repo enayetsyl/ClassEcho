@@ -32,7 +32,8 @@ export default function TeacherFeedbackList() {
   }
 
   return (
-    <Card className="my-8">
+    <div className="px-5">
+      <Card className="my-8">
       <CardHeader>
         <CardTitle>My Feedback</CardTitle>
         <CardDescription>All published reviews of your classes</CardDescription>
@@ -64,5 +65,6 @@ export default function TeacherFeedbackList() {
         </Table>
       </CardContent>
     </Card>
+    </div>
   );
 }

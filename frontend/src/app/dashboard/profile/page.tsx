@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { ProtectedRoute } from '@/route/ProtectedRoute'
+import Link from 'next/link'
 
 export default function ProfilePage() {
   const { data: profile, isPending } = useGetProfile()
@@ -22,6 +23,8 @@ export default function ProfilePage() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
+
+ 
 
   // when profile loads, seed form
   if (profile && name === '') {
@@ -48,7 +51,8 @@ export default function ProfilePage() {
 
   return (
     <ProtectedRoute>
-      <Card className="max-w-lg mx-auto mt-10">
+      <div className="flex justify-center p-4">
+      <Card className="w-full max-w-lg mt-10">
         <CardHeader>
           <CardTitle>Your Profile</CardTitle>
           <CardDescription>Edit your personal details</CardDescription>
@@ -57,6 +61,7 @@ export default function ProfilePage() {
           {isPending ? (
             <p>Loading…</p>
           ) : (
+            <>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">
                 <Label htmlFor="name">Name</Label>
@@ -90,9 +95,17 @@ export default function ProfilePage() {
                 </Button>
               </CardFooter>
             </form>
+            <div className="mt-6 space-y-3 text-center">
+                <Link href="/dashboard/change-password" className="text-sm text-primary hover:underline">
+                  Change Password
+                </Link>
+              
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
+      </div>
     </ProtectedRoute>
   )
 }

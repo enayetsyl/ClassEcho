@@ -45,7 +45,8 @@ export default function TeacherFeedbackDetail() {
     );
   }
   return (
-    <Card className="my-8">
+   <div className="px-5">
+     <Card className="my-8">
       <CardHeader>
         <CardTitle>Review Feedback</CardTitle>
         <CardDescription>Your peer’s feedback & add your response</CardDescription>
@@ -84,5 +85,6 @@ export default function TeacherFeedbackDetail() {
         </Button>
       </CardContent>
     </Card>
+   </div>
   );
 }

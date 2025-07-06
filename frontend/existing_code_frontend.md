@@ -95,195 +95,205 @@ export default config;
 
 --- src/app/dashboard/admin/classes/class-list/page.tsx ---
 
+// frontend/src/app/dashboard/admin/classes/class-list/page.tsx
 "use client";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
+import React, { useState } from "react";
+import { useGetAllClassesQuery, useDeleteClassMutation, useUpdateClassMutation } from "@/hooks/use-class";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Copy,
-  MoreVertical,
-  Truck,
-} from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from "@/components/ui/pagination";
-import { useClass } from "@/hooks/use-class";
-import { TClass } from "@/types/class.types";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { IClass } from "@/types/class.types";
+import Link from "next/link";
 
-const ClassList = () => {
-  const { data, isLoading } = useClass();
-  
+const formSchema = z.object({
+  name: z.string().min(1, "Class name cannot be empty"),
+});
+type FormValues = z.infer<typeof formSchema>;
+
+export default function ClassListPage() {
+  // 1️⃣ Load classes
+  const { data: classes = [], isLoading } = useGetAllClassesQuery();
+
+  // 2️⃣ Mutations
+  const deleteClass = useDeleteClassMutation();
+  const updateClass = useUpdateClassMutation();
+
+  // 3️⃣ State for edit dialog
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [currentClass, setCurrentClass] = useState<IClass | null>(null);
+
+  // 4️⃣ Form setup
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: "" },
+  });
+
+  // Open dialog and populate form
+  function onEditClick(cls: IClass) {
+    setCurrentClass(cls);
+    form.reset({ name: cls.name });
+    setIsEditOpen(true);
+  }
+
+  // Close dialog
+  function closeDialog() {
+    setIsEditOpen(false);
+    setCurrentClass(null);
+  }
+
+  // Handle form submit
+  function onSubmit(values: FormValues) {
+    if (currentClass) {
+      updateClass.mutate(
+        { id: currentClass._id, data: values },
+        { onSuccess: closeDialog }
+      );
+    }
+  }
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center">
-        <div className="grid gap-2">
-          <CardTitle>Transactions</CardTitle>
-          <CardDescription>
-            Recent transactions from your store.
-          </CardDescription>
-        </div>
-        <div className="ml-auto flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-sm">
-            <Truck className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only">Sync</span>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead className="hidden sm:table-cell">Type</TableHead>
-              <TableHead className="hidden sm:table-cell">Status</TableHead>
-              <TableHead className="hidden md:table-cell">Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data?.data?.data?.map((item: TClass) => (
-              <TableRow key={item._id}>
-                <TableCell>
-                  <div className="font-medium">{item.name}</div>
-                  <div className="hidden text-sm text-muted-foreground md:inline">
-                    liam.johnson@email.com
-                  </div>
-                </TableCell>
-                <TableCell className="hidden sm:table-cell">Sale</TableCell>
-                <TableCell className="hidden sm:table-cell">
-                  <Badge className="text-xs" variant="secondary">
-                    Fulfilled
-                  </Badge>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  2023-06-23
-                </TableCell>
-                <TableCell className="text-right">$250.00</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <div className="text-xs text-muted-foreground">
-          Showing <strong>1-10</strong> of <strong>32</strong> products
-        </div>
-        <Pagination className="mx-0 w-fit">
-          <PaginationContent>
-            <PaginationItem>
-              <Button size="icon" variant="outline" className="h-6 w-6">
-                <ChevronLeft className="h-3.5 w-3.5" />
-                <span className="sr-only">Previous Order</span>
-              </Button>
-            </PaginationItem>
-            <PaginationItem>
-              <Button size="icon" variant="outline" className="h-6 w-6">
-                <ChevronRight className="h-3.5 w-3.5" />
-                <span className="sr-only">Next Order</span>
-              </Button>
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </CardFooter>
-    </Card>
-  );
-};
+     <div className="p-4 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 className="text-2xl font-semibold">Manage Classes</h1>
+        <Link href="/dashboard/admin/classes/create-class">
+          <Button className="w-full md:w-auto">Add Class</Button>
+        </Link>
+      </div>
 
-export default ClassList;
+ <div className="overflow-x-auto">
+      <Table className="min-w-[480px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {classes.map((cls) => (
+            <TableRow key={cls._id}>
+              <TableCell>{cls.name}</TableCell>
+              <TableCell className="text-right space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEditClick(cls)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  
+                  onClick={() => {
+                    if (
+                      window.confirm(`Delete class “${cls.name}”?`)
+                    ) {
+                      deleteClass.mutate(cls._id);
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+</div>
+      {/* Edit Modal */}
+      <Dialog open={isEditOpen} onOpenChange={(open) => !open && closeDialog()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Class</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Class Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={closeDialog}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateClass.isPending}>
+                  {updateClass.isPending ? "Saving..." : "Save"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 
 --- src/app/dashboard/admin/classes/create-class/page.tsx ---
 
 "use client";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useClass } from "@/hooks/use-class";
-import { zodResolver } from "@hookform/resolvers/zod";
+
+import React from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useCreateClassMutation } from "@/hooks/use-class";
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  numeric: z.coerce.number().min(1, {
-    message: "Numeric must be at least 1.",
-  }),
+  name: z.string().min(1, "Class name cannot be empty"),
 });
 
-const CreateClass = () => {
-  const { useCreateClass } = useClass();
-  const { mutate, isPending } = useCreateClass();
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      numeric: 0,
-    },
-  });
+type FormValues = z.infer<typeof formSchema>;
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+const CreateClassPage = () => {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: "" },
+  });
+  const { mutate, isPending } = useCreateClassMutation();
+
+  const onSubmit = (values: FormValues) => {
     mutate(values);
-  }
+    form.reset();
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create Class</CardTitle>
-        <CardDescription>
-          Fill out the form below to create a new class.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="flex justify-center items-center h-screen">
+      <div className="w-full max-w-md">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-5">
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Class Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter class name" {...field} />
                   </FormControl>
@@ -291,110 +301,71 @@ const CreateClass = () => {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="numeric"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Numeric</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter class numeric"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button disabled={isPending} type="submit">
-              Submit
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Creating..." : "Create Class"}
             </Button>
           </form>
         </Form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
-export default CreateClass;
+export default CreateClassPage;
+
 
 --- src/app/dashboard/admin/sections/create-section/page.tsx ---
 
 "use client";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
+import React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Form,
-  FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormControl,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useClass } from "@/hooks/use-class";
-import { useSection } from "@/hooks/use-section";
-import { TClass } from "@/types/class.types";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { useCreateSectionMutation } from "@/hooks/use-section";
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  class: z.string().min(1, {
-    message: "Class is required.",
-  }),
+  name: z.string().min(1, "Section name cannot be empty"),
 });
 
-const CreateSection = () => {
-  const { data: classData } = useClass();
-  const { useCreateSection } = useSection();
-  const { mutate, isPending } = useCreateSection();
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      class: "",
-    },
-  });
+type FormValues = z.infer<typeof formSchema>;
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+const CreateSectionPage = () => {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: "" },
+  });
+  const { mutate, isPending } = useCreateSectionMutation();
+
+  const onSubmit = (values: FormValues) => {
     mutate(values);
-  }
+    form.reset();
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create Section</CardTitle>
-        <CardDescription>
-          Fill out the form below to create a new section.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="flex justify-center items-center h-screen">
+      <div className="w-full max-w-md">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 px-5"
+          >
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Section Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter section name" {...field} />
                   </FormControl>
@@ -402,221 +373,241 @@ const CreateSection = () => {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="class"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Class</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a class" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {classData?.data?.data?.map((item: TClass) => (
-                        <SelectItem key={item._id} value={item._id}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button disabled={isPending} type="submit">
-              Submit
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Creating..." : "Create Section"}
             </Button>
           </form>
         </Form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
-export default CreateSection;
+export default CreateSectionPage;
+
 
 --- src/app/dashboard/admin/sections/section-list/page.tsx ---
 
 "use client";
+
+import React, { useState } from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  useGetAllSectionsQuery,
+  useDeleteSectionMutation,
+  useUpdateSectionMutation,
+} from "@/hooks/use-section";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
   TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Truck } from "lucide-react";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from "@/components/ui/pagination";
-import { useSection } from "@/hooks/use-section";
-import { TSection } from "@/types/section.types";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { ISection } from "@/types/section.types";
+import Link from "next/link";
 
-const SectionList = () => {
-  const { data } = useSection();
+const formSchema = z.object({
+  name: z.string().min(1, "Section name cannot be empty"),
+});
+type FormValues = z.infer<typeof formSchema>;
+
+export default function SectionListPage() {
+  const { data: sections = [], isLoading } = useGetAllSectionsQuery();
+  const deleteSection = useDeleteSectionMutation();
+  const updateSection = useUpdateSectionMutation();
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [currentSection, setCurrentSection] = useState<ISection | null>(null);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: "" },
+  });
+
+  function onEditClick(sec: ISection) {
+    setCurrentSection(sec);
+    form.reset({ name: sec.name });
+    setIsEditOpen(true);
+  }
+
+  function closeDialog() {
+    setIsEditOpen(false);
+    setCurrentSection(null);
+  }
+
+  function onSubmit(values: FormValues) {
+    if (currentSection) {
+      updateSection.mutate(
+        { id: currentSection._id, data: values },
+        { onSuccess: closeDialog }
+      );
+    }
+  }
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center">
-        <div className="grid gap-2">
-          <CardTitle>Transactions</CardTitle>
-          <CardDescription>
-            Recent transactions from your store.
-          </CardDescription>
-        </div>
-        <div className="ml-auto flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-sm">
-            <Truck className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only">Sync</span>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead className="hidden sm:table-cell">Type</TableHead>
-              <TableHead className="hidden sm:table-cell">Status</TableHead>
-              <TableHead className="hidden md:table-cell">Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data?.data?.data?.map((item: TSection) => (
-              <TableRow key={item._id}>
-                <TableCell>
-                  <div className="font-medium">{item.name}</div>
-                  <div className="hidden text-sm text-muted-foreground md:inline">
-                    liam.johnson@email.com
-                  </div>
-                </TableCell>
-                <TableCell className="hidden sm:table-cell">Sale</TableCell>
-                <TableCell className="hidden sm:table-cell">
-                  <Badge className="text-xs" variant="secondary">
-                    Fulfilled
-                  </Badge>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  2023-06-23
-                </TableCell>
-                <TableCell className="text-right">$250.00</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <div className="text-xs text-muted-foreground">
-          Showing <strong>1-10</strong> of <strong>32</strong> products
-        </div>
-        <Pagination className="mx-0 w-fit">
-          <PaginationContent>
-            <PaginationItem>
-              <Button size="icon" variant="outline" className="h-6 w-6">
-                <ChevronLeft className="h-3.5 w-3.5" />
-                <span className="sr-only">Previous Order</span>
-              </Button>
-            </PaginationItem>
-            <PaginationItem>
-              <Button size="icon" variant="outline" className="h-6 w-6">
-                <ChevronRight className="h-3.5 w-3.5" />
-                <span className="sr-only">Next Order</span>
-              </Button>
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </CardFooter>
-    </Card>
-  );
-};
+     <div className="p-4 space-y-6">
+       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 className="text-2xl font-semibold">Manage Classes</h1>
+        <Link href="/dashboard/admin/sections/create-section">
+          <Button className="w-full md:w-auto">Add Section</Button>
+        </Link>
+      </div>
 
-export default SectionList;
+      <div className="overflow-x-auto">
+           <Table className="min-w-[480px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sections.map((sec) => (
+            <TableRow key={sec._id}>
+              <TableCell>{sec.name}</TableCell>
+              <TableCell className="text-right space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEditClick(sec)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm(`Delete section “${sec.name}”?`)) {
+                      deleteSection.mutate(sec._id);
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+</div>
+      <Dialog
+        open={isEditOpen}
+        onOpenChange={(open) => open || closeDialog()}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Section</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Section Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={closeDialog}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateSection.isPending}>
+                  {updateSection.isPending ? "Saving..." : "Save"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 
 --- src/app/dashboard/admin/subjects/create-subject/page.tsx ---
 
 "use client";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
+import React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Form,
-  FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormControl,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useSubject } from "@/hooks/use-subject";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { useCreateSubjectMutation } from "@/hooks/use-subject";
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  code: z.coerce.number().min(1, {
-    message: "Code must be at least 1.",
-  }),
+  name: z.string().min(1, "Subject name cannot be empty"),
 });
 
-const CreateSubject = () => {
-  const { useCreateSubject } = useSubject();
-  const { mutate, isPending } = useCreateSubject();
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      code: 0,
-    },
-  });
+type FormValues = z.infer<typeof formSchema>;
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+const CreateSubjectPage = () => {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: "" },
+  });
+  const { mutate, isPending } = useCreateSubjectMutation();
+
+  const onSubmit = (values: FormValues) => {
     mutate(values);
-  }
+    form.reset();
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create Subject</CardTitle>
-        <CardDescription>
-          Fill out the form below to create a new subject.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="flex justify-center items-center h-screen">
+      <div className="w-full max-w-md">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 px-5"
+          >
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Subject Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter subject name" {...field} />
                   </FormControl>
@@ -624,145 +615,189 @@ const CreateSubject = () => {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Code</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="Enter subject code"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button disabled={isPending} type="submit">
-              Submit
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Creating..." : "Create Subject"}
             </Button>
           </form>
         </Form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
-export default CreateSubject;
+export default CreateSubjectPage;
+
+
 
 --- src/app/dashboard/admin/subjects/subject-list/page.tsx ---
 
 "use client";
+
+import React, { useState } from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  useGetAllSubjectsQuery,
+  useDeleteSubjectMutation,
+  useUpdateSubjectMutation,
+} from "@/hooks/use-subject";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
   TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Truck } from "lucide-react";
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from "@/components/ui/pagination";
-import { useSubject } from "@/hooks/use-subject";
-import { TSubject } from "@/types/subject.types";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { ISubject } from "@/types/subject.types";
+import Link from "next/link";
 
-const SubjectList = () => {
-  const { data } = useSubject();
+const formSchema = z.object({
+  name: z.string().min(1, "Subject name cannot be empty"),
+});
+type FormValues = z.infer<typeof formSchema>;
+
+export default function SubjectListPage() {
+  const { data: subjects = [], isLoading } = useGetAllSubjectsQuery();
+  const deleteSubject = useDeleteSubjectMutation();
+  const updateSubject = useUpdateSubjectMutation();
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [currentSubject, setCurrentSubject] = useState<ISubject | null>(null);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: "" },
+  });
+
+  function onEditClick(subj: ISubject) {
+    setCurrentSubject(subj);
+    form.reset({ name: subj.name });
+    setIsEditOpen(true);
+  }
+
+  function closeDialog() {
+    setIsEditOpen(false);
+    setCurrentSubject(null);
+  }
+
+  function onSubmit(values: FormValues) {
+    if (currentSubject) {
+      updateSubject.mutate(
+        { id: currentSubject._id, data: values },
+        { onSuccess: closeDialog }
+      );
+    }
+  }
+
+  if (isLoading) return <div>Loading...</div>;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center">
-        <div className="grid gap-2">
-          <CardTitle>Transactions</CardTitle>
-          <CardDescription>
-            Recent transactions from your store.
-          </CardDescription>
-        </div>
-        <div className="ml-auto flex items-center gap-1">
-          <Button size="sm" variant="outline" className="h-7 gap-1 text-sm">
-            <Truck className="h-3.5 w-3.5" />
-            <span className="sr-only sm:not-sr-only">Sync</span>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead className="hidden sm:table-cell">Type</TableHead>
-              <TableHead className="hidden sm:table-cell">Status</TableHead>
-              <TableHead className="hidden md:table-cell">Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data?.data?.data?.map((item: TSubject) => (
-              <TableRow key={item._id}>
-                <TableCell>
-                  <div className="font-medium">{item.name}</div>
-                  <div className="hidden text-sm text-muted-foreground md:inline">
-                    liam.johnson@email.com
-                  </div>
-                </TableCell>
-                <TableCell className="hidden sm:table-cell">Sale</TableCell>
-                <TableCell className="hidden sm:table-cell">
-                  <Badge className="text-xs" variant="secondary">
-                    Fulfilled
-                  </Badge>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  2023-06-23
-                </TableCell>
-                <TableCell className="text-right">$250.00</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <div className="text-xs text-muted-foreground">
-          Showing <strong>1-10</strong> of <strong>32</strong> products
-        </div>
-        <Pagination className="mx-0 w-fit">
-          <PaginationContent>
-            <PaginationItem>
-              <Button size="icon" variant="outline" className="h-6 w-6">
-                <ChevronLeft className="h-3.5 w-3.5" />
-                <span className="sr-only">Previous Order</span>
-              </Button>
-            </PaginationItem>
-            <PaginationItem>
-              <Button size="icon" variant="outline" className="h-6 w-6">
-                <ChevronRight className="h-3.5 w-3.5" />
-                <span className="sr-only">Next Order</span>
-              </Button>
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </CardFooter>
-    </Card>
-  );
-};
+    <div className="space-y-4 p-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 className="text-2xl font-semibold">Manage Subjects</h1>
+        <Link href="/dashboard/admin/subjects/create-subject">
+          <Button className="w-full md:w-auto">Add Subject</Button>
+        </Link>
+      </div>
 
-export default SubjectList;
+      <div className="overflow-x-auto">
+            <Table className="min-w-[480px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {subjects.map((subj) => (
+            <TableRow key={subj._id}>
+              <TableCell>{subj.name}</TableCell>
+              <TableCell className="text-right space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEditClick(subj)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (window.confirm(`Delete subject “${subj.name}”?`)) {
+                      deleteSubject.mutate(subj._id);
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+</div>
+      <Dialog
+        open={isEditOpen}
+        onOpenChange={(open) => open || closeDialog()}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Subject</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-4"
+            >
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={closeDialog}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateSubject.isPending}>
+                  {updateSubject.isPending ? "Saving..." : "Save"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 
 --- src/app/dashboard/admin/teachers/create-teacher/page.tsx ---
 
@@ -996,110 +1031,90 @@ export default TeacherList;
 
 --- src/app/dashboard/change-password/page.tsx ---
 
-"use client";
-import { Button } from "@/components/ui/button";
+// src/app/dashboard/change-password/page.tsx
+
+'use client'
+
+import { FormEvent, useState } from 'react'
+import { useChangePassword } from '@/hooks/use-auth'
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/use-auth";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { ProtectedRoute } from '@/route/ProtectedRoute'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
-const formSchema = z.object({
-  oldPassword: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
-  newPassword: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
-});
+export default function ChangePasswordPage() {
+  const router = useRouter()
+  const [oldPassword, setOldPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const { mutate, isPending } = useChangePassword()
 
-const ChangePassword = () => {
-  const { useChangePassword } = useAuth();
-  const { mutate, isPending } = useChangePassword();
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      oldPassword: "",
-      newPassword: "",
-    },
-  });
-
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    mutate(values);
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    mutate(
+      { oldPassword, newPassword },
+      {
+        onSuccess: () => {
+          toast.success('Password changed');
+          router.push('/dashboard/profile');
+        },
+        onError: (err: Error) => toast.error(err.message),
+      }
+    )
   }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Change Password</CardTitle>
-        <CardDescription>
-          Fill out the form below to change your password.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormField
-              control={form.control}
-              name="oldPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Old Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Enter your old password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="newPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Enter your new password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button disabled={isPending} type="submit">
-              Submit
-            </Button>
+    <ProtectedRoute>
+      <Card className="max-w-md mx-auto mt-20">
+        <CardHeader>
+          <CardTitle>Change Password</CardTitle>
+          <CardDescription>Update your current password</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="old-password">Current Password</Label>
+              <Input
+                id="old-password"
+                type="password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+            <CardFooter className="p-0">
+              <Button type="submit" disabled={isPending} className="w-full">
+                {isPending ? 'Updating…' : 'Change Password'}
+              </Button>
+            </CardFooter>
           </form>
-        </Form>
-      </CardContent>
-    </Card>
-  );
-};
+        </CardContent>
+      </Card>
+    </ProtectedRoute>
+  )
+}
 
-export default ChangePassword;
 
---- src/app/dashboard/forgot-password/page.tsx ---
+--- src/app/forgot-password/page.tsx ---
 
 "use client";
 import { Button } from "@/components/ui/button";
@@ -1212,105 +1227,120 @@ export default function DashboardLayout({
 
 --- src/app/dashboard/profile/page.tsx ---
 
-"use client";
-import { Button } from "@/components/ui/button";
+'use client'
+
+import { useState, FormEvent } from 'react'
+import { useGetProfile, useUpdateProfile } from '@/hooks/use-user'
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useUser } from "@/hooks/use-user";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import { ProtectedRoute } from '@/route/ProtectedRoute'
+import Link from 'next/link'
 
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email.",
-  }),
-});
+export default function ProfilePage() {
+  const { data: profile, isPending } = useGetProfile()
+  const { mutate: update, isPending: isUpdating } = useUpdateProfile()
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [dateOfBirth, setDateOfBirth] = useState('')
 
-const Profile = () => {
-  const { useUpdateProfile, useGetProfile } = useUser();
-  const { data: user, isPending: isUserPending } = useGetProfile();
-  const { mutate, isPending } = useUpdateProfile();
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: user?.data?.data?.name,
-      email: user?.data?.data?.email,
-    },
-    values: {
-      name: user?.data?.data?.name,
-      email: user?.data?.data?.email,
-    },
-  });
+ 
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    mutate(values);
+  // when profile loads, seed form
+  if (profile && name === '') {
+    setName(profile.name)
+    setPhone(profile.phone ?? '')
+    setDateOfBirth(profile.dateOfBirth?.slice(0,10) ?? '')
   }
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    update(
+      { name, phone, dateOfBirth },
+      {
+        onSuccess: (updated) => {
+          toast.success('Profile updated')
+          setName(updated.name)
+          setPhone(updated.phone ?? '')
+          setDateOfBirth(updated.dateOfBirth?.slice(0,10) ?? '')
+        },
+        onError: (err: Error) => toast.error(err.message),
+      }
+    )
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Profile</CardTitle>
-        <CardDescription>Update your profile information.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter your name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter your email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button disabled={isPending || isUserPending} type="submit">
-              Submit
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
-  );
-};
+    <ProtectedRoute>
+      <div className="flex justify-center p-4">
+      <Card className="w-full max-w-lg mt-10">
+        <CardHeader>
+          <CardTitle>Your Profile</CardTitle>
+          <CardDescription>Edit your personal details</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isPending ? (
+            <p>Loading…</p>
+          ) : (
+            <>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="dob">Date of Birth</Label>
+                <Input
+                  id="dob"
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                />
+              </div>
+              <CardFooter className="p-0">
+                <Button type="submit" disabled={isUpdating} className="w-full">
+                  {isUpdating ? 'Saving…' : 'Save Profile'}
+                </Button>
+              </CardFooter>
+            </form>
+            <div className="mt-6 space-y-3 text-center">
+                <Link href="/dashboard/change-password" className="text-sm text-primary hover:underline">
+                  Change Password
+                </Link>
+              
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+      </div>
+    </ProtectedRoute>
+  )
+}
 
-export default Profile;
 
---- src/app/dashboard/reset-password/page.tsx ---
+--- src/app/reset-password/page.tsx ---
 
 "use client";
 import { Button } from "@/components/ui/button";
@@ -1491,119 +1521,104 @@ export default function RootLayout({
 
 --- src/app/login/page.tsx ---
 
-"use client";
-import { Button } from "@/components/ui/button";
+// src/app/login/page.tsx
+'use client'
+
+import { FormEvent, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useLogin } from '@/hooks/use-auth'
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/use-auth";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { AuthProvider } from "@/context/AuthContext";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
-const formSchema = z.object({
-  email: z.string().email({
-    message: "Please enter a valid email.",
-  }),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }),
-});
+export default function LoginPage() {
+  const router = useRouter()
+  const { mutate: login, isPending, isError, error } = useLogin()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
-const queryClient = new QueryClient();
-
-const Login = () => {
-  const { useLogin } = useAuth();
-  const { mutate, isPending } = useLogin();
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    mutate(values);
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    login(
+      { email, password },
+      {
+        onSuccess: () => {
+          router.push('/dashboard/profile')
+        },
+      }
+    )
   }
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <div className="flex justify-center items-center h-screen">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Login</CardTitle>
-              <CardDescription>
-                Enter your credentials to login.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-8"
-                >
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter your email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Enter your password"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button disabled={isPending} type="submit">
-                    Submit
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </div>
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
-  );
-};
 
-export default Login;
+  return (
+    <div className='px-5'>
+      <Card className="max-w-md mx-auto mt-20">
+      <CardHeader>
+        <CardTitle>Sign In</CardTitle>
+        <CardDescription>
+          Enter your email and password to continue
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent>
+        {isError && (
+          <p className="mb-4 text-sm text-red-600">
+            {/* error is typed as Error by our hook */}
+            {(error as Error).message}
+          </p>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-1">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="text-sm text-right">
+            <Link href="/forgot-password" className="text-primary hover:underline">
+              Forgot Password?
+            </Link>
+          </div>
+
+          <CardFooter className="p-0">
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? 'Signing in…' : 'Sign In'}
+            </Button>
+          </CardFooter>
+        </form>
+      </CardContent>
+    </Card>
+    </div>
+  )
+}
+
 
 --- src/app/page.tsx ---
 
@@ -2553,270 +2568,125 @@ export {
 
 --- src/components/ui/shared/NavBar.tsx ---
 
-"use client";
-import {
-  CircleUser,
-  Home,
-  LineChart,
-  Menu,
-  Package,
-  Package2,
-  Search,
-  ShoppingCart,
-  Users,
-} from "lucide-react";
-import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useAuth } from "@/hooks/use-auth";
-import { useUser } from "@/hooks/use-user";
-import { usePathname } from "next/navigation";
+'use client'
 
-const navLinks = [
-  {
-    href: "/dashboard/admin/teachers",
-    label: "Teachers",
-    icon: <Users className="h-5 w-5" />,
-    subLinks: [
-      {
-        href: "/dashboard/admin/teachers/teacher-list",
-        label: "Teacher List",
-      },
-      {
-        href: "/dashboard/admin/teachers/create-teacher",
-        label: "Create Teacher",
-      },
-    ],
-  },
-  {
-    href: "/dashboard/admin/classes",
-    label: "Classes",
-    icon: <Package className="h-5 w-5" />,
-    subLinks: [
-      {
-        href: "/dashboard/admin/classes/class-list",
-        label: "Class List",
-      },
-      {
-        href: "/dashboard/admin/classes/create-class",
-        label: "Create Class",
-      },
-    ],
-  },
-  {
-    href: "/dashboard/admin/subjects",
-    label: "Subjects",
-    icon: <LineChart className="h-5 w-5" />,
-    subLinks: [
-      {
-        href: "/dashboard/admin/subjects/subject-list",
-        label: "Subject List",
-      },
-      {
-        href: "/dashboard/admin/subjects/create-subject",
-        label: "Create Subject",
-      },
-    ],
-  },
-  {
-    href: "/dashboard/admin/sections",
-    label: "Sections",
-    icon: <Home className="h-5 w-5" />,
-    subLinks: [
-      {
-        href: "/dashboard/admin/sections/section-list",
-        label: "Section List",
-      },
-      {
-        href: "/dashboard/admin/sections/create-section",
-        label: "Create Section",
-      },
-    ],
-  },
-];
+import Link from 'next/link'
+import { useAuth } from '@/context/AuthContext'
+import { useLogout } from '@/hooks/use-auth'
+import { Button } from '@/components/ui/button'
+import { usePathname } from 'next/navigation'
+import { Sheet, SheetTrigger, SheetContent } from '@/components/ui/sheet'
+import { Menu } from 'lucide-react'
 
-const NavBar = () => {
-  const { useGetProfile } = useUser();
-  const { data: user } = useGetProfile();
-  const { useLogout } = useAuth();
-  const { mutate: logout } = useLogout();
-  const pathname = usePathname();
+interface NavItem {
+  href: string
+  label: string
+  roles: string[]
+}
+
+export function NavBar() {
+  const { user } = useAuth()
+  const { mutate: logout, isPending } = useLogout()
+  const pathname = usePathname()
+
+  // Simplest roles extraction
+  const roles = user?.roles ?? []
+
+  const dashboardItems: NavItem[] = [
+    { href: '/dashboard/admin/classes/class-list', label: 'Class List', roles: ['SeniorAdmin','Management'] },
+    { href: '/dashboard/admin/sections/section-list', label: 'Sections',    roles: ['SeniorAdmin','Management'] },
+    { href: '/dashboard/admin/subjects/subject-list', label: 'Subjects',   roles: ['SeniorAdmin','Management'] },
+    { href: '/dashboard/admin/teachers/teacher-list', label: 'Teachers',   roles: ['SeniorAdmin','Management'] },
+    { href: '/dashboard/admin/videos',          label: 'All Videos',    roles: ['SeniorAdmin','Management','Admin'] },
+    { href: '/dashboard/admin/videos/upload-video', label: 'Upload Video', roles: ['SeniorAdmin','Management','Admin'] },
+    { href: '/dashboard/admin/videos/feedback',     label: 'My Feedback',  roles: ['Teacher','SeniorAdmin','Management'] },
+    { href: '/dashboard/admin/videos/reviewer',     label: 'To Review',    roles: ['Teacher','SeniorAdmin','Management'] },
+  ]
+
+  const allowedItems = dashboardItems.filter(item =>
+    item.roles.some(role => roles.includes(role))
+  )
 
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-      <div className="hidden border-r bg-muted/40 md:block">
-        <div className="flex h-full max-h-screen flex-col gap-2">
-          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
-              <Package2 className="h-6 w-6" />
-              <span className="">Acme Inc</span>
-            </Link>
-          </div>
-          <div className="flex-1">
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-              {navLinks.map((link) => {
-                const isActive = pathname.startsWith(link.href);
-                return (
-                  <div key={link.label}>
-                    <Link
-                      href={link.href}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${
-                        isActive ? "bg-muted text-primary" : ""
-                      }`}
-                    >
-                      {link.icon}
-                      {link.label}
-                    </Link>
-                    {isActive && (
-                      <div className="ml-4 mt-2 grid gap-1">
-                        {link.subLinks.map((subLink) => (
-                          <Link
-                            key={subLink.label}
-                            href={subLink.href}
-                            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${
-                              pathname === subLink.href
-                                ? "bg-muted text-primary"
-                                : ""
-                            }`}
-                          >
-                            {subLink.label}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
-          </div>
-          <div className="mt-auto p-4">
-            <Card x-chunk="dashboard-02-chunk-0">
-              <CardHeader className="p-2 pt-0 md:p-4">
-                <CardTitle>Upgrade to Pro</CardTitle>
-                <CardDescription>
-                  Unlock all features and get unlimited access to our support
-                  team.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-2 pt-0 md:p-4 md:pt-0">
-                <Button size="sm" className="w-full">
-                  Upgrade
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0 md:hidden"
-              >
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle navigation menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col">
-              <nav className="grid gap-2 text-lg font-medium">
-                <Link
-                  href="#"
-                  className="flex items-center gap-2 text-lg font-semibold"
-                >
-                  <Package2 className="h-6 w-6" />
-                  <span className="sr-only">Acme Inc</span>
-                </Link>
-                {navLinks.map((link) => (
-                  <div key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                    >
-                      {link.icon}
-                      {link.label}
-                    </Link>
-                  </div>
-                ))}
-              </nav>
-              <div className="mt-auto">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Upgrade to Pro</CardTitle>
-                    <CardDescription>
-                      Unlock all features and get unlimited access to our
-                      support team.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button size="sm" className="w-full">
-                      Upgrade
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </SheetContent>
-          </Sheet>
-          <div className="w-full flex-1">
-            <form>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search products..."
-                  className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
-                />
-              </div>
-            </form>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="rounded-full">
-                <CircleUser className="h-5 w-5" />
-                <span className="sr-only">Toggle user menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{user?.data?.data?.name}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Link href="/dashboard/profile">Profile</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link href="/dashboard/change-password">Change Password</Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => logout()}>
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    </div>
-  );
-};
+    <nav className="flex items-center justify-between p-4 bg-gray-100">
+      <div className="flex items-center space-x-4">
+  
 
-export default NavBar;
+        {user && (
+          <>
+            {/* Desktop-only */}
+            <div className="hidden md:flex space-x-2">
+              <Link href="/dashboard/profile">
+                <Button variant={pathname === '/dashboard' ? 'default' : 'outline'}>
+                  Profile
+                </Button>
+              </Link>
+              {allowedItems.map(item => (
+                <Link href={item.href} key={item.href}>
+                  <Button variant={pathname.startsWith(item.href) ? 'default' : 'outline'}>
+                    {item.label}
+                  </Button>
+                </Link>
+              ))}
+            </div>
+
+            {/* Mobile-only */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-4 bg-green-500">
+                <div className="flex flex-col space-y-4">
+                  <Link href="/dashboard/profile">
+                    <Button
+                      variant={pathname === '/dashboard' ? 'default' : 'outline'}
+                      className="w-full text-left"
+                    >
+                      Profile
+                    </Button>
+                  </Link>
+                  {allowedItems.map(item => (
+                    <Link href={item.href} key={item.href}>
+                      <Button
+                        variant={pathname.startsWith(item.href) ? 'default' : 'outline'}
+                        className="w-full text-left"
+                      >
+                        {item.label}
+                      </Button>
+                    </Link>
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </>
+        )}
+      </div>
+
+      <div className="flex items-center space-x-4">
+        {user ? (
+          <>
+            <span className="hidden sm:inline">Hello, {user.name}</span>
+            <Button
+              variant="link"
+              onClick={() => logout()}
+              disabled={isPending}
+            >
+              {isPending ? 'Logging out…' : 'Logout'}
+            </Button>
+          </>
+        ) : (
+          <Link href="/login">
+            <Button variant="ghost">Login</Button>
+          </Link>
+        )}
+      </div>
+    </nav>
+  )
+}
+
 
 --- src/components/ui/skeleton.tsx ---
 
@@ -3085,70 +2955,116 @@ export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
 
 --- src/context/AuthContext.tsx ---
 
-"use client";
-import { TUser } from "@/types/user.types";
-import { jwtDecode } from "jwt-decode";
-import { useRouter } from "next/navigation";
-import {
+'use client'
+
+import React, {
   createContext,
-  useContext,
-  ReactNode,
   useState,
   useEffect,
-} from "react";
+  useContext,
+  ReactNode,
+} from 'react'
+import {jwtDecode} from 'jwt-decode'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-type AuthContextType = {
-  isAuthenticated: boolean;
-  user: TUser | null;
-  login: (token: string) => void;
-  logout: () => void;
-};
+interface DecodedToken {
+  name: string
+  userId: string
+  role?: string
+  roles?: string[]
+  exp?: number
+  iat?: number
+}
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+interface User {
+  name: string
+  userId: string
+  roles: string[]
+}
+
+interface AuthContextType {
+  token: string | null
+  user: User | null
+  loading: boolean
+  login: (token: string, userData: User) => void
+  logout: () => void
+}
+
+const AuthContext = createContext<AuthContextType>({
+  token: null,
+  user: null,
+  loading: true,
+  login: () => {},
+  logout: () => {},
+})
+
+const queryClient = new QueryClient()
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<TUser | null>(null);
-  const router = useRouter();
+  const [token, setToken] = useState<string | null>(null)
+  const [user, setUser] = useState<User | null>(null)
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      const decodedUser: TUser = jwtDecode(token);
-      setUser(decodedUser);
-      setIsAuthenticated(true);
+  const [loading, setLoading] = useState<boolean>(true)
+
+ useEffect(() => {
+    const storedToken = localStorage.getItem('token')
+    const storedUser = localStorage.getItem('user')
+    if (storedToken) {
+      setToken(storedToken)
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser))
+        } catch (err) {
+          console.error('Failed to parse stored user', err)
+          localStorage.removeItem('user')
+          setUser(null)
+        }
+      } else {
+        try {
+          const decoded = jwtDecode<DecodedToken>(storedToken)
+          const roles = decoded.roles ?? (decoded.role ? [decoded.role] : [])
+          setUser({ userId: decoded.userId, roles, name: decoded.name })
+        } catch (err) {
+          console.error('Invalid token', err)
+          localStorage.removeItem('token')
+          setToken(null)
+          setUser(null)
+        }
+      }
     }
-  }, []);
+    setLoading(false)
+  }, [])
 
-  const login = (token: string) => {
-    localStorage.setItem("token", token);
-    const decodedUser: TUser = jwtDecode(token);
-    setUser(decodedUser);
-    setIsAuthenticated(true);
-    router.push("/dashboard");
-  };
+  const login = (newToken: string, userData: User) => {
+  localStorage.setItem('token', newToken)
+    localStorage.setItem('user', JSON.stringify(userData))
+    setToken(newToken)
+    setUser(userData)
+  }
 
   const logout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-    setIsAuthenticated(false);
-    router.push("/login");
-  };
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setToken(null)
+    setUser(null)
+  }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+    <QueryClientProvider client={queryClient}>
+      
+    <AuthContext.Provider
+      value={{ token, user, loading, login, logout }}
+      >
       {children}
     </AuthContext.Provider>
-  );
-};
+      </QueryClientProvider>
+  )
+}
 
-export const useAuthContext = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
-  }
-  return context;
-};
+export const useAuth = () => {
+  return useContext(AuthContext)
+}
+
 
 --- src/hooks/use-auth.ts ---
 
@@ -3692,14 +3608,15 @@ export default function VideoListPage() {
 
   // 2️⃣ Fetch teachers (for the Assign dialog)
   const { data: teachers = [] } = useGetAllTeachers();
-  
+ 
   // 3️⃣ Mutations
   const assignReviewer = useAssignReviewerMutation();
 
   const publishVideo = usePublishVideoMutation();
 
   return (
-    <Card className="my-8">
+   <div className="p-4">
+     <Card className="my-8">
       <CardHeader>
         <CardTitle>All Class Recordings</CardTitle>
         <CardDescription>
@@ -3829,6 +3746,7 @@ export default function VideoListPage() {
         {isFetching && <div className="text-center py-4">Loading…</div>}
       </CardContent>
     </Card>
+   </div>
   );
 }
 
@@ -3932,7 +3850,8 @@ export default function TeacherFeedbackList() {
   }
 
   return (
-    <Card className="my-8">
+    <div className="px-5">
+      <Card className="my-8">
       <CardHeader>
         <CardTitle>My Feedback</CardTitle>
         <CardDescription>All published reviews of your classes</CardDescription>
@@ -3964,8 +3883,10 @@ export default function TeacherFeedbackList() {
         </Table>
       </CardContent>
     </Card>
+    </div>
   );
 }
+
 
 
 ---src/app/dashboard/admin/videos/feedback/[videoId]/page.tsx  ---
@@ -3992,7 +3913,7 @@ export default function TeacherFeedbackDetail() {
   
   const { data: video, isPending, isError } = useGetVideoQuery(videoId);
 
-  
+ 
   const [comment, setComment] = useState(video?.teacherComment?.comment||"");
   useEffect(() => {
     if (video?.teacherComment?.comment) {
@@ -4017,7 +3938,8 @@ export default function TeacherFeedbackDetail() {
     );
   }
   return (
-    <Card className="my-8">
+   <div className="px-5">
+     <Card className="my-8">
       <CardHeader>
         <CardTitle>Review Feedback</CardTitle>
         <CardDescription>Your peer’s feedback & add your response</CardDescription>
@@ -4056,8 +3978,10 @@ export default function TeacherFeedbackDetail() {
         </Button>
       </CardContent>
     </Card>
+   </div>
   );
 }
+
 
 ---src/app/dashboard/admin/videos/reviewer/page.tsx  ---
 
@@ -4094,7 +4018,8 @@ export default function ReviewerDashboard() {
 
 
   return (
-    <Card className="my-8">
+    <div className="px-5">
+      <Card className="my-8">
       <CardHeader>
         <CardTitle>Pending Reviews</CardTitle>
         <CardDescription>Videos assigned to you for review</CardDescription>
@@ -4126,8 +4051,10 @@ export default function ReviewerDashboard() {
         </Table>
       </CardContent>
     </Card>
+    </div>
   );
 }
+
 
 ---src/app/dashboard/admin/videos/reviewer/[videoId]/page.tsx  ---
 
@@ -4179,7 +4106,8 @@ const handleSubmit = () => {
 
 
   return (
-    <Card className="my-8">
+   <div className="px-5">
+     <Card className="my-8">
       <CardHeader>
         <CardTitle>Review Class Recording</CardTitle>
         <CardDescription>Provide feedback in three areas</CardDescription>
@@ -4209,8 +4137,10 @@ const handleSubmit = () => {
         </Button>
       </CardContent>
     </Card>
+   </div>
   );
 }
+
 
 
 ---src/app/dashboard/admin/videos/upload-video/page.tsx  ---
@@ -4336,6 +4266,7 @@ const UploadVideoPage: React.FC = () => {
       } else {
         const videoUrl = `https://youtu.be/${ytData.id}`;
 
+        
         toast.success(`Video uploaded to youtube successfully.`)
         // save metadata to your backend
         await apiClient.post("/admin/videos", {
@@ -4385,91 +4316,120 @@ const UploadVideoPage: React.FC = () => {
         strategy="afterInteractive"
         onLoad={() => window.gapi.load("client", initGapiClient)}
       />
-
-      <Card className="max-w-xl mx-auto my-8">
+  <div className="px-4 py-8">
+     <Card className="max-w-xl w-full mx-auto">
         <CardHeader>
           <CardTitle>Upload Class Recording</CardTitle>
           <CardDescription>
             Choose metadata, upload to YouTube, then save the link.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Dropdowns */}
-          <Select onValueChange={setTeacherId} value={teacherId}>
-            <SelectTrigger><SelectValue placeholder="Select Teacher" /></SelectTrigger>
-            <SelectContent className="bg-amber-400">
-              {teachers.map(t => (
-                <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <CardContent className="space-y-6">
+            {/* dropdowns in 2-col grid on md+ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Select onValueChange={setTeacherId} value={teacherId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Teacher" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map((t) => (
+                    <SelectItem key={t._id} value={t._id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          <Select onValueChange={setClassId} value={classId}>
-            <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
-            <SelectContent className="bg-amber-400">
-              {classes.map(c => (
-                <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <Select onValueChange={setClassId} value={classId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          <Select onValueChange={setSectionId} value={sectionId}>
-            <SelectTrigger><SelectValue placeholder="Select Section" /></SelectTrigger>
-            <SelectContent className="bg-amber-400">
-              {sections.map(s => (
-                <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <Select onValueChange={setSectionId} value={sectionId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sections.map((s) => (
+                    <SelectItem key={s._id} value={s._id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          <Select onValueChange={setSubjectId} value={subjectId}>
-            <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
-            <SelectContent className="bg-amber-400">
-              {subjects.map(s => (
-                <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <Select onValueChange={setSubjectId} value={subjectId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select Subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((s) => (
+                    <SelectItem key={s._id} value={s._id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Calendar */}
-          <Calendar
-            mode="single"
-            selected={date}
-            onSelect={(d) => setDate(d || undefined)}
-          />
+            {/* calendar centered on small screens */}
+            <div className="flex justify-center">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(d) => setDate(d || undefined)}
+              />
+            </div>
 
-          {/* File input */}
-          <Input
-            type="file"
-            accept="video/*"
-            onChange={e => setFile(e.target.files?.[0] || null)}
-          />
+            {/* file input */}
+            <Input
+              type="file"
+              accept="video/*"
+              className="w-full"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
 
-          {/* Auth / Upload controls */}
-          {!isSignedIn ? (
-            <Button onClick={handleAuthClick}>Authorize YouTube</Button>
-          ) : (
-            <Button
-              variant="destructive"
-              onClick={handleSignout}
-            >
-              Sign out of YouTube
-            </Button>
-          )}
+            {/* action buttons */}
+            <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
+              {!isSignedIn ? (
+                <Button onClick={handleAuthClick} className="w-full sm:w-auto">
+                  Authorize YouTube
+                </Button>
+              ) : (
+                <Button
+                  variant="destructive"
+                  onClick={handleSignout}
+                  className="w-full sm:w-auto"
+                >
+                  Sign out of YouTube
+                </Button>
+              )}
 
-          <Button
-            onClick={handleUpload}
-            disabled={!allSelected || isUploading}
-          >
-            {isUploading ? "Uploading…" : "Upload & Save"}
-          </Button>
-        </CardContent>
+              <Button
+                onClick={handleUpload}
+                disabled={!allSelected || isUploading}
+                className="w-full sm:w-auto"
+              >
+                {isUploading ? "Uploading…" : "Upload & Save"}
+              </Button>
+            </div>
+          </CardContent>
       </Card>
+      </div>
     </>
   );
 };
 
 export default UploadVideoPage;
+
 
 ---src/hooks/use-video.ts  ---
 

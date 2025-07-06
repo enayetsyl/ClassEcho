@@ -31,7 +31,8 @@ export default function ReviewerDashboard() {
 
 
   return (
-    <Card className="my-8">
+    <div className="px-5">
+      <Card className="my-8">
       <CardHeader>
         <CardTitle>Pending Reviews</CardTitle>
         <CardDescription>Videos assigned to you for review</CardDescription>
@@ -63,5 +64,6 @@ export default function ReviewerDashboard() {
         </Table>
       </CardContent>
     </Card>
+    </div>
   );
 }

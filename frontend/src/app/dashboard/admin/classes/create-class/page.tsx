@@ -31,7 +31,7 @@ const CreateClassPage = () => {
     <div className="flex justify-center items-center h-screen">
       <div className="w-full max-w-md">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-5">
             <FormField
               control={form.control}
               name="name"

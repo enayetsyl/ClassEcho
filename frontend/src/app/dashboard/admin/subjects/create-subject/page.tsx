@@ -40,7 +40,7 @@ const CreateSubjectPage = () => {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-6"
+            className="space-y-6 px-5"
           >
             <FormField
               control={form.control}

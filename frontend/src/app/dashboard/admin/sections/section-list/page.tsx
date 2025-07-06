@@ -35,6 +35,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ISection } from "@/types/section.types";
+import Link from "next/link";
 
 const formSchema = z.object({
   name: z.string().min(1, "Section name cannot be empty"),
@@ -77,10 +78,16 @@ export default function SectionListPage() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Manage Sections</h1>
+     <div className="p-4 space-y-6">
+       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 className="text-2xl font-semibold">Manage Classes</h1>
+        <Link href="/dashboard/admin/sections/create-section">
+          <Button className="w-full md:w-auto">Add Section</Button>
+        </Link>
+      </div>
 
-      <Table className="max-w-5xl">
+      <div className="overflow-x-auto">
+           <Table className="min-w-[480px]">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -115,7 +122,7 @@ export default function SectionListPage() {
           ))}
         </TableBody>
       </Table>
-
+</div>
       <Dialog
         open={isEditOpen}
         onOpenChange={(open) => open || closeDialog()}

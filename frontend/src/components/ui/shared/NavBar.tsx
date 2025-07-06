@@ -1,38 +1,116 @@
-// src/components/NavBar.tsx
 'use client'
 
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
 import { useLogout } from '@/hooks/use-auth'
+import { Button } from '@/components/ui/button'
+import { usePathname } from 'next/navigation'
+import { Sheet, SheetTrigger, SheetContent } from '@/components/ui/sheet'
+import { Menu } from 'lucide-react'
+
+interface NavItem {
+  href: string
+  label: string
+  roles: string[]
+}
 
 export function NavBar() {
   const { user } = useAuth()
   const { mutate: logout, isPending } = useLogout()
+  const pathname = usePathname()
 
-  const handleLogout = () => {
-    logout()
-  }
+  // Simplest roles extraction
+  const roles = user?.roles ?? []
+
+  const dashboardItems: NavItem[] = [
+    { href: '/dashboard/admin/classes/class-list', label: 'Class List', roles: ['SeniorAdmin','Management'] },
+    { href: '/dashboard/admin/sections/section-list', label: 'Sections',    roles: ['SeniorAdmin','Management'] },
+    { href: '/dashboard/admin/subjects/subject-list', label: 'Subjects',   roles: ['SeniorAdmin','Management'] },
+    { href: '/dashboard/admin/teachers/teacher-list', label: 'Teachers',   roles: ['SeniorAdmin','Management'] },
+    { href: '/dashboard/admin/videos',          label: 'All Videos',    roles: ['SeniorAdmin','Management','Admin'] },
+    { href: '/dashboard/admin/videos/upload-video', label: 'Upload Video', roles: ['SeniorAdmin','Management','Admin'] },
+    { href: '/dashboard/admin/videos/feedback',     label: 'My Feedback',  roles: ['Teacher','SeniorAdmin','Management'] },
+    { href: '/dashboard/admin/videos/reviewer',     label: 'To Review',    roles: ['Teacher','SeniorAdmin','Management'] },
+  ]
+
+  const allowedItems = dashboardItems.filter(item =>
+    item.roles.some(role => roles.includes(role))
+  )
 
   return (
-    <nav className="flex justify-between p-4 bg-gray-100">
-      <div className="space-x-4">
-        <Link href="/">Home</Link>
-        {user && <Link href="/dashboard">Dashboard</Link>}
+    <nav className="flex items-center justify-between p-4 bg-gray-100">
+      <div className="flex items-center space-x-4">
+  
+
+        {user && (
+          <>
+            {/* Desktop-only */}
+            <div className="hidden md:flex space-x-2">
+              <Link href="/dashboard/profile">
+                <Button variant={pathname === '/dashboard' ? 'default' : 'outline'}>
+                  Profile
+                </Button>
+              </Link>
+              {allowedItems.map(item => (
+                <Link href={item.href} key={item.href}>
+                  <Button variant={pathname.startsWith(item.href) ? 'default' : 'outline'}>
+                    {item.label}
+                  </Button>
+                </Link>
+              ))}
+            </div>
+
+            {/* Mobile-only */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="md:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-4 bg-green-500">
+                <div className="flex flex-col space-y-4">
+                  <Link href="/dashboard/profile">
+                    <Button
+                      variant={pathname === '/dashboard' ? 'default' : 'outline'}
+                      className="w-full text-left"
+                    >
+                      Profile
+                    </Button>
+                  </Link>
+                  {allowedItems.map(item => (
+                    <Link href={item.href} key={item.href}>
+                      <Button
+                        variant={pathname.startsWith(item.href) ? 'default' : 'outline'}
+                        className="w-full text-left"
+                      >
+                        {item.label}
+                      </Button>
+                    </Link>
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </>
+        )}
       </div>
-      <div>
+
+      <div className="flex items-center space-x-4">
         {user ? (
           <>
-            <span className="mr-4">Hello, {user.userId}</span>
-            <button
-              onClick={handleLogout}
+            <span className="hidden sm:inline">Hello, {user.name}</span>
+            <Button
+              variant="link"
+              onClick={() => logout()}
               disabled={isPending}
-              className="underline"
             >
               {isPending ? 'Logging out…' : 'Logout'}
-            </button>
+            </Button>
           </>
         ) : (
-          <Link href="/login">Login</Link>
+          <Link href="/login">
+            <Button variant="ghost">Login</Button>
+          </Link>
         )}
       </div>
     </nav>

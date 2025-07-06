@@ -18,6 +18,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { IClass } from "@/types/class.types";
+import Link from "next/link";
 
 const formSchema = z.object({
   name: z.string().min(1, "Class name cannot be empty"),
@@ -68,10 +69,16 @@ export default function ClassListPage() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Manage Classes</h1>
+     <div className="p-4 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 className="text-2xl font-semibold">Manage Classes</h1>
+        <Link href="/dashboard/admin/classes/create-class">
+          <Button className="w-full md:w-auto">Add Class</Button>
+        </Link>
+      </div>
 
-      <Table className="max-w-5xl">
+ <div className="overflow-x-auto">
+      <Table className="min-w-[480px]">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -109,7 +116,7 @@ export default function ClassListPage() {
           ))}
         </TableBody>
       </Table>
-
+</div>
       {/* Edit Modal */}
       <Dialog open={isEditOpen} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent className="sm:max-w-sm">

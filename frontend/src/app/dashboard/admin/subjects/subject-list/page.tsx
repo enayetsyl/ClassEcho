@@ -35,6 +35,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { ISubject } from "@/types/subject.types";
+import Link from "next/link";
 
 const formSchema = z.object({
   name: z.string().min(1, "Subject name cannot be empty"),
@@ -77,10 +78,16 @@ export default function SubjectListPage() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Manage Subjects</h1>
+    <div className="space-y-4 p-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h1 className="text-2xl font-semibold">Manage Subjects</h1>
+        <Link href="/dashboard/admin/subjects/create-subject">
+          <Button className="w-full md:w-auto">Add Subject</Button>
+        </Link>
+      </div>
 
-      <Table className="max-w-5xl">
+      <div className="overflow-x-auto">
+            <Table className="min-w-[480px]">
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -115,7 +122,7 @@ export default function SubjectListPage() {
           ))}
         </TableBody>
       </Table>
-
+</div>
       <Dialog
         open={isEditOpen}
         onOpenChange={(open) => open || closeDialog()}

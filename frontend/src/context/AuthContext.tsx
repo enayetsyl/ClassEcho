@@ -11,6 +11,7 @@ import {jwtDecode} from 'jwt-decode'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 interface DecodedToken {
+  name: string
   userId: string
   role?: string
   roles?: string[]
@@ -19,6 +20,7 @@ interface DecodedToken {
 }
 
 interface User {
+  name: string
   userId: string
   roles: string[]
 }
@@ -44,35 +46,48 @@ const queryClient = new QueryClient()
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
+
   const [loading, setLoading] = useState<boolean>(true)
 
-  useEffect(() => {
+ useEffect(() => {
     const storedToken = localStorage.getItem('token')
+    const storedUser = localStorage.getItem('user')
     if (storedToken) {
       setToken(storedToken)
-      try {
-        const decoded = jwtDecode<DecodedToken>(storedToken)
-        const roles = decoded.roles
-          ?? (decoded.role ? [decoded.role] : [])
-        setUser({ userId: decoded.userId, roles })
-      } catch (err) {
-        console.error('Invalid token', err)
-        localStorage.removeItem('token')
-        setToken(null)
-        setUser(null)
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser))
+        } catch (err) {
+          console.error('Failed to parse stored user', err)
+          localStorage.removeItem('user')
+          setUser(null)
+        }
+      } else {
+        try {
+          const decoded = jwtDecode<DecodedToken>(storedToken)
+          const roles = decoded.roles ?? (decoded.role ? [decoded.role] : [])
+          setUser({ userId: decoded.userId, roles, name: decoded.name })
+        } catch (err) {
+          console.error('Invalid token', err)
+          localStorage.removeItem('token')
+          setToken(null)
+          setUser(null)
+        }
       }
     }
     setLoading(false)
   }, [])
 
   const login = (newToken: string, userData: User) => {
-    localStorage.setItem('token', newToken)
+  localStorage.setItem('token', newToken)
+    localStorage.setItem('user', JSON.stringify(userData))
     setToken(newToken)
     setUser(userData)
   }
 
   const logout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('user')
     setToken(null)
     setUser(null)
   }

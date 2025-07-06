@@ -15,6 +15,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -35,7 +36,8 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="max-w-md mx-auto mt-20">
+    <div className='px-5'>
+      <Card className="max-w-md mx-auto mt-20">
       <CardHeader>
         <CardTitle>Sign In</CardTitle>
         <CardDescription>
@@ -76,6 +78,12 @@ export default function LoginPage() {
             />
           </div>
 
+          <div className="text-sm text-right">
+            <Link href="/forgot-password" className="text-primary hover:underline">
+              Forgot Password?
+            </Link>
+          </div>
+
           <CardFooter className="p-0">
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? 'Signing in…' : 'Sign In'}
@@ -84,5 +92,6 @@ export default function LoginPage() {
         </form>
       </CardContent>
     </Card>
+    </div>
   )
 }

@@ -17,8 +17,10 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/route/ProtectedRoute'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 export default function ChangePasswordPage() {
+  const router = useRouter()
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const { mutate, isPending } = useChangePassword()
@@ -28,7 +30,10 @@ export default function ChangePasswordPage() {
     mutate(
       { oldPassword, newPassword },
       {
-        onSuccess: () => toast.success('Password changed'),
+        onSuccess: () => {
+          toast.success('Password changed');
+          router.push('/dashboard/profile');
+        },
         onError: (err: Error) => toast.error(err.message),
       }
     )

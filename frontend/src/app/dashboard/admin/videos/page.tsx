@@ -71,7 +71,8 @@ export default function VideoListPage() {
   const publishVideo = usePublishVideoMutation();
 
   return (
-    <Card className="my-8">
+   <div className="p-4">
+     <Card className="my-8">
       <CardHeader>
         <CardTitle>All Class Recordings</CardTitle>
         <CardDescription>
@@ -201,5 +202,6 @@ export default function VideoListPage() {
         {isFetching && <div className="text-center py-4">Loading…</div>}
       </CardContent>
     </Card>
+   </div>
   );
 }
