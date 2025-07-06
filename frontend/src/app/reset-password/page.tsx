@@ -2,7 +2,7 @@
 
 'use client'
 
-import { FormEvent, useState, useEffect } from 'react'
+import { FormEvent, useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useResetPassword } from '@/hooks/use-auth'
 import {
@@ -17,8 +17,17 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+export const dynamic = 'force-dynamic';
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center p-4">Loading...</div>}>
+      <ResetPasswordContent />
+    </Suspense>
+  );
+}
+
+ function ResetPasswordContent() {
   const params = useSearchParams()
   const token = params.get('token') || ''
   const router = useRouter()
