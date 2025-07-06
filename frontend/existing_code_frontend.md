@@ -139,7 +139,7 @@ import { TClass } from "@/types/class.types";
 
 const ClassList = () => {
   const { data, isLoading } = useClass();
-  console.log("🚀 ~ ClassList ~ data:", data);
+  
 
   return (
     <Card>
@@ -3622,4 +3622,1234 @@ export type TCreateTeacher = {
 export type TUpdateProfile = {
   name?: string;
   email?: string;
+}
+
+---src/app/dashboard/admin/videos/page.tsx  ---
+
+// src/app/dashboard/admin/videos/page.tsx
+"use client";
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  useGetAllVideosQuery,
+  useAssignReviewerMutation,
+  usePublishVideoMutation,
+} from "@/hooks/use-video";
+import { useGetAllTeachers } from "@/hooks/use-user";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+export default function VideoListPage() {
+  const router = useRouter();
+
+  type FilterStatus =
+    | "all"
+    | "unassigned"
+    | "assigned"
+    | "reviewed"
+    | "published";
+  const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
+  const [dialogVideoId, setDialogVideoId] = useState<string | null>(null);
+  const [selectedReviewer, setSelectedReviewer] = useState<string>("");
+
+  // 1️⃣ Fetch videos (automatically typed)
+  const params =
+    statusFilter === "all"
+      ? {}
+      : ({ status: statusFilter } as { status: Exclude<FilterStatus, "all"> });
+
+  const { data: videos = [], isFetching } = useGetAllVideosQuery(params);
+
+  // 2️⃣ Fetch teachers (for the Assign dialog)
+  const { data: teachers = [] } = useGetAllTeachers();
+  
+  // 3️⃣ Mutations
+  const assignReviewer = useAssignReviewerMutation();
+
+  const publishVideo = usePublishVideoMutation();
+
+  return (
+    <Card className="my-8">
+      <CardHeader>
+        <CardTitle>All Class Recordings</CardTitle>
+        <CardDescription>
+          Filter, assign reviewers, and publish feedback.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {/* Filter bar */}
+        <div className="flex items-center space-x-4 mb-4">
+          <Select
+            value={statusFilter}
+            onValueChange={(val: string) =>
+              setStatusFilter(val as FilterStatus)
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Filter Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              <SelectItem value="assigned">Assigned</SelectItem>
+              <SelectItem value="reviewed">Reviewed</SelectItem>
+              <SelectItem value="published">Published</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={() => {
+              /* React-Query refetch happens automatically on statusFilter change */
+            }}
+          >
+            Refresh
+          </Button>
+        </div>
+
+        {/* Table */}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Class</TableHead>
+              <TableHead>Teacher</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Reviewer</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {videos.map((v) => (
+              <TableRow key={v._id}>
+                <TableCell>{v.class.name}</TableCell>
+                <TableCell>{v.teacher.name}</TableCell>
+                <TableCell>{new Date(v.date).toLocaleDateString()}</TableCell>
+                <TableCell>{v.status}</TableCell>
+                <TableCell>{v?.assignedReviewer?.name ?? "—"}</TableCell>
+                <TableCell className="text-right space-x-2">
+                  {/* Assign Reviewer */}
+                  {v.status === "unassigned" && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button size="sm">Assign</Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Assign Reviewer</DialogTitle>
+                        </DialogHeader>
+                        <div className="py-4">
+                          <Select
+                          value={dialogVideoId === v._id ? selectedReviewer : ""}
+                            onValueChange={setSelectedReviewer}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Reviewer" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white">
+                              {teachers.map((t) => (
+                                <SelectItem key={t._id} value={t._id}>
+                                  {t.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            onClick={() =>
+                              assignReviewer.mutate(
+                                { id: v._id!, reviewerId: selectedReviewer },
+                                { onSuccess: () => setDialogVideoId(null) }
+                              )
+                            }
+                            disabled={!selectedReviewer || assignReviewer.isPending}
+                          >
+                            {assignReviewer.isPending ? "Assigning…" : "Assign"}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+
+                  {/* Publish Video */}
+                  {v.status === "reviewed" && (
+                    <Button
+                      size="sm"
+                      onClick={() => publishVideo.mutate(v._id!)}
+                      disabled={publishVideo.isPending}
+                    >
+                      {publishVideo.isPending ? "Publishing…" : "Publish"}
+                    </Button>
+                  )}
+
+                  {/* View Details */}
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      router.push(`/dashboard/admin/videos/${v._id}`)
+                    }
+                  >
+                    View
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+
+        {isFetching && <div className="text-center py-4">Loading…</div>}
+      </CardContent>
+    </Card>
+  );
+}
+
+
+---src/app/dashboard/admin/videos/[videoId]/page.tsx  ---
+
+"use client";
+
+import React from "react";
+import { useRouter, useParams } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useGetVideoQuery } from "@/hooks/use-video";
+
+export default function VideoDetailPage() {
+const router = useRouter();
+  const params = useParams();
+
+  // normalize ParamValue (string | string[] | undefined) → string | undefined
+  const rawId = params.videoId;
+  const videoId = Array.isArray(rawId) ? rawId[0] : rawId;
+
+  // now videoId is `string | undefined`, matching your hook signature
+  const { data: video, isLoading } = useGetVideoQuery(videoId);
+
+ 
+  if (isLoading) return <div>Loading…</div>;
+  if (!videoId)  return <div className="text-center py-8">Invalid ID.</div>;
+  if (!video)    return <div className="text-center py-8">Video not found.</div>;
+
+  return (
+    <Card className="my-8">
+      <CardHeader>
+        <CardTitle>Video Detail</CardTitle>
+        <CardDescription>View metadata, embedded video, and status.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <iframe
+          className="w-full aspect-video"
+          src={video.youtubeUrl.replace("youtu.be","www.youtube.com/embed")}
+          allowFullScreen
+        />
+        <div><strong>Class:</strong> {video.class.name}</div>
+        <div><strong>Teacher:</strong> {video.teacher.name}</div>
+        <div><strong>Date:</strong> {new Date(video.date).toLocaleDateString()}</div>
+        <div><strong>Status:</strong> {video.status}</div>
+        {video.review && (
+          <>
+            <h3 className="font-semibold">Reviewer Feedback:</h3>
+            <p><strong>Class Mgmt:</strong> {video.review.classManagement}</p>
+            <p><strong>Subject Knowledge:</strong> {video.review.subjectKnowledge}</p>
+            <p><strong>Other:</strong> {video.review.otherComments}</p>
+          </>
+        )}
+        {video.teacherComment && (
+          <>
+            <h3 className="font-semibold">Teacher Comment:</h3>
+            <p>{video.teacherComment.comment}</p>
+          </>
+        )}
+        <Button onClick={() => router.back()}>Back</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+
+---src/app/dashboard/admin/videos/feedback/page.tsx  ---
+
+"use client";
+
+import React from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { useGetTeacherFeedbackQuery } from "@/hooks/use-video";
+
+export default function TeacherFeedbackList() {
+  const router = useRouter();
+    const {
+    data: videos = [],
+    isLoading,
+    isError,
+  } = useGetTeacherFeedbackQuery();
+
+  if (isLoading) {
+    return (
+      <Card className="my-8">
+        <CardContent>Loading feedback…</CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card className="my-8">
+        <CardContent>Failed to load feedback.</CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="my-8">
+      <CardHeader>
+        <CardTitle>My Feedback</CardTitle>
+        <CardDescription>All published reviews of your classes</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Class</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Reviewer</TableHead>
+              <TableHead className="text-right">Details</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {videos.map(v => (
+              <TableRow key={v._id}>
+                <TableCell>{v.class.name}</TableCell>
+                <TableCell>{new Date(v.date).toLocaleDateString()}</TableCell>
+                <TableCell>{v.assignedReviewer?.name}</TableCell>
+                <TableCell className="text-right">
+                  <Button size="sm" onClick={() => router.push(`/dashboard/admin/videos/feedback/${v._id}`)}>
+                    View
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+
+---src/app/dashboard/admin/videos/feedback/[videoId]/page.tsx  ---
+
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useAddTeacherCommentMutation, useGetVideoQuery } from "@/hooks/use-video";
+
+export default function TeacherFeedbackDetail() {
+    const { videoId: rawVideoId } = useParams();
+  // 1️⃣ Normalize videoId into a string | undefined
+  const videoId = Array.isArray(rawVideoId) ? rawVideoId[0] : rawVideoId
+
+   const router = useRouter();
+  const qc = useQueryClient();
+
+  
+  const { data: video, isPending, isError } = useGetVideoQuery(videoId);
+
+  
+  const [comment, setComment] = useState(video?.teacherComment?.comment||"");
+  useEffect(() => {
+    if (video?.teacherComment?.comment) {
+      setComment(video.teacherComment.comment);
+    }
+  }, [video]);
+   const addComment = useAddTeacherCommentMutation();
+
+  if (isPending) {
+    return (
+      <Card className="my-8">
+        <CardContent>Loading feedback…</CardContent>
+      </Card>
+    );
+  }
+
+  if (isError || !video) {
+    return (
+      <Card className="my-8">
+        <CardContent>Failed to load feedback.</CardContent>
+      </Card>
+    );
+  }
+  return (
+    <Card className="my-8">
+      <CardHeader>
+        <CardTitle>Review Feedback</CardTitle>
+        <CardDescription>Your peer’s feedback & add your response</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <iframe
+          className="w-full aspect-video"
+          src={video.youtubeUrl.replace("youtu.be","www.youtube.com/embed")}
+          allowFullScreen
+        />
+        <h3 className="font-semibold">Peer Feedback</h3>
+        <p className="whitespace-pre-wrap" ><strong>Class Mgmt:</strong> {video.review?.classManagement}</p>
+        <p className="whitespace-pre-wrap"><strong>Subject Knowledge:</strong> {video.review?.subjectKnowledge}</p>
+        <p className="whitespace-pre-wrap"><strong>Other:</strong> {video.review?.otherComments}</p>
+
+        <h3 className="font-semibold">Your Comment</h3>
+        <Textarea value={comment} onChange={(e) => setComment(e.target.value)} />
+          <Button
+          onClick={() =>
+            addComment.mutate(
+              { id: videoId!, data: { comment } },
+              {
+                onSuccess: () => {
+                 
+                  qc.invalidateQueries({ queryKey: ["video", videoId] });
+                  router.back();
+                },
+              }
+            )
+          }
+        >
+          {addComment.isPending ? "Saving…" : "Save Comment"}
+        </Button>
+          <Button variant="ghost" onClick={() => router.back()}>
+          Back
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+---src/app/dashboard/admin/videos/reviewer/page.tsx  ---
+
+"use client";
+
+import React from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {  useGetAssignedVideosQuery } from "@/hooks/use-video";
+
+export default function ReviewerDashboard() {
+  const router = useRouter();
+  // 1️⃣ Use the hook with params for pending reviews
+ const { data: videos = [], isLoading, isError } = useGetAssignedVideosQuery();
+
+
+  if (isLoading) {
+    return (
+      <Card className="my-8">
+        <CardContent>Loading pending reviews…</CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card className="my-8">
+        <CardContent>Failed to load pending reviews.</CardContent>
+      </Card>
+    );
+  }
+
+
+  return (
+    <Card className="my-8">
+      <CardHeader>
+        <CardTitle>Pending Reviews</CardTitle>
+        <CardDescription>Videos assigned to you for review</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Class</TableHead>
+              <TableHead>Teacher</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {videos.map(v => (
+              <TableRow key={v._id}>
+                <TableCell>{v.class.name}</TableCell>
+                <TableCell>{v.teacher.name}</TableCell>
+                <TableCell>{new Date(v.date).toLocaleDateString()}</TableCell>
+                <TableCell className="text-right">
+                  <Button size="sm" onClick={() => router.push(`/dashboard/admin/videos/reviewer/${v._id}`)}>
+                    Review Now
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+---src/app/dashboard/admin/videos/reviewer/[videoId]/page.tsx  ---
+
+"use client";
+
+import React, { useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import {  useQueryClient } from "@tanstack/react-query";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea"; // assume you have this or use Input
+import { useGetVideoQuery, useSubmitReviewMutation } from "@/hooks/use-video";
+
+export default function ReviewPage() {
+   const params = useParams();
+  const router = useRouter();
+  const qc = useQueryClient();
+
+   const rawId = params.videoId;
+     const videoId = Array.isArray(rawId) ? rawId[0] : rawId;
+
+  const { data: video } = useGetVideoQuery(videoId!);
+
+  const { mutate: submitReview, isPending } = useSubmitReviewMutation();
+
+  const [classMg, setClassMg] = useState("");
+  const [subKnow, setSubKnow] = useState("");
+  const [other, setOther] = useState("");
+
+const handleSubmit = () => {
+    submitReview(
+      {
+        id: videoId!,
+        data: {
+          classManagement: classMg,
+          subjectKnowledge: subKnow,
+          otherComments: other,
+        },
+      },
+      {
+        onSuccess: () => {
+          // ─── 2. Invalidate using the object form ───────────────────────────────
+          qc.invalidateQueries({ queryKey: ["pendingReviews"] });
+          router.push("/dashboard/admin/videos/reviewer");
+        },
+      }
+    );
+  };
+
+
+  return (
+    <Card className="my-8">
+      <CardHeader>
+        <CardTitle>Review Class Recording</CardTitle>
+        <CardDescription>Provide feedback in three areas</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <iframe
+          className="w-full aspect-video"
+          src={video?.youtubeUrl.replace("youtu.be","www.youtube.com/embed")}
+          allowFullScreen
+        />
+        <div>
+          <label className="block font-semibold">Class Management</label>
+          <Textarea value={classMg} onChange={e=>setClassMg(e.target.value)} />
+        </div>
+        <div>
+          <label className="block font-semibold">Subject Knowledge</label>
+          <Textarea value={subKnow} onChange={e=>setSubKnow(e.target.value)} />
+        </div>
+        <div>
+          <label className="block font-semibold">Other Comments</label>
+          <Textarea value={other} onChange={e=>setOther(e.target.value)} />
+        </div>
+       <Button 
+       variant="default"
+       onClick={handleSubmit} disabled={isPending}>
+          {isPending ? "Submitting…" : "Submit Feedback"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+
+---src/app/dashboard/admin/videos/upload-video/page.tsx  ---
+
+// src/app/dashboard/admin/upload-video/page.tsx
+"use client";
+
+import React, { useState, useRef } from "react";
+import Script from "next/script";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import apiClient from "@/lib/api-client";
+import { useGetAllTeachers } from "@/hooks/use-user";
+import { useGetAllClassesQuery } from "@/hooks/use-class";
+import { useGetAllSectionsQuery } from "@/hooks/use-section";
+import { useGetAllSubjectsQuery } from "@/hooks/use-subject";
+import { TokenClient } from "@/types/google-client";
+
+
+const UploadVideoPage: React.FC = () => {
+  // form state
+  const [teacherId, setTeacherId] = useState<string>("");
+  const [classId, setClassId]     = useState<string>("");
+  const [sectionId, setSectionId] = useState<string>("");
+  const [subjectId, setSubjectId] = useState<string>("");
+  const [date, setDate]           = useState<Date | undefined>();
+  const [file, setFile]           = useState<File | null>(null);
+
+  // Google OAuth & upload state
+  const [isSignedIn, setIsSignedIn]   = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const tokenClientRef = useRef<TokenClient | null>(null);
+
+  // fetch dropdown options
+   const { data: teachers = [] } = useGetAllTeachers();
+  const { data: classes  = [] } = useGetAllClassesQuery();
+  const { data: sections = [] } = useGetAllSectionsQuery();
+  const { data: subjects = [] } = useGetAllSubjectsQuery();
+
+
+  // init gapi.client & GIS token
+  const initGapiClient = () => {
+    window.gapi.client
+      .init({
+        apiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY,
+        discoveryDocs: [
+          "https://www.googleapis.com/discovery/v1/apis/youtube/v3/rest"
+        ]
+      })
+      .then(() => {
+        tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+          scope: "https://www.googleapis.com/auth/youtube.upload",
+          callback: (resp) => {
+            if (resp.error) {
+              console.error("Token error", resp);
+              return;
+            }
+            window.gapi.client.setToken({ access_token: resp.access_token });
+            setIsSignedIn(true);
+          }
+        });
+      })
+      .catch((err) => console.error("gapi.client.init failed:", err));
+  };
+
+  const handleAuthClick = () => {
+    if (tokenClientRef.current) {
+      tokenClientRef.current.requestAccessToken({ prompt: "" });
+    }
+  };
+
+  const handleSignout = () => {
+    const token = window.gapi.client.getToken()?.access_token;
+    if (token) {
+      window.google.accounts.oauth2.revoke(token, () => {
+        window.gapi.client.setToken(null);
+        setIsSignedIn(false);
+        setFile(null);
+      });
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    setIsUploading(true);
+
+    // build YouTube metadata
+    const metadata = {
+      snippet: { title: file.name, description: "Uploaded via Class Review App" },
+      status: { privacyStatus: "unlisted", selfDeclaredMadeForKids: false }
+    };
+
+    const formData = new FormData();
+    formData.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+    formData.append("file", file);
+
+    const tokenRes = window.gapi.client.getToken();
+  if (!tokenRes?.access_token) {
+    toast.error("You must authorize YouTube before uploading");
+    setIsUploading(false);
+    return;
+  }
+  const accessToken = tokenRes.access_token;
+
+    try {
+      const ytRes = await fetch(
+        "https://www.googleapis.com/upload/youtube/v3/videos?part=snippet,status&uploadType=multipart",
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: formData
+        }
+      );
+      const ytData = await ytRes.json();
+      if (!ytRes.ok) {
+        console.error("YouTube upload error", ytData);
+        toast.error("YouTube upload failed");
+      } else {
+        const videoUrl = `https://youtu.be/${ytData.id}`;
+
+        toast.success(`Video uploaded to youtube successfully.`)
+        // save metadata to your backend
+        await apiClient.post("/admin/videos", {
+          teacherId,
+          classId,
+          sectionId,
+          subjectId,
+          date: date?.toISOString(),
+          videoUrl
+        });
+
+        toast.success("Video uploaded and saved!");
+        // reset form
+        setFile(null);
+        setTeacherId("");
+        setClassId("");
+        setSectionId("");
+        setSubjectId("");
+        setDate(undefined);
+      }
+    } catch (err) {
+      console.error("Upload error", err);
+      toast.error("Upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const allSelected =
+    isSignedIn &&
+    file &&
+    teacherId &&
+    classId &&
+    sectionId &&
+    subjectId &&
+    date;
+
+  return (
+    <>
+      {/* Load Google scripts */}
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+      />
+      <Script
+        src="https://apis.google.com/js/api.js"
+        strategy="afterInteractive"
+        onLoad={() => window.gapi.load("client", initGapiClient)}
+      />
+
+      <Card className="max-w-xl mx-auto my-8">
+        <CardHeader>
+          <CardTitle>Upload Class Recording</CardTitle>
+          <CardDescription>
+            Choose metadata, upload to YouTube, then save the link.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Dropdowns */}
+          <Select onValueChange={setTeacherId} value={teacherId}>
+            <SelectTrigger><SelectValue placeholder="Select Teacher" /></SelectTrigger>
+            <SelectContent className="bg-amber-400">
+              {teachers.map(t => (
+                <SelectItem key={t._id} value={t._id}>{t.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select onValueChange={setClassId} value={classId}>
+            <SelectTrigger><SelectValue placeholder="Select Class" /></SelectTrigger>
+            <SelectContent className="bg-amber-400">
+              {classes.map(c => (
+                <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select onValueChange={setSectionId} value={sectionId}>
+            <SelectTrigger><SelectValue placeholder="Select Section" /></SelectTrigger>
+            <SelectContent className="bg-amber-400">
+              {sections.map(s => (
+                <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select onValueChange={setSubjectId} value={subjectId}>
+            <SelectTrigger><SelectValue placeholder="Select Subject" /></SelectTrigger>
+            <SelectContent className="bg-amber-400">
+              {subjects.map(s => (
+                <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Calendar */}
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={(d) => setDate(d || undefined)}
+          />
+
+          {/* File input */}
+          <Input
+            type="file"
+            accept="video/*"
+            onChange={e => setFile(e.target.files?.[0] || null)}
+          />
+
+          {/* Auth / Upload controls */}
+          {!isSignedIn ? (
+            <Button onClick={handleAuthClick}>Authorize YouTube</Button>
+          ) : (
+            <Button
+              variant="destructive"
+              onClick={handleSignout}
+            >
+              Sign out of YouTube
+            </Button>
+          )}
+
+          <Button
+            onClick={handleUpload}
+            disabled={!allSelected || isUploading}
+          >
+            {isUploading ? "Uploading…" : "Upload & Save"}
+          </Button>
+        </CardContent>
+      </Card>
+    </>
+  );
 };
+
+export default UploadVideoPage;
+
+---src/hooks/use-video.ts  ---
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { AxiosError } from "axios";
+import { IGenericErrorResponse } from "@/types/error.types";
+import {
+  TVideo,
+  TCreateVideoPayload,
+  TListVideosParams,
+  TAssignReviewerPayload,
+  TSubmitReviewPayload,
+  TTeacherCommentPayload,
+} from "@/types/video.types";
+import * as videoService from "@/services/video.service";
+
+/** 1️⃣ Fetch all videos (with optional filters) */
+export const useGetAllVideosQuery = (params?: TListVideosParams) =>
+  useQuery<TVideo[], Error>({
+    queryKey: ["videos", params],
+    queryFn: () => videoService.getAllVideos(params),
+  });
+
+export const useGetAssignedVideosQuery = () =>
+  useQuery<TVideo[], Error>({
+    queryKey: ['videos', 'assigned'],
+    queryFn: videoService.getAssignedVideos,
+  });
+
+/** 2️⃣ Fetch single video detail */
+export const useGetVideoQuery = (id?: string) =>
+  useQuery<TVideo, Error>({
+    queryKey: ["video", id],
+    queryFn: () => videoService.getVideo(id!),
+    enabled: Boolean(id),
+  });
+
+/** 3️⃣ Create (save) a new video record */
+export const useCreateVideoMutation = () => {
+  const qc = useQueryClient();
+  return useMutation<TVideo, AxiosError<IGenericErrorResponse>, TCreateVideoPayload>({
+    mutationFn: (payload) => videoService.createVideo(payload),
+    onSuccess: () => {
+      toast.success("Video created successfully");
+      qc.invalidateQueries({ queryKey: ["videos"] });
+    },
+    onError: (err) => {
+      const msg = err.response?.data.message ?? "Failed to create video";
+      toast.error(msg);
+    },
+  });
+};
+
+/** 4️⃣ Assign or reassign a reviewer */
+export const useAssignReviewerMutation = () => {
+  const qc = useQueryClient();
+  return useMutation<
+    TVideo,
+    AxiosError<IGenericErrorResponse>,
+    TAssignReviewerPayload
+  >({
+    mutationFn: (payload) => videoService.assignReviewer(payload),
+    onSuccess: () => {
+      toast.success("Reviewer assigned successfully");
+      qc.invalidateQueries({ queryKey: ["videos"] });
+    },
+    onError: (err) => {
+      const msg = err.response?.data.message ?? "Failed to assign reviewer";
+      toast.error(msg);
+    },
+  });
+};
+
+/** 5️⃣ Submit peer-review feedback */
+export const useSubmitReviewMutation = () => {
+  const qc = useQueryClient();
+  return useMutation<
+    TVideo,
+    AxiosError<IGenericErrorResponse>,
+    { id: string; data: TSubmitReviewPayload }
+  >({
+    mutationFn: ({ id, data }) => videoService.submitReview(id, data),
+    onSuccess: () => {
+      toast.success("Review submitted successfully");
+      qc.invalidateQueries({ queryKey: ["videos"] });
+    },
+    onError: (err) => {
+      const msg = err.response?.data.message ?? "Failed to submit review";
+      toast.error(msg);
+    },
+  });
+};
+
+/** 6️⃣ Publish a reviewed video */
+export const usePublishVideoMutation = () => {
+  const qc = useQueryClient();
+  return useMutation<TVideo, AxiosError<IGenericErrorResponse>, string>({
+    mutationFn: (id) => videoService.publishVideo(id),
+    onSuccess: () => {
+      toast.success("Video published successfully");
+      qc.invalidateQueries({ queryKey: ["videos"] });
+    },
+    onError: (err) => {
+      const msg = err.response?.data.message ?? "Failed to publish video";
+      toast.error(msg);
+    },
+  });
+};
+
+/** 7️⃣ Teacher: list all published feedback */
+export const useGetTeacherFeedbackQuery = () =>
+  useQuery<TVideo[], Error>({
+    queryKey: ["teacherFeedback"],
+    queryFn: () => videoService.getTeacherFeedback(),
+  });
+
+/** 8️⃣ Teacher: add a comment to a published review */
+export const useAddTeacherCommentMutation = () => {
+  const qc = useQueryClient();
+  return useMutation<
+    TVideo,
+    AxiosError<IGenericErrorResponse>,
+    { id: string; data: TTeacherCommentPayload }
+  >({
+    mutationFn: ({ id, data }) => videoService.addTeacherComment(id, data),
+    onSuccess: () => {
+      toast.success("Comment added successfully");
+      qc.invalidateQueries({ queryKey: ["teacherFeedback"] });
+    },
+    onError: (err) => {
+      const msg = err.response?.data.message ?? "Failed to add comment";
+      toast.error(msg);
+    },
+  });
+};
+
+
+---src/services/video.service.ts    ---
+
+import apiClient from "@/lib/api-client";
+import {
+  TVideo,
+  TCreateVideoPayload,
+  TListVideosParams,
+  TAssignReviewerPayload,
+  TSubmitReviewPayload,
+  TTeacherCommentPayload,
+} from "@/types/video.types";
+
+/** GET /videos → TVideo[] */
+export const getAllVideos = async (
+  params?: TListVideosParams
+): Promise<TVideo[]> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: TVideo[];
+  }>("/admin/videos", { params });
+  return res.data.data;
+};
+
+
+export const getAssignedVideos = async (): Promise<TVideo[]> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: TVideo[];
+  }>("/admin/videos/my-assigned");
+  return res.data.data;
+};
+
+/** GET /videos/:id → TVideo */
+export const getVideo = async (id: string): Promise<TVideo> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: TVideo;
+  }>(`/admin/videos/${id}`);
+  return res.data.data;
+};
+
+/** POST /videos → TVideo */
+export const createVideo = async (
+  payload: TCreateVideoPayload
+): Promise<TVideo> => {
+  const res = await apiClient.post<{
+    success: boolean;
+    message: string;
+    data: TVideo;
+  }>("/admin/videos", payload);
+  return res.data.data;
+};
+
+/** POST /videos/:id/assign → TVideo */
+export const assignReviewer = async ({
+  id,
+  reviewerId,
+}: TAssignReviewerPayload): Promise<TVideo> => {
+  const res = await apiClient.post<{
+    success: boolean;
+    message: string;
+    data: TVideo;
+  }>(`/admin/videos/${id}/assign`, { reviewerId });
+  return res.data.data;
+};
+
+/** POST /videos/:id/review → TVideo */
+export const submitReview = async (
+  id: string,
+  payload: TSubmitReviewPayload
+): Promise<TVideo> => {
+  const res = await apiClient.post<{
+    success: boolean;
+    message: string;
+    data: TVideo;
+  }>(`/admin/videos/${id}/review`, payload);
+  return res.data.data;
+};
+
+/** POST /videos/:id/publish → TVideo */
+export const publishVideo = async (id: string): Promise<TVideo> => {
+  const res = await apiClient.post<{
+    success: boolean;
+    message: string;
+    data: TVideo;
+  }>(`/admin/videos/${id}/publish`);
+  return res.data.data;
+};
+
+/** GET /me/feedback → TVideo[] */
+export const getTeacherFeedback = async (): Promise<TVideo[]> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: TVideo[];
+  }>("/admin/videos/me/feedback");
+  return res.data.data;
+};
+
+/** POST /videos/:id/teacher-comment → TVideo */
+export const addTeacherComment = async (
+  id: string,
+  payload: TTeacherCommentPayload
+): Promise<TVideo> => {
+  const res = await apiClient.post<{
+    success: boolean;
+    message: string;
+    data: TVideo;
+  }>(`/admin/videos/${id}/teacher-comment`, payload);
+  return res.data.data;
+};
+
+
+---src/types/google-client.d.ts  ---
+
+// src/types/google-client.d.ts
+
+// minimal subset of gapi.client that we invoke
+declare namespace gapi {
+  namespace client {
+    function init(opts: {
+      apiKey: string;
+      discoveryDocs: string[];
+    }): Promise<void>;
+    function setToken(token: { access_token: string }): void;
+    function getToken(): { access_token: string } | null;
+  }
+}
+
+// shape of the token-popup client
+export interface TokenClient {
+  requestAccessToken(params?: { prompt?: '' | 'none' }): void;
+}
+
+// google.identity services that we actually call
+declare namespace google.accounts.oauth2 {
+  function initTokenClient(init: {
+    client_id: string;
+    scope: string;
+    callback: (resp: { access_token: string; error?: string }) => void;
+  }): TokenClient;
+
+  function revoke(token: string, callback: () => void): void;
+}
+
+// make them available on window
+declare global {
+  interface Window {
+    gapi: typeof gapi;
+    google: typeof google;
+  }
+}
+
+
+---src/types/video.types.ts  ---
+
+// src/types/video.types.ts
+
+import { IClass } from "./class.types";
+import { ISection } from "./section.types";
+import { ISubject } from "./subject.types";
+
+/** Review left by a reviewer */
+export interface TReview {
+  reviewer: string;
+  classManagement: string;
+  subjectKnowledge: string;
+  otherComments: string;
+  reviewedAt: string;          // ISO date
+}
+
+/** Comment added by the class teacher */
+export interface TTeacherComment {
+  commenter: string;
+  comment: string;
+  commentedAt: string;         // ISO date
+}
+
+export interface TTeacherID {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+/** Main Video record */
+export interface TVideo {
+  _id: string;
+  teacher: TTeacherID;
+  class: IClass;
+  section: ISection;
+  subject: ISubject;
+  date: string;                // ISO date
+  youtubeUrl: string;
+  uploadedBy: string;
+  status: 'unassigned' | 'assigned' | 'reviewed' | 'published';
+  assignedReviewer?: TTeacherID;
+  review?: TReview;
+  teacherComment?: TTeacherComment;
+  createdAt: string;           // ISO date
+  updatedAt: string;           // ISO date
+}
+
+/** Payload to create a new video record */
+export interface TCreateVideoPayload {
+  teacherId: string;
+  classId: string;
+  sectionId: string;
+  subjectId: string;
+  date: string;        // ISO date
+  videoUrl: string;
+}
+
+/** Optional filters for listing videos */
+export interface TListVideosParams {
+  status?: TVideo['status'];
+  assignedReviewer?: string;
+  classId?: string;
+  sectionId?: string;
+  subjectId?: string;
+  teacherId?: string;
+  dateFrom?: string;   // ISO date
+  dateTo?: string;     // ISO date
+}
+
+/** Payload to assign/reassign a reviewer */
+export interface TAssignReviewerPayload {
+  id: string;          // video _id
+  reviewerId: string;
+}
+
+/** Payload to submit a review */
+export interface TSubmitReviewPayload {
+  classManagement: string;
+  subjectKnowledge: string;
+  otherComments: string;
+}
+
+/** Payload to add a comment as teacher */
+export interface TTeacherCommentPayload {
+  comment: string;
+}
+

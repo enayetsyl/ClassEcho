@@ -1,0 +1,300 @@
+"use strict";
+// src/app/modules/video/video.service.ts
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.VideoServices = exports.listMyAssigned = exports.addTeacherComment = exports.listTeacherFeedback = exports.publishReview = exports.submitReview = exports.assignReviewer = exports.getVideoById = exports.listVideos = exports.createVideo = void 0;
+const mongoose_1 = require("mongoose");
+const video_model_1 = require("./video.model");
+const app_error_1 = __importDefault(require("../../../errors/app-error"));
+const http_status_1 = __importDefault(require("http-status"));
+// helper: convert a VideoDocument to your IVideo API type
+const mapVideo = (doc) => {
+    var _a;
+    let teacherField;
+    if (doc.populated('teacher')) {
+        // now TypeScript knows we're looking at the full User doc
+        const teacherDoc = doc.teacher;
+        teacherField = {
+            _id: teacherDoc.id,
+            name: teacherDoc.name,
+            email: teacherDoc.email,
+        };
+    }
+    else {
+        teacherField = doc.teacher.toString();
+    }
+    let assignedReviewerField;
+    if (doc.populated('assignedReviewer') && doc.assignedReviewer) {
+        const revDoc = doc.assignedReviewer;
+        assignedReviewerField = {
+            _id: revDoc.id,
+            name: revDoc.name,
+            email: revDoc.email,
+        };
+    }
+    else {
+        // fallback to plain ID string (or undefined)
+        assignedReviewerField = (_a = doc.assignedReviewer) === null || _a === void 0 ? void 0 : _a.toString();
+    }
+    let classField;
+    if (doc.populated('class')) {
+        const classDoc = doc.class;
+        classField = { _id: classDoc.id, name: classDoc.name };
+    }
+    else {
+        classField = doc.class.toString();
+    }
+    // — section —
+    let sectionField;
+    if (doc.populated('section')) {
+        const sectionDoc = doc.section;
+        sectionField = { _id: sectionDoc.id, name: sectionDoc.name };
+    }
+    else {
+        sectionField = doc.section.toString();
+    }
+    // — subject —
+    let subjectField;
+    if (doc.populated('subject')) {
+        const subjectDoc = doc.subject;
+        subjectField = { _id: subjectDoc.id, name: subjectDoc.name };
+    }
+    else {
+        subjectField = doc.subject.toString();
+    }
+    let reviewField;
+    if (doc.review) {
+        let reviewerField;
+        if (doc.populated('review.reviewer')) {
+            const revDoc = doc.review.reviewer;
+            reviewerField = {
+                _id: revDoc.id,
+                name: revDoc.name,
+                email: revDoc.email,
+            };
+        }
+        else {
+            reviewerField = doc.review.reviewer.toString();
+        }
+        reviewField = {
+            reviewer: reviewerField,
+            classManagement: doc.review.classManagement,
+            subjectKnowledge: doc.review.subjectKnowledge,
+            otherComments: doc.review.otherComments,
+            reviewedAt: doc.review.reviewedAt,
+        };
+    }
+    // map teacherComment subdocument if present
+    let teacherCommentField;
+    if (doc.teacherComment) {
+        let commenterField;
+        if (doc.populated('teacherComment.commenter')) {
+            // cast via unknown so TS lets us treat it as a full IUserDocument
+            const tcDoc = doc.teacherComment.commenter;
+            commenterField = {
+                _id: tcDoc.id,
+                name: tcDoc.name,
+                email: tcDoc.email,
+            };
+        }
+        else {
+            commenterField = doc.teacherComment.commenter.toString();
+        }
+        teacherCommentField = {
+            commenter: commenterField,
+            comment: doc.teacherComment.comment,
+            commentedAt: doc.teacherComment.commentedAt,
+        };
+    }
+    return {
+        _id: doc.id,
+        teacher: teacherField,
+        class: classField,
+        section: sectionField,
+        subject: subjectField,
+        date: doc.date,
+        youtubeUrl: doc.youtubeUrl,
+        uploadedBy: doc.uploadedBy.toString(),
+        status: doc.status,
+        assignedReviewer: assignedReviewerField || undefined,
+        review: reviewField,
+        teacherComment: teacherCommentField,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+    };
+};
+// 1️⃣ Create a new Video record
+const createVideo = (payload, uploadedBy) => __awaiter(void 0, void 0, void 0, function* () {
+    const doc = yield video_model_1.Video.create({
+        teacher: new mongoose_1.Types.ObjectId(payload.teacherId),
+        class: new mongoose_1.Types.ObjectId(payload.classId),
+        section: new mongoose_1.Types.ObjectId(payload.sectionId),
+        subject: new mongoose_1.Types.ObjectId(payload.subjectId),
+        date: new Date(payload.date),
+        youtubeUrl: payload.videoUrl,
+        uploadedBy: new mongoose_1.Types.ObjectId(uploadedBy),
+        status: 'unassigned',
+    });
+    return mapVideo(doc);
+});
+exports.createVideo = createVideo;
+// 2️⃣ List videos with optional filters
+const listVideos = (filters) => __awaiter(void 0, void 0, void 0, function* () {
+    const query = {};
+    if (filters.status)
+        query.status = filters.status;
+    if (filters.assignedReviewer)
+        query.assignedReviewer = filters.assignedReviewer;
+    if (filters.classId)
+        query.class = filters.classId;
+    if (filters.sectionId)
+        query.section = filters.sectionId;
+    if (filters.subjectId)
+        query.subject = filters.subjectId;
+    if (filters.teacherId)
+        query.teacher = filters.teacherId;
+    if (filters.dateFrom || filters.dateTo) {
+        query.date = {};
+        if (filters.dateFrom)
+            query.date.$gte = new Date(filters.dateFrom);
+        if (filters.dateTo)
+            query.date.$lte = new Date(filters.dateTo);
+    }
+    const docs = yield video_model_1.Video.find(query)
+        .populate('teacher')
+        .populate('assignedReviewer')
+        .populate('class')
+        .populate('section')
+        .populate('subject')
+        .sort('-createdAt');
+    return docs.map(mapVideo);
+});
+exports.listVideos = listVideos;
+// 3️⃣ Fetch a single video by ID
+const getVideoById = (id) => __awaiter(void 0, void 0, void 0, function* () {
+    const doc = yield video_model_1.Video.findById(id)
+        .populate('teacher')
+        .populate('assignedReviewer')
+        .populate('uploadedBy')
+        .populate('class')
+        .populate('section')
+        .populate('subject')
+        .populate('review.reviewer')
+        .populate('teacherComment.commenter');
+    if (!doc) {
+        throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
+    }
+    return mapVideo(doc);
+});
+exports.getVideoById = getVideoById;
+// 4️⃣ Assign or reassign a reviewer
+const assignReviewer = (videoId, reviewerId) => __awaiter(void 0, void 0, void 0, function* () {
+    const doc = yield video_model_1.Video.findByIdAndUpdate(videoId, { assignedReviewer: new mongoose_1.Types.ObjectId(reviewerId), status: 'assigned' }, { new: true });
+    if (!doc) {
+        throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
+    }
+    return mapVideo(doc);
+});
+exports.assignReviewer = assignReviewer;
+// 5️⃣ Submit review feedback (marks status = reviewed)
+const submitReview = (videoId, reviewerId, reviewData) => __awaiter(void 0, void 0, void 0, function* () {
+    const doc = yield video_model_1.Video.findById(videoId);
+    if (!doc) {
+        throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
+    }
+    doc.review = {
+        reviewer: new mongoose_1.Types.ObjectId(reviewerId),
+        classManagement: reviewData.classManagement,
+        subjectKnowledge: reviewData.subjectKnowledge,
+        otherComments: reviewData.otherComments,
+        reviewedAt: new Date(),
+    };
+    doc.status = 'reviewed';
+    yield doc.save();
+    return mapVideo(doc);
+});
+exports.submitReview = submitReview;
+// 6️⃣ Publish a reviewed video (marks status = published)
+const publishReview = (videoId) => __awaiter(void 0, void 0, void 0, function* () {
+    const doc = yield video_model_1.Video.findByIdAndUpdate(videoId, { status: 'published' }, { new: true });
+    if (!doc) {
+        throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
+    }
+    return mapVideo(doc);
+});
+exports.publishReview = publishReview;
+// 7️⃣ List all published feedback for a given teacher
+const listTeacherFeedback = (teacherId) => __awaiter(void 0, void 0, void 0, function* () {
+    const docs = yield video_model_1.Video.find({
+        teacher: new mongoose_1.Types.ObjectId(teacherId),
+        status: 'published',
+    })
+        .populate('teacher')
+        .populate('assignedReviewer')
+        .populate('uploadedBy')
+        .populate('class')
+        .populate('section')
+        .populate('subject')
+        .sort('date');
+    return docs.map(mapVideo);
+});
+exports.listTeacherFeedback = listTeacherFeedback;
+// 8️⃣ Add teacher’s own comment to a published review
+const addTeacherComment = (videoId, teacherId, comment) => __awaiter(void 0, void 0, void 0, function* () {
+    const doc = yield video_model_1.Video.findById(videoId);
+    if (!doc) {
+        throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
+    }
+    if (doc.teacherComment) {
+        throw new app_error_1.default(http_status_1.default.BAD_REQUEST, 'You have already added a comment to this video');
+    }
+    if (doc.teacher.toString() !== teacherId) {
+        throw new app_error_1.default(http_status_1.default.FORBIDDEN, 'Not authorized to comment on this video');
+    }
+    if (doc.status !== 'published') {
+        throw new app_error_1.default(http_status_1.default.BAD_REQUEST, 'Cannot comment before video is published');
+    }
+    doc.teacherComment = {
+        commenter: new mongoose_1.Types.ObjectId(teacherId),
+        comment,
+        commentedAt: new Date(),
+    };
+    yield doc.save();
+    return mapVideo(doc);
+});
+exports.addTeacherComment = addTeacherComment;
+const listMyAssigned = (reviewerId) => __awaiter(void 0, void 0, void 0, function* () {
+    const docs = yield video_model_1.Video.find({
+        assignedReviewer: new mongoose_1.Types.ObjectId(reviewerId),
+        status: 'assigned',
+    })
+        .populate('teacher')
+        .populate('class')
+        .populate('section')
+        .populate('subject')
+        .sort('date');
+    return docs.map(mapVideo);
+});
+exports.listMyAssigned = listMyAssigned;
+exports.VideoServices = {
+    createVideo: exports.createVideo,
+    listVideos: exports.listVideos,
+    getVideoById: exports.getVideoById,
+    assignReviewer: exports.assignReviewer,
+    submitReview: exports.submitReview,
+    publishReview: exports.publishReview,
+    listTeacherFeedback: exports.listTeacherFeedback,
+    addTeacherComment: exports.addTeacherComment,
+    listMyAssigned: exports.listMyAssigned
+};

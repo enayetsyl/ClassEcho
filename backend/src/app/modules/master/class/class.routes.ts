@@ -15,7 +15,7 @@ const router = express.Router();
 router.get(
   '/',
   requireAuth,
-  requireRole(['Admin', 'SeniorAdmin']),
+  requireRole(['Admin', 'SeniorAdmin', 'Management']),
   ClassControllers.getAllClasses
 );
 

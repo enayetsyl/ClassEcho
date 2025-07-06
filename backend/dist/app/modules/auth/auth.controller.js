@@ -18,19 +18,12 @@ const auth_service_1 = require("./auth.service");
 const send_response_1 = __importDefault(require("../../utils/send-response"));
 // User login
 const login = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { token, user } = yield auth_service_1.AuthServices.login(req.body);
-    //    res.cookie('token', token, {
-    //   httpOnly: true,  
-    //   secure: config.node_env === 'production',  
-    //   sameSite: 'none',
-    //   maxAge: Number(config.jwt_expires_in) * 1000,
-    //   path: "/"
-    // });
+    const user = yield auth_service_1.AuthServices.login(req.body);
     (0, send_response_1.default)(res, {
         statusCode: 200,
         success: true,
         message: 'Login successful',
-        data: { token, user },
+        data: user
     });
 }));
 // Forgot password (send reset email)

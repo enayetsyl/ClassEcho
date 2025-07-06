@@ -1,9 +1,6 @@
-import config from "../../config";
-import { SendMailOptions } from "../type/utils";
-import transporter from "./mailer";
-
-
-
+import config from '../../config';
+import { SendMailOptions } from '../types/utils';
+import transporter from './mailer';
 
 /**
  * Sends an email using the preconfigured Nodemailer transporter.

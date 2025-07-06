@@ -6,9 +6,8 @@ import sendResponse from '../../utils/send-response';
 
 // User login
 const login = catchAsync(async (req: Request, res: Response) => {
+  
    const user = await AuthServices.login(req.body);
-
- console.log(user)
 
   sendResponse(res, {
     statusCode: 200,

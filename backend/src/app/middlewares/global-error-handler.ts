@@ -1,16 +1,14 @@
-
 import { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 
 import config from '../../config';
-import { TErrorSources, TGenericErrorResponse } from '../type/error';
+import { TErrorSources, TGenericErrorResponse } from '../types/error';
 import handleZodError from '../errors/handle-zod-error';
 import handleValidationError from '../errors/handle-validation-error';
 import AppError from '../errors/app-error';
 import handleDuplicateError from '../errors/handle-duplicate-error';
-import handleCastError from '../errors/handle-cast-error'
+import handleCastError from '../errors/handle-cast-error';
 import logger from '../utils/logger';
-
 
 const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
   logger.error('Global error handler caught an error', {
@@ -71,7 +69,7 @@ const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
     ];
   }
 
-res.status(statusCode).json({
+  res.status(statusCode).json({
     success: false,
     message,
     errorSources,
@@ -80,5 +78,4 @@ res.status(statusCode).json({
   });
 };
 
-
-export default globalErrorHandler
+export default globalErrorHandler;

@@ -19,7 +19,9 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
 
   try {
     const decoded = verifyToken(token, config.jwt_secret!) as JwtPayload;
+    
     req.user = decoded;
+    
     next();
   } catch (err) {
     return next(new AppError(httpStatus.UNAUTHORIZED, 'Invalid or expired authentication token'));
@@ -36,7 +38,7 @@ export const requireRole = (roles: UserRole[]) => {
       return next(new AppError(httpStatus.FORBIDDEN, 'No user roles found in token'));
     }
     // roles can be string[] or single string
-    const hasRole = req.user.roles.some((r) => roles.includes(r));
+    const hasRole = req.user.roles.some((r: UserRole) => roles.includes(r));
     if (!hasRole) {
       return next(
         new AppError(httpStatus.FORBIDDEN, 'You do not have permission to access this resource')

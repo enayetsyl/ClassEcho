@@ -204,7 +204,7 @@ export default AppError;
 
 ```typescript
 import mongoose from 'mongoose';
-import { TErrorSources, TGenericErrorResponse } from '../type/error';
+import { TErrorSources, TGenericErrorResponse } from '../types/error';
 
 
 const handleCastError = (
@@ -233,7 +233,7 @@ export default handleCastError;
 ## `src/app/errors/handle-duplicate-error.ts`
 
 ```typescript
-import { TErrorSources, TGenericErrorResponse } from "../type/error";
+import { TErrorSources, TGenericErrorResponse } from "../types/error";
 
 const handleDuplicateError = (err: any): TGenericErrorResponse => {
   // Extract value within double quotes using regex
@@ -266,7 +266,7 @@ export default handleDuplicateError;
 
 ```typescript
 import mongoose from 'mongoose';
-import { TErrorSources, TGenericErrorResponse } from '../type/error';
+import { TErrorSources, TGenericErrorResponse } from '../types/error';
 
 
 const handleValidationError = (
@@ -298,7 +298,7 @@ export default handleValidationError;
 
 ```typescript
 import { ZodError, ZodIssue } from 'zod';
-import { TErrorSources, TGenericErrorResponse } from '../type/error';
+import { TErrorSources, TGenericErrorResponse } from '../types/error';
 
 const handleZodError = (err: ZodError): TGenericErrorResponse => {
   const errorSources: TErrorSources = err.issues.map((issue: ZodIssue) => {
@@ -362,7 +362,7 @@ export const requireRole = (roles: UserRole[]) => {
       return next(new AppError(httpStatus.FORBIDDEN, 'No user roles found in token'));
     }
     // roles can be string[] or single string
-    const hasRole = req.user.roles.some((r) => roles.includes(r));
+    const hasRole = req.user.roles.some((r:UserRole) => roles.includes(r));
     if (!hasRole) {
       return next(
         new AppError(httpStatus.FORBIDDEN, 'You do not have permission to access this resource')
@@ -381,7 +381,7 @@ import { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 
 import config from '../../config';
-import { TErrorSources, TGenericErrorResponse } from '../type/error';
+import { TErrorSources, TGenericErrorResponse } from '../types/error';
 import handleZodError from '../errors/handle-zod-error';
 import handleValidationError from '../errors/handle-validation-error';
 import AppError from '../errors/app-error';
@@ -493,6 +493,8 @@ const validateRequest = (schema: AnyZodObject) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     await schema.parseAsync({
       body: req.body,
+       query: req.query,
+      params: req.params,
       cookies: req.cookies,
     });
 
@@ -724,8 +726,9 @@ export const AuthServices = {
 // src/modules/auth/auth.type.ts
 
 import { UserRole } from '../user/user.type';
+import { JwtPayload as DefaultJwtPayload } from 'jsonwebtoken';
 
-export interface JwtPayload {
+export interface JwtPayload extends DefaultJwtPayload {
   userId: string;
   roles: UserRole[];
   mustChangePassword?: boolean;
@@ -1158,7 +1161,7 @@ import { AuthRoutes } from '../modules/auth/auth.routes';
 import { ClassRoutes } from '../modules/master/class/class.routes';
 import { SectionRoutes } from '../modules/master/section/section.routes';
 import { SubjectRoutes } from '../modules/master/subject/subject.routes';
-
+import { VideoRoutes } from '../modules/master/video/video.routes';
 
 const router = Router();
 
@@ -1183,7 +1186,10 @@ const moduleRoutes = [
     path: '/admin/subjects',
     route: SubjectRoutes,
   }, 
-
+{
+    path: '/admin/videos',
+    route: VideoRoutes,
+  },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));  // This will automatically loop your routes that you will add in the moduleRoutes array
@@ -1192,7 +1198,7 @@ export default router;
 ```
 
 ---
-## `src/app/type/error.ts`
+## `src/app/types/error.ts`
 
 ```typescript
 export type TErrorSources = {
@@ -1208,7 +1214,7 @@ export type TGenericErrorResponse = {
 ```
 
 ---
-## `src/app/type/jwt.ts`
+## `src/app/types/jwt.ts`
 
 ```typescript
 import { JwtPayload } from "../modules/auth/auth.type";
@@ -1224,7 +1230,7 @@ declare global {
 ```
 
 ---
-## `src/app/type/utils.ts`
+## `src/app/types/utils.ts`
 
 ```typescript
 export type TMeta = {
@@ -1249,6 +1255,22 @@ export type  SendMailOptions = {
   text?: string;
   html?: string;
   from?: string; 
+}
+```
+
+---
+## `src/app/types/index.d.ts`
+
+```typescript
+import { JwtPayload } from "../modules/auth/auth.type";
+
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: JwtPayload;
+    }
+  }
 }
 ```
 
@@ -1391,7 +1413,7 @@ export const seedSuperAdmin = async () => {
 
 ```typescript
 import config from "../../config";
-import { SendMailOptions } from "../type/utils";
+import { SendMailOptions } from "../types/utils";
 import transporter from "./mailer";
 
 
@@ -1417,7 +1439,7 @@ export const sendMail = async (options: SendMailOptions) => {
 
 ```typescript
 import { Response } from 'express';
-import { TResponse } from '../type/utils';
+import { TResponse } from '../types/utils';
 
 
 const sendResponse = <T>(res: Response, data: TResponse<T>) => {
@@ -1602,7 +1624,7 @@ const router = express.Router();
 router.get(
   '/',
   requireAuth,
-  requireRole(['Admin', 'SeniorAdmin']),
+  requireRole(['Admin', 'SeniorAdmin', 'Management']),
   ClassControllers.getAllClasses
 );
 
@@ -1917,7 +1939,7 @@ const router = express.Router();
 router.get(
   '/',
   requireAuth,
-  requireRole(['Admin', 'SeniorAdmin']),
+  requireRole(['Admin', 'SeniorAdmin', 'Management']),
   SectionControllers.getAllSections
 );
 
@@ -2167,7 +2189,7 @@ const router = express.Router();
 router.get(
   '/',
   requireAuth,
-  requireRole(['Admin', 'SeniorAdmin']),
+  requireRole(['Admin', 'SeniorAdmin', 'Management']),
   SubjectControllers.getAllSubjects
 );
 
@@ -2309,4 +2331,783 @@ export const updateSubjectValidation = z.object({
     }).min(1, 'Subject name cannot be empty'),
   }),
 });
+```
+---
+`src/app/modules/master/video/video.controller.ts`
+```typescript
+// src/app/modules/video/video.controller.ts
+
+import { Request, Response } from 'express';
+import catchAsync from '../../../utils/catch-async';
+import sendResponse from '../../../utils/send-response';
+import { VideoServices } from './video.service';
+
+const createVideo = catchAsync(async (req: Request, res: Response) => {
+  const video = await VideoServices.createVideo(req.body, req?.user?.userId);
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'Video created successfully',
+    data: video,
+  });
+});
+
+const listVideos = catchAsync(async (req: Request, res: Response) => {
+ 
+  const videos = await VideoServices.listVideos(req.query as any);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Videos retrieved successfully',
+    data: videos,
+  });
+});
+
+const getVideoById = catchAsync(async (req: Request, res: Response) => {
+  const video = await VideoServices.getVideoById(req.params.id);
+
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Video retrieved successfully',
+    data: video,
+  });
+});
+
+const assignReviewer = catchAsync(async (req: Request, res: Response) => {
+  const updated = await VideoServices.assignReviewer(req.params.id, req.body.reviewerId);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Reviewer assigned successfully',
+    data: updated,
+  });
+});
+
+const submitReview = catchAsync(async (req: Request, res: Response) => {
+  const updated = await VideoServices.submitReview(
+    req.params.id,
+    req.user.userId,
+    req.body
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Review submitted successfully',
+    data: updated,
+  });
+});
+
+const publishReview = catchAsync(async (req: Request, res: Response) => {
+  const updated = await VideoServices.publishReview(req.params.id);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Video published successfully',
+    data: updated,
+  });
+});
+
+const listTeacherFeedback = catchAsync(async (req: Request, res: Response) => {
+ 
+  const feedback = await VideoServices.listTeacherFeedback(req.user.userId);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Teacher feedback retrieved successfully',
+    data: feedback,
+  });
+});
+
+const addTeacherComment = catchAsync(async (req: Request, res: Response) => {
+  const updated = await VideoServices.addTeacherComment(
+    req.params.id,
+    req.user.userId,
+    req.body.comment
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Comment added successfully',
+    data: updated,
+  });
+});
+
+const listAssignedVideos = catchAsync(async (req: Request, res: Response) => {
+  const reviewerId = req.user!.userId;  
+  const videos = await VideoServices.listVideos({
+    assignedReviewer: reviewerId,
+    status: 'assigned',
+  });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Assigned videos retrieved successfully',
+    data: videos,
+  });
+});
+
+const listMyAssigned = catchAsync(async (req: Request, res: Response) => {
+  const videos = await VideoServices.listMyAssigned(req.user!.userId);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Assigned videos retrieved successfully',
+    data: videos,
+  });
+});
+
+export const VideoControllers = {
+  createVideo,
+  listVideos,
+  getVideoById,
+  assignReviewer,
+  submitReview,
+  publishReview,
+  listTeacherFeedback,
+  addTeacherComment,
+  listAssignedVideos,
+  listMyAssigned
+
+};
+
+```
+---
+`src/app/modules/master/video/video.model.ts`
+```typescript
+// src/app/modules/video/video.model.ts
+
+import { Schema, model, Types, Document } from 'mongoose';
+import { VideoStatus } from './video.type';
+
+export interface IVideoDocument extends Document {
+  teacher: Types.ObjectId;
+  class: Types.ObjectId;
+  section: Types.ObjectId;
+  subject: Types.ObjectId;
+  date: Date;
+  youtubeUrl: string;
+  uploadedBy: Types.ObjectId;
+  status: VideoStatus;
+  assignedReviewer?: Types.ObjectId;
+  review?: {                      // ← newly added
+    reviewer: Types.ObjectId;
+    classManagement: string;
+    subjectKnowledge: string;
+    otherComments: string;
+    reviewedAt: Date;
+  };
+  teacherComment?: {               // ← newly added
+    commenter: Types.ObjectId;
+    comment: string;
+    commentedAt: Date;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const SubReviewSchema = new Schema(
+  {
+    reviewer:         { type: Schema.Types.ObjectId, ref: 'User',    required: true },
+    classManagement:  { type: String,                                required: true },
+    subjectKnowledge: { type: String,                                required: true },
+    otherComments:    { type: String,                                required: true },
+    reviewedAt:       { type: Date,                                  required: true },
+  },
+  { _id: false }
+);
+
+const SubTeacherCommentSchema = new Schema(
+  {
+    commenter:   { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    comment:     { type: String,                          required: true },
+    commentedAt: { type: Date,                            required: true },
+  },
+  { _id: false }
+);
+
+const VideoSchema = new Schema<IVideoDocument>(
+  {
+    teacher:          { type: Schema.Types.ObjectId, ref: 'User',    required: true },
+    class:            { type: Schema.Types.ObjectId, ref: 'Class',   required: true },
+    section:          { type: Schema.Types.ObjectId, ref: 'Section', required: true },
+    subject:          { type: Schema.Types.ObjectId, ref: 'Subject', required: true },
+    date:             { type: Date,                         required: true },
+    youtubeUrl:       { type: String,                       required: true, trim: true },
+    uploadedBy:       { type: Schema.Types.ObjectId, ref: 'User',    required: true },
+    status: {
+      type: String,
+      enum: ['unassigned','assigned','reviewed','published'] as VideoStatus[],
+      default: 'unassigned',
+    },
+    assignedReviewer: { type: Schema.Types.ObjectId, ref: 'User',    default: null },
+    review:           { type: SubReviewSchema,                     default: undefined },
+    teacherComment:   { type: SubTeacherCommentSchema,             default: undefined },
+  },
+  { timestamps: true }
+);
+
+export const Video = model<IVideoDocument>('Video', VideoSchema);
+
+```
+
+---
+`src/app/modules/master/video/video.routes.ts`
+```typescript
+import express from 'express';
+import validateRequest from '../../../middlewares/validate-request';
+import { requireAuth, requireRole } from '../../../middlewares/auth-middleware';
+import {
+  createVideoValidation,
+  listVideosValidation,
+  videoIdParam,
+  assignReviewerValidation,
+  submitReviewValidation,
+  publishVideoValidation,
+  teacherCommentValidation,
+  listAssignedValidation
+} from './video.validation';
+import { VideoControllers } from './video.controller';
+
+const router = express.Router();
+
+router.post('/', 
+  requireAuth, requireRole(['Admin','SeniorAdmin']),
+  validateRequest(createVideoValidation),
+  VideoControllers.createVideo
+);
+
+router.get('/',
+  requireAuth, requireRole(['Admin','SeniorAdmin','Management']),
+  validateRequest(listVideosValidation),
+  VideoControllers.listVideos
+);
+router.get(
+  '/my-assigned',
+  requireAuth,
+  requireRole(['Teacher']),
+  VideoControllers.listMyAssigned
+);
+
+router.get('/:id',
+  requireAuth,
+  validateRequest(videoIdParam),
+  VideoControllers.getVideoById
+);
+
+router.post('/:id/assign',
+  requireAuth, requireRole(['SeniorAdmin','Management']),
+  validateRequest(assignReviewerValidation),
+  VideoControllers.assignReviewer
+);
+
+router.post('/:id/review',
+  requireAuth, requireRole(['Teacher']),
+  validateRequest(submitReviewValidation),
+  VideoControllers.submitReview
+);
+
+router.post('/:id/publish',
+  requireAuth, requireRole(['SeniorAdmin','Management']),
+  validateRequest(publishVideoValidation),
+  VideoControllers.publishReview
+);
+
+router.get('/me/feedback',
+  requireAuth, requireRole(['Teacher']),
+  VideoControllers.listTeacherFeedback
+);
+
+router.post('/:id/teacher-comment',
+  requireAuth, requireRole(['Teacher']),
+  validateRequest(teacherCommentValidation),
+  VideoControllers.addTeacherComment
+);
+
+export const VideoRoutes = router;
+
+```
+
+---
+`src/app/modules/master/video/video.service.ts`
+```typescript
+// src/app/modules/video/video.service.ts
+
+import { Types } from 'mongoose';
+import { Video, IVideoDocument } from './video.model';
+import { ITeacherInfo, IVideo, VideoStatus } from './video.type';
+import AppError from '../../../errors/app-error';
+import httpStatus from 'http-status';
+import { IUserDocument } from '../../user/user.model';
+import { IClassDocument } from '../class/class.model';
+import { ISectionDocument } from '../section/section.model';
+import { ISubjectDocument } from '../subject/subject.model';
+
+// helper: convert a VideoDocument to your IVideo API type
+const mapVideo = (doc: IVideoDocument): IVideo => {
+  let teacherField: string | ITeacherInfo;
+
+  if (doc.populated('teacher')) {
+    // now TypeScript knows we're looking at the full User doc
+    const teacherDoc = doc.teacher as unknown as IUserDocument;
+
+    teacherField = {
+      _id: teacherDoc.id,
+      name: teacherDoc.name,
+      email: teacherDoc.email,
+    };
+  } else {
+    teacherField = doc.teacher.toString();
+  }
+
+  let assignedReviewerField: string | ITeacherInfo | undefined;
+  if (doc.populated('assignedReviewer') && doc.assignedReviewer) {
+    const revDoc = doc.assignedReviewer as unknown as IUserDocument;
+    assignedReviewerField = {
+      _id: revDoc.id,
+      name: revDoc.name,
+      email: revDoc.email,
+    };
+  } else {
+    // fallback to plain ID string (or undefined)
+    assignedReviewerField = doc.assignedReviewer?.toString();
+  }
+
+  let classField: string | { _id: string; name: string };
+  if (doc.populated('class')) {
+    const classDoc = doc.class as unknown as IClassDocument;
+    classField = { _id: classDoc.id, name: classDoc.name };
+  } else {
+    classField = doc.class.toString();
+  }
+
+  // — section —
+  let sectionField: string | { _id: string; name: string };
+  if (doc.populated('section')) {
+    const sectionDoc = doc.section as unknown as ISectionDocument;
+    sectionField = { _id: sectionDoc.id, name: sectionDoc.name };
+  } else {
+    sectionField = doc.section.toString();
+  }
+
+  // — subject —
+  let subjectField: string | { _id: string; name: string };
+  if (doc.populated('subject')) {
+    const subjectDoc = doc.subject as unknown as ISubjectDocument;
+    subjectField = { _id: subjectDoc.id, name: subjectDoc.name };
+  } else {
+    subjectField = doc.subject.toString();
+  }
+
+  let reviewField;
+if (doc.review) {
+  let reviewerField: string | ITeacherInfo;
+  if (doc.populated('review.reviewer')) {
+    const revDoc = (doc.review.reviewer as unknown) as IUserDocument;
+    reviewerField = {
+      _id: revDoc.id,
+      name: revDoc.name,
+      email: revDoc.email,
+    };
+  } else {
+    reviewerField = doc.review.reviewer.toString();
+  }
+
+  reviewField = {
+    reviewer: reviewerField,
+    classManagement: doc.review.classManagement,
+    subjectKnowledge: doc.review.subjectKnowledge,
+    otherComments: doc.review.otherComments,
+    reviewedAt: doc.review.reviewedAt,
+  };
+}
+
+  // map teacherComment subdocument if present
+  let teacherCommentField;
+if (doc.teacherComment) {
+  let commenterField: string | ITeacherInfo;
+
+  if (doc.populated('teacherComment.commenter')) {
+    // cast via unknown so TS lets us treat it as a full IUserDocument
+    const tcDoc = (doc.teacherComment.commenter as unknown) as IUserDocument;
+    commenterField = {
+      _id: tcDoc.id,
+      name: tcDoc.name,
+      email: tcDoc.email,
+    };
+  } else {
+    commenterField = doc.teacherComment.commenter.toString();
+  }
+
+  teacherCommentField = {
+    commenter: commenterField,
+    comment:    doc.teacherComment.comment,
+    commentedAt: doc.teacherComment.commentedAt,
+  };
+}
+
+
+  return {
+    _id: doc.id,
+    teacher: teacherField,
+    class: classField,
+    section: sectionField,
+    subject: subjectField,
+    date: doc.date,
+    youtubeUrl: doc.youtubeUrl,
+    uploadedBy: doc.uploadedBy.toString(),
+    status: doc.status,
+    assignedReviewer: assignedReviewerField || undefined,
+     review:          reviewField,
+  teacherComment:  teacherCommentField,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+};
+
+// 1️⃣ Create a new Video record
+export const createVideo = async (
+  payload: {
+    teacherId: string;
+    classId: string;
+    sectionId: string;
+    subjectId: string;
+    date: string;
+    videoUrl: string;
+  },
+  uploadedBy: string,
+): Promise<IVideo> => {
+  const doc = await Video.create({
+    teacher: new Types.ObjectId(payload.teacherId),
+    class: new Types.ObjectId(payload.classId),
+    section: new Types.ObjectId(payload.sectionId),
+    subject: new Types.ObjectId(payload.subjectId),
+    date: new Date(payload.date),
+    youtubeUrl: payload.videoUrl,
+    uploadedBy: new Types.ObjectId(uploadedBy),
+    status: 'unassigned' as VideoStatus,
+  });
+
+  return mapVideo(doc);
+};
+
+// 2️⃣ List videos with optional filters
+export const listVideos = async (filters: {
+  status?: VideoStatus;
+  assignedReviewer?: string;
+  classId?: string;
+  sectionId?: string;
+  subjectId?: string;
+  teacherId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<IVideo[]> => {
+  const query: any = {};
+  if (filters.status) query.status = filters.status;
+  if (filters.assignedReviewer) query.assignedReviewer = filters.assignedReviewer;
+  if (filters.classId) query.class = filters.classId;
+  if (filters.sectionId) query.section = filters.sectionId;
+  if (filters.subjectId) query.subject = filters.subjectId;
+  if (filters.teacherId) query.teacher = filters.teacherId;
+  if (filters.dateFrom || filters.dateTo) {
+    query.date = {};
+    if (filters.dateFrom) query.date.$gte = new Date(filters.dateFrom);
+    if (filters.dateTo) query.date.$lte = new Date(filters.dateTo);
+  }
+
+  const docs = await Video.find(query)
+    .populate('teacher')
+    .populate('assignedReviewer')
+    .populate('class')
+    .populate('section')
+    .populate('subject')
+    .sort('-createdAt');
+
+  return docs.map(mapVideo);
+};
+
+// 3️⃣ Fetch a single video by ID
+export const getVideoById = async (id: string): Promise<IVideo> => {
+  const doc = await Video.findById(id)
+    .populate('teacher')
+    .populate('assignedReviewer')
+    .populate('uploadedBy')
+    .populate('class')
+    .populate('section')
+     .populate('subject')
+  .populate('review.reviewer')
+  .populate('teacherComment.commenter');
+
+  if (!doc) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
+  }
+  return mapVideo(doc);
+};
+
+// 4️⃣ Assign or reassign a reviewer
+export const assignReviewer = async (videoId: string, reviewerId: string): Promise<IVideo> => {
+  const doc = await Video.findByIdAndUpdate(
+    videoId,
+    { assignedReviewer: new Types.ObjectId(reviewerId), status: 'assigned' as VideoStatus },
+    { new: true },
+  );
+  if (!doc) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
+  }
+  return mapVideo(doc);
+};
+
+// 5️⃣ Submit review feedback (marks status = reviewed)
+export const submitReview = async (
+  videoId: string,
+  reviewerId: string,
+  reviewData: {
+    classManagement: string;
+    subjectKnowledge: string;
+    otherComments: string;
+  },
+): Promise<IVideo> => {
+  const doc = await Video.findById(videoId);
+  if (!doc) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
+  }
+
+  doc.review = {
+    reviewer: new Types.ObjectId(reviewerId),
+    classManagement: reviewData.classManagement,
+    subjectKnowledge: reviewData.subjectKnowledge,
+    otherComments: reviewData.otherComments,
+    reviewedAt: new Date(),
+  };
+  doc.status = 'reviewed';
+  await doc.save();
+
+  return mapVideo(doc);
+};
+
+// 6️⃣ Publish a reviewed video (marks status = published)
+export const publishReview = async (videoId: string): Promise<IVideo> => {
+  const doc = await Video.findByIdAndUpdate(
+    videoId,
+    { status: 'published' as VideoStatus },
+    { new: true },
+  );
+  if (!doc) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
+  }
+  return mapVideo(doc);
+};
+
+// 7️⃣ List all published feedback for a given teacher
+export const listTeacherFeedback = async (teacherId: string): Promise<IVideo[]> => {
+
+
+  const docs = await Video.find({
+    teacher: new Types.ObjectId(teacherId),
+    status: 'published',
+  })
+   .populate('teacher')
+    .populate('assignedReviewer')
+    .populate('uploadedBy')
+    .populate('class')
+    .populate('section')
+    .populate('subject')
+  .sort('date');
+  return docs.map(mapVideo);
+};
+
+// 8️⃣ Add teacher’s own comment to a published review
+export const addTeacherComment = async (
+  videoId: string,
+  teacherId: string,
+  comment: string,
+): Promise<IVideo> => {
+  const doc = await Video.findById(videoId);
+  if (!doc) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
+  }
+ 
+    if (doc.teacherComment) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You have already added a comment to this video'
+    );
+  }
+  
+  if (doc.teacher.toString() !== teacherId) {
+    throw new AppError(httpStatus.FORBIDDEN, 'Not authorized to comment on this video');
+  }
+  if (doc.status !== 'published') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Cannot comment before video is published');
+  }
+
+  doc.teacherComment = {
+    commenter: new Types.ObjectId(teacherId),
+    comment,
+    commentedAt: new Date(),
+  };
+  await doc.save();
+
+  return mapVideo(doc);
+};
+
+export const listMyAssigned = async (
+  reviewerId: string
+): Promise<IVideo[]> => {
+  const docs = await Video.find({
+    assignedReviewer: new Types.ObjectId(reviewerId),
+    status: 'assigned',
+  })
+    .populate('teacher')
+    .populate('class')
+    .populate('section')
+    .populate('subject')
+    .sort('date');
+
+  return docs.map(mapVideo);
+};
+
+
+export const VideoServices = {
+  createVideo,
+  listVideos,
+  getVideoById,
+  assignReviewer,
+  submitReview,
+  publishReview,
+  listTeacherFeedback,
+  addTeacherComment,
+  listMyAssigned
+};
+
+```
+---
+`src/app/modules/master/video/video.type.ts`
+```typescript
+// src/app/modules/video/video.type.ts
+
+import { IClass } from "../class/class.type";
+import { ISection } from "../section/section.type";
+import { ISubject } from "../subject/subject.type";
+
+export type VideoStatus = 'unassigned' | 'assigned' | 'reviewed' | 'published';
+
+export interface IReview {
+  reviewer: string | ITeacherInfo;
+  classManagement: string;
+  subjectKnowledge: string;
+  otherComments: string;
+  reviewedAt: Date;
+}
+export interface ITeacherInfo {
+  _id:   string;
+  name:  string;
+  email: string;
+}
+
+export interface ITeacherComment {
+  commenter: string | ITeacherInfo;
+  comment: string;
+  commentedAt: Date;
+}
+
+export interface IVideo {
+  _id?: string;
+  teacher: string  | ITeacherInfo;
+  class: string | IClass;
+  section: string | ISection;
+  subject: string | ISubject;
+  date: Date;
+  youtubeUrl: string;
+  uploadedBy: string;
+  status?: VideoStatus;
+  assignedReviewer?: string  | ITeacherInfo;
+  review?: IReview;                // ← newly added
+  teacherComment?: ITeacherComment; // ← newly added
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+```
+---
+`src/app/modules/master/video/video.validation.ts`
+```typescript
+// src/app/modules/video/video.validation.ts
+
+import { z } from 'zod';
+
+export const createVideoValidation = z.object({
+  body: z.object({
+    teacherId: z.string().min(1, 'Teacher ID is required'),
+    classId:   z.string().min(1, 'Class ID is required'),
+    sectionId: z.string().min(1, 'Section ID is required'),
+    subjectId: z.string().min(1, 'Subject ID is required'),
+    date:      z.string().refine(d => !isNaN(Date.parse(d)), 'Invalid date'),
+    videoUrl:  z.string().url('Must be a valid URL'),
+  }),
+});
+
+
+export const listVideosValidation = z.object({
+  query: z.object({
+    status:           z.enum(['unassigned','assigned','reviewed','published']).optional(),
+    assignedReviewer: z.string().optional(),
+    classId:          z.string().optional(),
+    sectionId:        z.string().optional(),
+    subjectId:        z.string().optional(),
+    teacherId:        z.string().optional(),
+     dateFrom: z
+      .string()
+      .optional()
+      .refine((val) =>
+        // if there's no value, that's fine; otherwise must parse
+        !val || !isNaN(Date.parse(val)),
+       { message: "Invalid date" }),
+    dateTo: z
+      .string()
+      .optional()
+      .refine((val) =>
+        !val || !isNaN(Date.parse(val)),
+       { message: "Invalid date" }),
+  }),
+});
+
+export const assignReviewerValidation = z.object({
+  params: z.object({ id: z.string().length(24) }),
+  body:   z.object({ reviewerId: z.string().min(1, 'Reviewer ID is required') }),
+});
+
+
+export const publishVideoValidation = z.object({
+  params: z.object({ id: z.string().length(24) }),
+});
+
+
+export const submitReviewValidation = z.object({
+  params: z.object({ id: z.string().length(24) }),
+  body: z.object({
+    classManagement:  z.string().min(1, 'Feedback is required'),
+    subjectKnowledge: z.string().min(1, 'Feedback is required'),
+    otherComments:    z.string().min(1, 'Feedback is required'),
+  }),
+});
+
+
+export const videoIdParam = z.object({
+  params: z.object({ id: z.string().length(24) }),
+});
+
+
+export const teacherCommentValidation = z.object({
+  params: z.object({ id: z.string().length(24) }),
+  body:   z.object({ comment: z.string().min(1, 'Comment cannot be empty') }),
+});
+
+export const listAssignedValidation = z.object({});
+```
+
+---
+`src/app/modules/master/video/video.controller.ts`
+```typescript
+
 ```

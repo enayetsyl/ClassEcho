@@ -4,6 +4,7 @@ import { AuthRoutes } from '../modules/auth/auth.routes';
 import { ClassRoutes } from '../modules/master/class/class.routes';
 import { SectionRoutes } from '../modules/master/section/section.routes';
 import { SubjectRoutes } from '../modules/master/subject/subject.routes';
+import { VideoRoutes } from '../modules/master/video/video.routes';
 
 
 const router = Router();
@@ -28,6 +29,10 @@ const moduleRoutes = [
   {
     path: '/admin/subjects',
     route: SubjectRoutes,
+  }, 
+  {
+    path: '/admin/videos',
+    route: VideoRoutes,
   }, 
 
 ];

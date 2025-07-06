@@ -1,8 +1,9 @@
 // src/modules/auth/auth.type.ts
 
 import { UserRole } from '../user/user.type';
+import { JwtPayload as DefaultJwtPayload } from 'jsonwebtoken';
 
-export interface JwtPayload {
+export interface JwtPayload extends DefaultJwtPayload {
   userId: string;
   roles: UserRole[];
   mustChangePassword?: boolean;
