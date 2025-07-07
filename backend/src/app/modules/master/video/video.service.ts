@@ -2,7 +2,7 @@
 
 import { Types } from 'mongoose';
 import { Video, IVideoDocument } from './video.model';
-import { ITeacherInfo, IVideo, VideoStatus } from './video.type';
+import { IReviewInput, ITeacherInfo, IVideo, VideoStatus } from './video.type';
 import AppError from '../../../errors/app-error';
 import httpStatus from 'http-status';
 import { IUserDocument } from '../../user/user.model';
@@ -67,27 +67,33 @@ const mapVideo = (doc: IVideoDocument): IVideo => {
   }
 
   let reviewField;
-if (doc.review) {
-  let reviewerField: string | ITeacherInfo;
-  if (doc.populated('review.reviewer')) {
-    const revDoc = (doc.review.reviewer as unknown) as IUserDocument;
-    reviewerField = {
-      _id: revDoc.id,
-      name: revDoc.name,
-      email: revDoc.email,
-    };
-  } else {
-    reviewerField = doc.review.reviewer.toString();
-  }
+  if (doc.review) {
+    // reviewer
+    let reviewerField: string | ITeacherInfo;
+    if (doc.populated('review.reviewer')) {
+      const revDoc = doc.review.reviewer as unknown as { id: string; name: string; email: string };
+      reviewerField = { _id: revDoc.id, name: revDoc.name, email: revDoc.email };
+    } else {
+      reviewerField = doc.review.reviewer.toString();
+    }
 
-  reviewField = {
-    reviewer: reviewerField,
-    classManagement: doc.review.classManagement,
-    subjectKnowledge: doc.review.subjectKnowledge,
-    otherComments: doc.review.otherComments,
-    reviewedAt: doc.review.reviewedAt,
-  };
-}
+    reviewField = {
+      reviewer:                      reviewerField,
+      subjectKnowledge:              doc.review.subjectKnowledge,
+      engagementWithStudents:        doc.review.engagementWithStudents,
+      useOfTeachingAids:             doc.review.useOfTeachingAids,
+      interactionAndQuestionHandling:doc.review.interactionAndQuestionHandling,
+      studentDiscipline:             doc.review.studentDiscipline,
+      teachersControlOverClass:      doc.review.teachersControlOverClass,
+      participationLevelOfStudents:  doc.review.participationLevelOfStudents,
+      completionOfPlannedSyllabus:   doc.review.completionOfPlannedSyllabus,
+      overallComments:               doc.review.overallComments,
+      strengthsObserved:             doc.review.strengthsObserved,
+      areasForImprovement:           doc.review.areasForImprovement,
+      immediateSuggestions:          doc.review.immediateSuggestions,
+      reviewedAt:                    doc.review.reviewedAt,
+    };
+  }
 
   // map teacherComment subdocument if present
   let teacherCommentField;
@@ -125,7 +131,7 @@ if (doc.teacherComment) {
     uploadedBy: doc.uploadedBy.toString(),
     status: doc.status,
     assignedReviewer: assignedReviewerField || undefined,
-     review:          reviewField,
+     review: reviewField,
   teacherComment:  teacherCommentField,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
@@ -226,13 +232,9 @@ export const assignReviewer = async (videoId: string, reviewerId: string): Promi
 
 // 5️⃣ Submit review feedback (marks status = reviewed)
 export const submitReview = async (
-  videoId: string,
+videoId:    string,
   reviewerId: string,
-  reviewData: {
-    classManagement: string;
-    subjectKnowledge: string;
-    otherComments: string;
-  },
+  reviewData: IReviewInput
 ): Promise<IVideo> => {
   const doc = await Video.findById(videoId);
   if (!doc) {
@@ -240,18 +242,26 @@ export const submitReview = async (
   }
 
   doc.review = {
-    reviewer: new Types.ObjectId(reviewerId),
-    classManagement: reviewData.classManagement,
-    subjectKnowledge: reviewData.subjectKnowledge,
-    otherComments: reviewData.otherComments,
-    reviewedAt: new Date(),
+    reviewer:                         new Types.ObjectId(reviewerId),
+    subjectKnowledge:                 reviewData.subjectKnowledge,
+    engagementWithStudents:           reviewData.engagementWithStudents,
+    useOfTeachingAids:                reviewData.useOfTeachingAids,
+    interactionAndQuestionHandling:   reviewData.interactionAndQuestionHandling,
+    studentDiscipline:                reviewData.studentDiscipline,
+    teachersControlOverClass:         reviewData.teachersControlOverClass,
+    participationLevelOfStudents:     reviewData.participationLevelOfStudents,
+    completionOfPlannedSyllabus:      reviewData.completionOfPlannedSyllabus,
+    overallComments:                  reviewData.overallComments,
+    strengthsObserved:                reviewData.strengthsObserved ?? '',
+    areasForImprovement:              reviewData.areasForImprovement ?? '',
+    immediateSuggestions:             reviewData.immediateSuggestions ?? '',
+    reviewedAt:                       new Date(),
   };
-  doc.status = 'reviewed';
-  await doc.save();
+  doc.status = 'reviewed' as VideoStatus;
 
+  await doc.save();
   return mapVideo(doc);
 };
-
 // 6️⃣ Publish a reviewed video (marks status = published)
 export const publishReview = async (videoId: string): Promise<IVideo> => {
   const doc = await Video.findByIdAndUpdate(

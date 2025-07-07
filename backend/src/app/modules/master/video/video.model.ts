@@ -1,7 +1,46 @@
 // src/app/modules/video/video.model.ts
 
 import { Schema, model, Types, Document } from 'mongoose';
-import { VideoStatus } from './video.type';
+import { IReview, VideoStatus } from './video.type';
+
+// src/app/modules/video/video.model.ts
+const SubCriterionSchema = new Schema(
+  {
+    rating: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5,
+    },
+    comment: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+  },
+  { _id: false },
+);
+
+
+const SubReviewSchema = new Schema(
+  {
+    reviewer: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    subjectKnowledge:           { type: SubCriterionSchema, required: true },
+    engagementWithStudents:     { type: SubCriterionSchema, required: true },
+    useOfTeachingAids:          { type: SubCriterionSchema, required: true },
+    interactionAndQuestionHandling: { type: SubCriterionSchema, required: true },
+    studentDiscipline:          { type: SubCriterionSchema, required: true },
+    teachersControlOverClass:   { type: SubCriterionSchema, required: true },
+    participationLevelOfStudents:{ type: SubCriterionSchema, required: true },
+    completionOfPlannedSyllabus:{ type: SubCriterionSchema, required: true },
+    overallComments:            { type: String, trim: true, required: true },
+    strengthsObserved:          { type: String, trim: true, default: '' },
+    areasForImprovement:        { type: String, trim: true, default: '' },
+    immediateSuggestions:       { type: String, trim: true, default: '' },
+    reviewedAt:                 { type: Date, required: true },
+  },
+  { _id: false },
+);
 
 export interface IVideoDocument extends Document {
   teacher: Types.ObjectId;
@@ -13,14 +52,8 @@ export interface IVideoDocument extends Document {
   uploadedBy: Types.ObjectId;
   status: VideoStatus;
   assignedReviewer?: Types.ObjectId;
-  review?: {                      // ← newly added
-    reviewer: Types.ObjectId;
-    classManagement: string;
-    subjectKnowledge: string;
-    otherComments: string;
-    reviewedAt: Date;
-  };
-  teacherComment?: {               // ← newly added
+  review?: IReview;
+  teacherComment?: {   
     commenter: Types.ObjectId;
     comment: string;
     commentedAt: Date;
@@ -29,16 +62,7 @@ export interface IVideoDocument extends Document {
   updatedAt: Date;
 }
 
-const SubReviewSchema = new Schema(
-  {
-    reviewer:         { type: Schema.Types.ObjectId, ref: 'User',    required: true },
-    classManagement:  { type: String,                                required: true },
-    subjectKnowledge: { type: String,                                required: true },
-    otherComments:    { type: String,                                required: true },
-    reviewedAt:       { type: Date,                                  required: true },
-  },
-  { _id: false }
-);
+
 
 const SubTeacherCommentSchema = new Schema(
   {

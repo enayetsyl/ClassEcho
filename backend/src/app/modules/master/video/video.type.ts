@@ -1,16 +1,46 @@
 // src/app/modules/video/video.type.ts
 
+import { Types } from "mongoose";
 import { IClass } from "../class/class.type";
 import { ISection } from "../section/section.type";
 import { ISubject } from "../subject/subject.type";
 
 export type VideoStatus = 'unassigned' | 'assigned' | 'reviewed' | 'published';
 
+export interface IReviewCriterion {
+  rating: number;
+  comment: string;
+}
+
+export interface IReviewInput {
+  subjectKnowledge:           IReviewCriterion;
+  engagementWithStudents:     IReviewCriterion;
+  useOfTeachingAids:          IReviewCriterion;
+  interactionAndQuestionHandling: IReviewCriterion;
+  studentDiscipline:          IReviewCriterion;
+  teachersControlOverClass:   IReviewCriterion;
+  participationLevelOfStudents:IReviewCriterion;
+  completionOfPlannedSyllabus:IReviewCriterion;
+  overallComments:            string;
+  strengthsObserved?:         string;
+  areasForImprovement?:       string;
+  immediateSuggestions?:      string;
+}
+
 export interface IReview {
-  reviewer: string | ITeacherInfo;
-  classManagement: string;
-  subjectKnowledge: string;
-  otherComments: string;
+  reviewer:Types.ObjectId | string | ITeacherInfo;
+  subjectKnowledge: IReviewCriterion;
+  engagementWithStudents: IReviewCriterion;
+  useOfTeachingAids: IReviewCriterion;
+  interactionAndQuestionHandling: IReviewCriterion;
+  studentDiscipline: IReviewCriterion;
+  teachersControlOverClass: IReviewCriterion;
+  participationLevelOfStudents: IReviewCriterion;
+  completionOfPlannedSyllabus: IReviewCriterion;
+  overallComments: string;
+  strengthsObserved?: string;
+  areasForImprovement?: string;
+  immediateSuggestions?: string;
   reviewedAt: Date;
 }
 export interface ITeacherInfo {

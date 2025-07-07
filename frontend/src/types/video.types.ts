@@ -5,12 +5,26 @@ import { ISection } from "./section.types";
 import { ISubject } from "./subject.types";
 
 /** Review left by a reviewer */
+export interface TReviewCriterion {
+  rating: number;
+  comment: string;
+}
+
 export interface TReview {
   reviewer: string;
-  classManagement: string;
-  subjectKnowledge: string;
-  otherComments: string;
-  reviewedAt: string;          // ISO date
+  subjectKnowledge: TReviewCriterion;
+  engagementWithStudents: TReviewCriterion;
+  useOfTeachingAids: TReviewCriterion;
+  interactionAndQuestionHandling: TReviewCriterion;
+  studentDiscipline: TReviewCriterion;
+  teachersControlOverClass: TReviewCriterion;
+  participationLevelOfStudents: TReviewCriterion;
+  completionOfPlannedSyllabus: TReviewCriterion;
+  overallComments: string;
+  strengthsObserved?: string;
+  areasForImprovement?: string;
+  immediateSuggestions?: string;
+  reviewedAt: string;
 }
 
 /** Comment added by the class teacher */
@@ -73,10 +87,25 @@ export interface TAssignReviewerPayload {
 }
 
 /** Payload to submit a review */
+export interface TReviewCriterionPayload {
+  rating: number;
+  comment: string;
+}
+
 export interface TSubmitReviewPayload {
-  classManagement: string;
-  subjectKnowledge: string;
-  otherComments: string;
+  subjectKnowledge:            TReviewCriterionPayload;
+  engagementWithStudents:      TReviewCriterionPayload;
+  useOfTeachingAids:           TReviewCriterionPayload;
+  interactionAndQuestionHandling: TReviewCriterionPayload;
+  studentDiscipline:           TReviewCriterionPayload;
+  teachersControlOverClass:    TReviewCriterionPayload;
+  participationLevelOfStudents: TReviewCriterionPayload;
+  completionOfPlannedSyllabus: TReviewCriterionPayload;
+
+  overallComments:             string;
+  strengthsObserved?:          string;
+  areasForImprovement?:        string;
+  immediateSuggestions?:       string;
 }
 
 /** Payload to add a comment as teacher */

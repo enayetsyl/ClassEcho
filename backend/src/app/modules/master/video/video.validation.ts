@@ -49,14 +49,52 @@ export const publishVideoValidation = z.object({
 });
 
 
+
+
 export const submitReviewValidation = z.object({
-  params: z.object({ id: z.string().length(24) }),
+  params: z.object({
+    id: z.string().length(24, 'Invalid video ID'),
+  }),
   body: z.object({
-    classManagement:  z.string().min(1, 'Feedback is required'),
-    subjectKnowledge: z.string().min(1, 'Feedback is required'),
-    otherComments:    z.string().min(1, 'Feedback is required'),
+    subjectKnowledge: z.object({
+      rating:  z.number().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5'),
+      comment: z.string().min(1, 'Comment is required'),
+    }),
+    engagementWithStudents: z.object({
+      rating:  z.number().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5'),
+      comment: z.string().min(1, 'Comment is required'),
+    }),
+    useOfTeachingAids: z.object({
+      rating:  z.number().min(1).max(5),
+      comment: z.string().min(1),
+    }),
+    interactionAndQuestionHandling: z.object({
+      rating:  z.number().min(1).max(5),
+      comment: z.string().min(1),
+    }),
+    studentDiscipline: z.object({
+      rating:  z.number().min(1).max(5),
+      comment: z.string().min(1),
+    }),
+    teachersControlOverClass: z.object({
+      rating:  z.number().min(1).max(5),
+      comment: z.string().min(1),
+    }),
+    participationLevelOfStudents: z.object({
+      rating:  z.number().min(1).max(5),
+      comment: z.string().min(1),
+    }),
+    completionOfPlannedSyllabus: z.object({
+      rating:  z.number().min(1).max(5),
+      comment: z.string().min(1),
+    }),
+    overallComments:      z.string().min(1, 'Overall comments are required'),
+    strengthsObserved:    z.string().optional(),
+    areasForImprovement:  z.string().optional(),
+    immediateSuggestions: z.string().optional(),
   }),
 });
+
 
 
 export const videoIdParam = z.object({

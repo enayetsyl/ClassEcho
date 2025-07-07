@@ -3,11 +3,34 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Video = void 0;
 const mongoose_1 = require("mongoose");
+// src/app/modules/video/video.model.ts
+const SubCriterionSchema = new mongoose_1.Schema({
+    rating: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 5,
+    },
+    comment: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+}, { _id: false });
 const SubReviewSchema = new mongoose_1.Schema({
     reviewer: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
-    classManagement: { type: String, required: true },
-    subjectKnowledge: { type: String, required: true },
-    otherComments: { type: String, required: true },
+    subjectKnowledge: { type: SubCriterionSchema, required: true },
+    engagementWithStudents: { type: SubCriterionSchema, required: true },
+    useOfTeachingAids: { type: SubCriterionSchema, required: true },
+    interactionAndQuestionHandling: { type: SubCriterionSchema, required: true },
+    studentDiscipline: { type: SubCriterionSchema, required: true },
+    teachersControlOverClass: { type: SubCriterionSchema, required: true },
+    participationLevelOfStudents: { type: SubCriterionSchema, required: true },
+    completionOfPlannedSyllabus: { type: SubCriterionSchema, required: true },
+    overallComments: { type: String, trim: true, required: true },
+    strengthsObserved: { type: String, trim: true, default: '' },
+    areasForImprovement: { type: String, trim: true, default: '' },
+    immediateSuggestions: { type: String, trim: true, default: '' },
     reviewedAt: { type: Date, required: true },
 }, { _id: false });
 const SubTeacherCommentSchema = new mongoose_1.Schema({

@@ -75,23 +75,29 @@ const mapVideo = (doc) => {
     }
     let reviewField;
     if (doc.review) {
+        // reviewer
         let reviewerField;
         if (doc.populated('review.reviewer')) {
             const revDoc = doc.review.reviewer;
-            reviewerField = {
-                _id: revDoc.id,
-                name: revDoc.name,
-                email: revDoc.email,
-            };
+            reviewerField = { _id: revDoc.id, name: revDoc.name, email: revDoc.email };
         }
         else {
             reviewerField = doc.review.reviewer.toString();
         }
         reviewField = {
             reviewer: reviewerField,
-            classManagement: doc.review.classManagement,
             subjectKnowledge: doc.review.subjectKnowledge,
-            otherComments: doc.review.otherComments,
+            engagementWithStudents: doc.review.engagementWithStudents,
+            useOfTeachingAids: doc.review.useOfTeachingAids,
+            interactionAndQuestionHandling: doc.review.interactionAndQuestionHandling,
+            studentDiscipline: doc.review.studentDiscipline,
+            teachersControlOverClass: doc.review.teachersControlOverClass,
+            participationLevelOfStudents: doc.review.participationLevelOfStudents,
+            completionOfPlannedSyllabus: doc.review.completionOfPlannedSyllabus,
+            overallComments: doc.review.overallComments,
+            strengthsObserved: doc.review.strengthsObserved,
+            areasForImprovement: doc.review.areasForImprovement,
+            immediateSuggestions: doc.review.immediateSuggestions,
             reviewedAt: doc.review.reviewedAt,
         };
     }
@@ -209,15 +215,25 @@ const assignReviewer = (videoId, reviewerId) => __awaiter(void 0, void 0, void 0
 exports.assignReviewer = assignReviewer;
 // 5️⃣ Submit review feedback (marks status = reviewed)
 const submitReview = (videoId, reviewerId, reviewData) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     const doc = yield video_model_1.Video.findById(videoId);
     if (!doc) {
         throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
     }
     doc.review = {
         reviewer: new mongoose_1.Types.ObjectId(reviewerId),
-        classManagement: reviewData.classManagement,
         subjectKnowledge: reviewData.subjectKnowledge,
-        otherComments: reviewData.otherComments,
+        engagementWithStudents: reviewData.engagementWithStudents,
+        useOfTeachingAids: reviewData.useOfTeachingAids,
+        interactionAndQuestionHandling: reviewData.interactionAndQuestionHandling,
+        studentDiscipline: reviewData.studentDiscipline,
+        teachersControlOverClass: reviewData.teachersControlOverClass,
+        participationLevelOfStudents: reviewData.participationLevelOfStudents,
+        completionOfPlannedSyllabus: reviewData.completionOfPlannedSyllabus,
+        overallComments: reviewData.overallComments,
+        strengthsObserved: (_a = reviewData.strengthsObserved) !== null && _a !== void 0 ? _a : '',
+        areasForImprovement: (_b = reviewData.areasForImprovement) !== null && _b !== void 0 ? _b : '',
+        immediateSuggestions: (_c = reviewData.immediateSuggestions) !== null && _c !== void 0 ? _c : '',
         reviewedAt: new Date(),
     };
     doc.status = 'reviewed';

@@ -41,11 +41,46 @@ exports.publishVideoValidation = zod_1.z.object({
     params: zod_1.z.object({ id: zod_1.z.string().length(24) }),
 });
 exports.submitReviewValidation = zod_1.z.object({
-    params: zod_1.z.object({ id: zod_1.z.string().length(24) }),
+    params: zod_1.z.object({
+        id: zod_1.z.string().length(24, 'Invalid video ID'),
+    }),
     body: zod_1.z.object({
-        classManagement: zod_1.z.string().min(1, 'Feedback is required'),
-        subjectKnowledge: zod_1.z.string().min(1, 'Feedback is required'),
-        otherComments: zod_1.z.string().min(1, 'Feedback is required'),
+        subjectKnowledge: zod_1.z.object({
+            rating: zod_1.z.number().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5'),
+            comment: zod_1.z.string().min(1, 'Comment is required'),
+        }),
+        engagementWithStudents: zod_1.z.object({
+            rating: zod_1.z.number().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5'),
+            comment: zod_1.z.string().min(1, 'Comment is required'),
+        }),
+        useOfTeachingAids: zod_1.z.object({
+            rating: zod_1.z.number().min(1).max(5),
+            comment: zod_1.z.string().min(1),
+        }),
+        interactionAndQuestionHandling: zod_1.z.object({
+            rating: zod_1.z.number().min(1).max(5),
+            comment: zod_1.z.string().min(1),
+        }),
+        studentDiscipline: zod_1.z.object({
+            rating: zod_1.z.number().min(1).max(5),
+            comment: zod_1.z.string().min(1),
+        }),
+        teachersControlOverClass: zod_1.z.object({
+            rating: zod_1.z.number().min(1).max(5),
+            comment: zod_1.z.string().min(1),
+        }),
+        participationLevelOfStudents: zod_1.z.object({
+            rating: zod_1.z.number().min(1).max(5),
+            comment: zod_1.z.string().min(1),
+        }),
+        completionOfPlannedSyllabus: zod_1.z.object({
+            rating: zod_1.z.number().min(1).max(5),
+            comment: zod_1.z.string().min(1),
+        }),
+        overallComments: zod_1.z.string().min(1, 'Overall comments are required'),
+        strengthsObserved: zod_1.z.string().optional(),
+        areasForImprovement: zod_1.z.string().optional(),
+        immediateSuggestions: zod_1.z.string().optional(),
     }),
 });
 exports.videoIdParam = zod_1.z.object({
