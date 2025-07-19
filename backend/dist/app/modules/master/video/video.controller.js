@@ -17,6 +17,9 @@ exports.VideoControllers = void 0;
 const catch_async_1 = __importDefault(require("../../../utils/catch-async"));
 const send_response_1 = __importDefault(require("../../../utils/send-response"));
 const video_service_1 = require("./video.service");
+const app_error_1 = __importDefault(require("../../../errors/app-error"));
+const video_model_1 = require("./video.model");
+const http_status_1 = __importDefault(require("http-status"));
 const createVideo = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const video = yield video_service_1.VideoServices.createVideo(req.body, (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId);
@@ -55,7 +58,20 @@ const assignReviewer = (0, catch_async_1.default)((req, res) => __awaiter(void 0
     });
 }));
 const submitReview = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const updated = yield video_service_1.VideoServices.submitReview(req.params.id, req.user.userId, req.body);
+    // 1️⃣ look up the video (and its subject) first
+    const videoDoc = yield video_model_1.Video.findById(req.params.id).populate('subject');
+    if (!videoDoc)
+        throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
+    // 2️⃣ decide which review to apply
+    const subjName = videoDoc.subject.name.toLowerCase();
+    let updated;
+    if (['quran', 'arabic'].includes(subjName)) {
+        // validate req.body against your language Zod schema if you wish
+        updated = yield video_service_1.VideoServices.submitLanguageReview(req.params.id, req.user.userId, req.body);
+    }
+    else {
+        updated = yield video_service_1.VideoServices.submitReview(req.params.id, req.user.userId, req.body);
+    }
     (0, send_response_1.default)(res, {
         statusCode: 200,
         success: true,

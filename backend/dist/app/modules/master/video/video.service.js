@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.VideoServices = exports.listMyAssigned = exports.addTeacherComment = exports.listTeacherFeedback = exports.publishReview = exports.submitReview = exports.assignReviewer = exports.getVideoById = exports.listVideos = exports.createVideo = void 0;
+exports.VideoServices = exports.submitLanguageReview = exports.listMyAssigned = exports.addTeacherComment = exports.listTeacherFeedback = exports.publishReview = exports.submitReview = exports.assignReviewer = exports.getVideoById = exports.listVideos = exports.createVideo = void 0;
 const mongoose_1 = require("mongoose");
 const video_model_1 = require("./video.model");
 const app_error_1 = __importDefault(require("../../../errors/app-error"));
@@ -123,6 +123,26 @@ const mapVideo = (doc) => {
             commentedAt: doc.teacherComment.commentedAt,
         };
     }
+    let languageReviewField;
+    if (doc.languageReview) {
+        const lr = doc.languageReview;
+        // if you populated the reviewer
+        let reviewerField = typeof lr.reviewer === 'string'
+            ? lr.reviewer
+            : { _id: lr.reviewer.toString(), name: lr.reviewer.name, email: lr.reviewer.email };
+        languageReviewField = {
+            reviewer: reviewerField,
+            classStartedOnTime: lr.classStartedOnTime,
+            classPerformedAsTraining: lr.classPerformedAsTraining,
+            canMaintainDiscipline: lr.canMaintainDiscipline,
+            studentsUnderstandLesson: lr.studentsUnderstandLesson,
+            isClassInteractive: lr.isClassInteractive,
+            teacherSignsHomeworkDiary: lr.teacherSignsHomeworkDiary,
+            teacherChecksDiary: lr.teacherChecksDiary,
+            otherComments: lr.otherComments,
+            reviewedAt: lr.reviewedAt,
+        };
+    }
     return {
         _id: doc.id,
         teacher: teacherField,
@@ -135,6 +155,7 @@ const mapVideo = (doc) => {
         status: doc.status,
         assignedReviewer: assignedReviewerField || undefined,
         review: reviewField,
+        languageReview: languageReviewField,
         teacherComment: teacherCommentField,
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
@@ -303,6 +324,54 @@ const listMyAssigned = (reviewerId) => __awaiter(void 0, void 0, void 0, functio
     return docs.map(mapVideo);
 });
 exports.listMyAssigned = listMyAssigned;
+// export const submitLanguageReview = async (
+//   videoId:    string,
+//   reviewerId: string,
+//   reviewData: ILanguageReviewInput
+// ): Promise<IVideo> => {
+//   const doc = await Video.findById(videoId);
+//   if (!doc) throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
+//   doc.languageReview = {
+//     reviewer:                      new Types.ObjectId(reviewerId),
+//     classStartedOnTime:            reviewData.classStartedOnTime,
+//     classPerformedAsTraining:      reviewData.classPerformedAsTraining,
+//     canMaintainDiscipline:         reviewData.canMaintainDiscipline,
+//     studentsUnderstandLesson:      reviewData.studentsUnderstandLesson,
+//     isClassInteractive:            reviewData.isClassInteractive,
+//     teacherSignsHomeworkDiary:     reviewData.teacherSignsHomeworkDiary,
+//     teacherChecksDiary:            reviewData.teacherChecksDiary,
+//     otherComments:                 reviewData.otherComments ?? '',
+//     reviewedAt:                    new Date(),
+//   };
+//   doc.status = 'reviewed' as VideoStatus;
+//   await doc.save();
+//   return mapVideo(doc);
+// };
+const submitLanguageReview = (videoId, reviewerId, reviewData) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const update = yield video_model_1.Video.findByIdAndUpdate(videoId, {
+        $set: {
+            languageReview: {
+                reviewer: new mongoose_1.Types.ObjectId(reviewerId),
+                classStartedOnTime: reviewData.classStartedOnTime,
+                classPerformedAsTraining: reviewData.classPerformedAsTraining,
+                canMaintainDiscipline: reviewData.canMaintainDiscipline,
+                studentsUnderstandLesson: reviewData.studentsUnderstandLesson,
+                isClassInteractive: reviewData.isClassInteractive,
+                teacherSignsHomeworkDiary: reviewData.teacherSignsHomeworkDiary,
+                teacherChecksDiary: reviewData.teacherChecksDiary,
+                otherComments: (_a = reviewData.otherComments) !== null && _a !== void 0 ? _a : '',
+                reviewedAt: new Date(),
+            },
+            status: 'reviewed',
+        },
+    }, { new: true, runValidators: true });
+    if (!update) {
+        throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
+    }
+    return mapVideo(update);
+});
+exports.submitLanguageReview = submitLanguageReview;
 exports.VideoServices = {
     createVideo: exports.createVideo,
     listVideos: exports.listVideos,
@@ -312,5 +381,6 @@ exports.VideoServices = {
     publishReview: exports.publishReview,
     listTeacherFeedback: exports.listTeacherFeedback,
     addTeacherComment: exports.addTeacherComment,
-    listMyAssigned: exports.listMyAssigned
+    listMyAssigned: exports.listMyAssigned,
+    submitLanguageReview: exports.submitLanguageReview,
 };

@@ -38,6 +38,39 @@ const SubTeacherCommentSchema = new mongoose_1.Schema({
     comment: { type: String, required: true },
     commentedAt: { type: Date, required: true },
 }, { _id: false });
+const LanguageSubReviewSchema = new mongoose_1.Schema({
+    reviewer: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
+    classStartedOnTime: {
+        answeredYes: { type: Boolean, required: true },
+        comment: { type: String, required: true, trim: true },
+    },
+    classPerformedAsTraining: {
+        answeredYes: { type: Boolean, required: true },
+        comment: { type: String, required: true, trim: true },
+    },
+    canMaintainDiscipline: {
+        answeredYes: { type: Boolean, required: true },
+        comment: { type: String, required: true, trim: true },
+    },
+    studentsUnderstandLesson: {
+        answeredYes: { type: Boolean, required: true },
+        comment: { type: String, required: true, trim: true },
+    },
+    isClassInteractive: {
+        answeredYes: { type: Boolean, required: true },
+        comment: { type: String, required: true, trim: true },
+    },
+    teacherSignsHomeworkDiary: {
+        answeredYes: { type: Boolean, required: true },
+        comment: { type: String, required: true, trim: true },
+    },
+    teacherChecksDiary: {
+        answeredYes: { type: Boolean, required: true },
+        comment: { type: String, required: true, trim: true },
+    },
+    otherComments: { type: String, trim: true, default: '' },
+    reviewedAt: { type: Date, required: true },
+}, { _id: false });
 const VideoSchema = new mongoose_1.Schema({
     teacher: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true },
     class: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Class', required: true },
@@ -53,6 +86,7 @@ const VideoSchema = new mongoose_1.Schema({
     },
     assignedReviewer: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', default: null },
     review: { type: SubReviewSchema, default: undefined },
+    languageReview: { type: LanguageSubReviewSchema, default: undefined },
     teacherComment: { type: SubTeacherCommentSchema, default: undefined },
 }, { timestamps: true });
 exports.Video = (0, mongoose_1.model)('Video', VideoSchema);

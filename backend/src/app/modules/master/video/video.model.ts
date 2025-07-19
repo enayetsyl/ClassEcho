@@ -1,7 +1,7 @@
 // src/app/modules/video/video.model.ts
 
 import { Schema, model, Types, Document } from 'mongoose';
-import { IReview, VideoStatus } from './video.type';
+import { ILanguageReview, IReview, VideoStatus } from './video.type';
 
 // src/app/modules/video/video.model.ts
 const SubCriterionSchema = new Schema(
@@ -53,6 +53,7 @@ export interface IVideoDocument extends Document {
   status: VideoStatus;
   assignedReviewer?: Types.ObjectId;
   review?: IReview;
+  languageReview?: ILanguageReview;
   teacherComment?: {   
     commenter: Types.ObjectId;
     comment: string;
@@ -73,6 +74,44 @@ const SubTeacherCommentSchema = new Schema(
   { _id: false }
 );
 
+const LanguageSubReviewSchema = new Schema<ILanguageReview>(
+  {
+    reviewer:   { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    classStartedOnTime: {
+      answeredYes: { type: Boolean, required: true },
+      comment:     { type: String, required: true, trim: true },
+    },
+    classPerformedAsTraining: {
+      answeredYes: { type: Boolean, required: true },
+      comment:     { type: String, required: true, trim: true },
+    },
+    canMaintainDiscipline: {
+      answeredYes: { type: Boolean, required: true },
+      comment:     { type: String, required: true, trim: true },
+    },
+    studentsUnderstandLesson: {
+      answeredYes: { type: Boolean, required: true },
+      comment:     { type: String, required: true, trim: true },
+    },
+    isClassInteractive: {
+      answeredYes: { type: Boolean, required: true },
+      comment:     { type: String, required: true, trim: true },
+    },
+    teacherSignsHomeworkDiary: {
+      answeredYes: { type: Boolean, required: true },
+      comment:     { type: String, required: true, trim: true },
+    },
+    teacherChecksDiary: {
+      answeredYes: { type: Boolean, required: true },
+      comment:     { type: String, required: true, trim: true },
+    },
+    otherComments:   { type: String, trim: true, default: '' },
+    reviewedAt:      { type: Date, required: true },
+  },
+  { _id: false },
+);
+
+
 const VideoSchema = new Schema<IVideoDocument>(
   {
     teacher:          { type: Schema.Types.ObjectId, ref: 'User',    required: true },
@@ -89,6 +128,7 @@ const VideoSchema = new Schema<IVideoDocument>(
     },
     assignedReviewer: { type: Schema.Types.ObjectId, ref: 'User',    default: null },
     review:           { type: SubReviewSchema,                     default: undefined },
+    languageReview: { type: LanguageSubReviewSchema, default: undefined },
     teacherComment:   { type: SubTeacherCommentSchema,             default: undefined },
   },
   { timestamps: true }

@@ -11,6 +11,10 @@ export interface IReviewCriterion {
   rating: number;
   comment: string;
 }
+export interface ILanguageReviewCriterion {
+  answeredYes: boolean;
+  comment:     string;
+}
 
 export interface IReviewInput {
   subjectKnowledge:           IReviewCriterion;
@@ -43,6 +47,23 @@ export interface IReview {
   immediateSuggestions?: string;
   reviewedAt: Date;
 }
+
+export interface ILanguageReviewInput {
+  classStartedOnTime:          ILanguageReviewCriterion;
+  classPerformedAsTraining:    ILanguageReviewCriterion;
+  canMaintainDiscipline:       ILanguageReviewCriterion;
+  studentsUnderstandLesson:    ILanguageReviewCriterion;
+  isClassInteractive:          ILanguageReviewCriterion;
+  teacherSignsHomeworkDiary:   ILanguageReviewCriterion;
+  teacherChecksDiary:          ILanguageReviewCriterion;
+  otherComments?:              string;
+}
+
+export interface ILanguageReview extends ILanguageReviewInput {
+  reviewer:   Types.ObjectId | string | ITeacherInfo;
+  reviewedAt: Date;
+}
+
 export interface ITeacherInfo {
   _id:   string;
   name:  string;
@@ -66,7 +87,8 @@ export interface IVideo {
   uploadedBy: string;
   status?: VideoStatus;
   assignedReviewer?: string  | ITeacherInfo;
-  review?: IReview;                // ← newly added
+  review?: IReview;
+    languageReview?: ILanguageReview;
   teacherComment?: ITeacherComment; // ← newly added
   createdAt?: Date;
   updatedAt?: Date;
