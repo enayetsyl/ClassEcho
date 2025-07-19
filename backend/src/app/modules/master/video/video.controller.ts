@@ -4,6 +4,10 @@ import { Request, Response } from 'express';
 import catchAsync from '../../../utils/catch-async';
 import sendResponse from '../../../utils/send-response';
 import { VideoServices } from './video.service';
+import { ILanguageReviewInput, IReviewInput, IVideo } from './video.type';
+import AppError from '../../../errors/app-error';
+import { Video } from './video.model';
+import httpStatus from 'http-status';
 
 const createVideo = catchAsync(async (req: Request, res: Response) => {
   const video = await VideoServices.createVideo(req.body, req?.user?.userId);
@@ -48,11 +52,27 @@ const assignReviewer = catchAsync(async (req: Request, res: Response) => {
 });
 
 const submitReview = catchAsync(async (req: Request, res: Response) => {
-  const updated = await VideoServices.submitReview(
-    req.params.id,
-    req.user.userId,
-    req.body
-  );
+  // 1️⃣ look up the video (and its subject) first
+  const videoDoc = await Video.findById(req.params.id).populate('subject');
+  if (!videoDoc) throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
+
+  // 2️⃣ decide which review to apply
+  const subjName = (videoDoc.subject as any).name.toLowerCase();
+  let updated: IVideo;
+  if (['quran','arabic'].includes(subjName)) {
+    // validate req.body against your language Zod schema if you wish
+    updated = await VideoServices.submitLanguageReview(
+      req.params.id,
+      req.user!.userId,
+      req.body as ILanguageReviewInput
+    );
+  } else {
+    updated = await VideoServices.submitReview(
+      req.params.id,
+      req.user!.userId,
+      req.body as IReviewInput
+    );
+  }
   sendResponse(res, {
     statusCode: 200,
     success: true,

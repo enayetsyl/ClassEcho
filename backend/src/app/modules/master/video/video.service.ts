@@ -2,7 +2,7 @@
 
 import { Types } from 'mongoose';
 import { Video, IVideoDocument } from './video.model';
-import { IReviewInput, ITeacherInfo, IVideo, VideoStatus } from './video.type';
+import { ILanguageReviewInput, IReviewInput, ITeacherInfo, IVideo, VideoStatus } from './video.type';
 import AppError from '../../../errors/app-error';
 import httpStatus from 'http-status';
 import { IUserDocument } from '../../user/user.model';
@@ -119,6 +119,27 @@ if (doc.teacherComment) {
   };
 }
 
+let languageReviewField;
+if (doc.languageReview) {
+  const lr = doc.languageReview;
+  // if you populated the reviewer
+  let reviewerField = typeof lr.reviewer === 'string'
+    ? lr.reviewer
+    : { _id: lr.reviewer.toString(), name: (lr.reviewer as any).name, email: (lr.reviewer as any).email };
+
+  languageReviewField = {
+    reviewer:                     reviewerField,
+    classStartedOnTime:           lr.classStartedOnTime,
+    classPerformedAsTraining:     lr.classPerformedAsTraining,
+    canMaintainDiscipline:        lr.canMaintainDiscipline,
+    studentsUnderstandLesson:     lr.studentsUnderstandLesson,
+    isClassInteractive:           lr.isClassInteractive,
+    teacherSignsHomeworkDiary:    lr.teacherSignsHomeworkDiary,
+    teacherChecksDiary:           lr.teacherChecksDiary,
+    otherComments:                lr.otherComments,
+    reviewedAt:                   lr.reviewedAt,
+  };
+}
 
   return {
     _id: doc.id,
@@ -132,6 +153,7 @@ if (doc.teacherComment) {
     status: doc.status,
     assignedReviewer: assignedReviewerField || undefined,
      review: reviewField,
+     languageReview: languageReviewField,
   teacherComment:  teacherCommentField,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
@@ -344,6 +366,65 @@ export const listMyAssigned = async (
   return docs.map(mapVideo);
 };
 
+// export const submitLanguageReview = async (
+//   videoId:    string,
+//   reviewerId: string,
+//   reviewData: ILanguageReviewInput
+// ): Promise<IVideo> => {
+//   const doc = await Video.findById(videoId);
+//   if (!doc) throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
+
+//   doc.languageReview = {
+//     reviewer:                      new Types.ObjectId(reviewerId),
+//     classStartedOnTime:            reviewData.classStartedOnTime,
+//     classPerformedAsTraining:      reviewData.classPerformedAsTraining,
+//     canMaintainDiscipline:         reviewData.canMaintainDiscipline,
+//     studentsUnderstandLesson:      reviewData.studentsUnderstandLesson,
+//     isClassInteractive:            reviewData.isClassInteractive,
+//     teacherSignsHomeworkDiary:     reviewData.teacherSignsHomeworkDiary,
+//     teacherChecksDiary:            reviewData.teacherChecksDiary,
+//     otherComments:                 reviewData.otherComments ?? '',
+//     reviewedAt:                    new Date(),
+//   };
+
+//   doc.status = 'reviewed' as VideoStatus;
+//   await doc.save();
+//   return mapVideo(doc);
+// };
+
+export const submitLanguageReview = async (
+  videoId:    string,
+  reviewerId: string,
+  reviewData: ILanguageReviewInput
+): Promise<IVideo> => {
+  const update = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      $set: {
+        languageReview: {
+          reviewer:                    new Types.ObjectId(reviewerId),
+          classStartedOnTime:          reviewData.classStartedOnTime,
+          classPerformedAsTraining:    reviewData.classPerformedAsTraining,
+          canMaintainDiscipline:       reviewData.canMaintainDiscipline,
+          studentsUnderstandLesson:    reviewData.studentsUnderstandLesson,
+          isClassInteractive:          reviewData.isClassInteractive,
+          teacherSignsHomeworkDiary:   reviewData.teacherSignsHomeworkDiary,
+          teacherChecksDiary:          reviewData.teacherChecksDiary,
+          otherComments:               reviewData.otherComments ?? '',
+          reviewedAt:                  new Date(),
+        },
+        status: 'reviewed' as VideoStatus,
+      },
+    },
+    { new: true, runValidators: true }
+  );
+
+  if (!update) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
+  }
+
+  return mapVideo(update);
+};
 
 export const VideoServices = {
   createVideo,
@@ -354,5 +435,6 @@ export const VideoServices = {
   publishReview,
   listTeacherFeedback,
   addTeacherComment,
-  listMyAssigned
+  listMyAssigned,
+  submitLanguageReview,
 };
