@@ -8,6 +8,7 @@ import { ILanguageReviewInput, IReviewInput, IVideo } from './video.type';
 import AppError from '../../../errors/app-error';
 import { Video } from './video.model';
 import httpStatus from 'http-status';
+import { pickFields } from '../../../utils/pick';
 
 const createVideo = catchAsync(async (req: Request, res: Response) => {
   const video = await VideoServices.createVideo(req.body, req?.user?.userId);
@@ -20,13 +21,27 @@ const createVideo = catchAsync(async (req: Request, res: Response) => {
 });
 
 const listVideos = catchAsync(async (req: Request, res: Response) => {
+
+   const filters = pickFields(req.query, [
+    'status',
+    'assignedReviewer',
+    'classId',
+    'sectionId',
+    'subjectId',
+    'teacherId',
+    'dateFrom',
+    'dateTo',
+  ]);
+  const options = pickFields(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
+
  
-  const videos = await VideoServices.listVideos(req.query as any);
+  const result = await VideoServices.listVideos(filters as any, options);
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: 'Videos retrieved successfully',
-    data: videos,
+    data: result.data,
+    meta: result.meta,
   });
 });
 
@@ -93,12 +108,15 @@ const publishReview = catchAsync(async (req: Request, res: Response) => {
 
 const listTeacherFeedback = catchAsync(async (req: Request, res: Response) => {
  
-  const feedback = await VideoServices.listTeacherFeedback(req.user.userId);
+  const options = pickFields(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
+  const result = await VideoServices.listTeacherFeedback(req.user.userId, options);
+
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: 'Teacher feedback retrieved successfully',
-    data: feedback,
+      data: result.data,
+    meta: result.meta,
   });
 });
 
@@ -116,27 +134,29 @@ const addTeacherComment = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const listAssignedVideos = catchAsync(async (req: Request, res: Response) => {
-  const reviewerId = req.user!.userId;  
-  const videos = await VideoServices.listVideos({
-    assignedReviewer: reviewerId,
-    status: 'assigned',
-  });
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: 'Assigned videos retrieved successfully',
-    data: videos,
-  });
-});
+// const listAssignedVideos = catchAsync(async (req: Request, res: Response) => {
+//   const reviewerId = req.user!.userId;  
+//   const videos = await VideoServices.listVideos({
+//     assignedReviewer: reviewerId,
+//     status: 'assigned',
+//   });
+//   sendResponse(res, {
+//     statusCode: 200,
+//     success: true,
+//     message: 'Assigned videos retrieved successfully',
+//     data: videos,
+//   });
+// });
 
 const listMyAssigned = catchAsync(async (req: Request, res: Response) => {
-  const videos = await VideoServices.listMyAssigned(req.user!.userId);
+  const options = pickFields(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
+  const result = await VideoServices.listMyAssigned(req.user!.userId, options);
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: 'Assigned videos retrieved successfully',
-    data: videos,
+    data: result.data,
+    meta: result.meta,
   });
 });
 
@@ -149,7 +169,7 @@ export const VideoControllers = {
   publishReview,
   listTeacherFeedback,
   addTeacherComment,
-  listAssignedVideos,
+  // listAssignedVideos,
   listMyAssigned
 
 };

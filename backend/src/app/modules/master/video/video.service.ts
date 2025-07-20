@@ -2,13 +2,21 @@
 
 import { Types } from 'mongoose';
 import { Video, IVideoDocument } from './video.model';
-import { ILanguageReviewInput, IReviewInput, ITeacherInfo, IVideo, VideoStatus } from './video.type';
+import {
+  ILanguageReviewInput,
+  IReviewInput,
+  ITeacherInfo,
+  IVideo,
+  VideoStatus,
+} from './video.type';
 import AppError from '../../../errors/app-error';
 import httpStatus from 'http-status';
 import { IUserDocument } from '../../user/user.model';
 import { IClassDocument } from '../class/class.model';
 import { ISectionDocument } from '../section/section.model';
 import { ISubjectDocument } from '../subject/subject.model';
+import { TMeta, TPaginationOptions } from '../../../types/utils';
+import { paginationHelper } from '../../../utils/pagination';
 
 // helper: convert a VideoDocument to your IVideo API type
 const mapVideo = (doc: IVideoDocument): IVideo => {
@@ -78,68 +86,73 @@ const mapVideo = (doc: IVideoDocument): IVideo => {
     }
 
     reviewField = {
-      reviewer:                      reviewerField,
-      subjectKnowledge:              doc.review.subjectKnowledge,
-      engagementWithStudents:        doc.review.engagementWithStudents,
-      useOfTeachingAids:             doc.review.useOfTeachingAids,
-      interactionAndQuestionHandling:doc.review.interactionAndQuestionHandling,
-      studentDiscipline:             doc.review.studentDiscipline,
-      teachersControlOverClass:      doc.review.teachersControlOverClass,
-      participationLevelOfStudents:  doc.review.participationLevelOfStudents,
-      completionOfPlannedSyllabus:   doc.review.completionOfPlannedSyllabus,
-      overallComments:               doc.review.overallComments,
-      strengthsObserved:             doc.review.strengthsObserved,
-      areasForImprovement:           doc.review.areasForImprovement,
-      immediateSuggestions:          doc.review.immediateSuggestions,
-      reviewedAt:                    doc.review.reviewedAt,
+      reviewer: reviewerField,
+      subjectKnowledge: doc.review.subjectKnowledge,
+      engagementWithStudents: doc.review.engagementWithStudents,
+      useOfTeachingAids: doc.review.useOfTeachingAids,
+      interactionAndQuestionHandling: doc.review.interactionAndQuestionHandling,
+      studentDiscipline: doc.review.studentDiscipline,
+      teachersControlOverClass: doc.review.teachersControlOverClass,
+      participationLevelOfStudents: doc.review.participationLevelOfStudents,
+      completionOfPlannedSyllabus: doc.review.completionOfPlannedSyllabus,
+      overallComments: doc.review.overallComments,
+      strengthsObserved: doc.review.strengthsObserved,
+      areasForImprovement: doc.review.areasForImprovement,
+      immediateSuggestions: doc.review.immediateSuggestions,
+      reviewedAt: doc.review.reviewedAt,
     };
   }
 
   // map teacherComment subdocument if present
   let teacherCommentField;
-if (doc.teacherComment) {
-  let commenterField: string | ITeacherInfo;
+  if (doc.teacherComment) {
+    let commenterField: string | ITeacherInfo;
 
-  if (doc.populated('teacherComment.commenter')) {
-    // cast via unknown so TS lets us treat it as a full IUserDocument
-    const tcDoc = (doc.teacherComment.commenter as unknown) as IUserDocument;
-    commenterField = {
-      _id: tcDoc.id,
-      name: tcDoc.name,
-      email: tcDoc.email,
+    if (doc.populated('teacherComment.commenter')) {
+      // cast via unknown so TS lets us treat it as a full IUserDocument
+      const tcDoc = doc.teacherComment.commenter as unknown as IUserDocument;
+      commenterField = {
+        _id: tcDoc.id,
+        name: tcDoc.name,
+        email: tcDoc.email,
+      };
+    } else {
+      commenterField = doc.teacherComment.commenter.toString();
+    }
+
+    teacherCommentField = {
+      commenter: commenterField,
+      comment: doc.teacherComment.comment,
+      commentedAt: doc.teacherComment.commentedAt,
     };
-  } else {
-    commenterField = doc.teacherComment.commenter.toString();
   }
 
-  teacherCommentField = {
-    commenter: commenterField,
-    comment:    doc.teacherComment.comment,
-    commentedAt: doc.teacherComment.commentedAt,
-  };
-}
+  let languageReviewField;
+  if (doc.languageReview) {
+    const lr = doc.languageReview;
+    // if you populated the reviewer
+    let reviewerField =
+      typeof lr.reviewer === 'string'
+        ? lr.reviewer
+        : {
+            _id: lr.reviewer.toString(),
+            name: (lr.reviewer as any).name,
+            email: (lr.reviewer as any).email,
+          };
 
-let languageReviewField;
-if (doc.languageReview) {
-  const lr = doc.languageReview;
-  // if you populated the reviewer
-  let reviewerField = typeof lr.reviewer === 'string'
-    ? lr.reviewer
-    : { _id: lr.reviewer.toString(), name: (lr.reviewer as any).name, email: (lr.reviewer as any).email };
-
-  languageReviewField = {
-    reviewer:                     reviewerField,
-    classStartedOnTime:           lr.classStartedOnTime,
-    classPerformedAsTraining:     lr.classPerformedAsTraining,
-    canMaintainDiscipline:        lr.canMaintainDiscipline,
-    studentsUnderstandLesson:     lr.studentsUnderstandLesson,
-    isClassInteractive:           lr.isClassInteractive,
-    teacherSignsHomeworkDiary:    lr.teacherSignsHomeworkDiary,
-    teacherChecksDiary:           lr.teacherChecksDiary,
-    otherComments:                lr.otherComments,
-    reviewedAt:                   lr.reviewedAt,
-  };
-}
+    languageReviewField = {
+      reviewer: reviewerField,
+      classStartedOnTime: lr.classStartedOnTime,
+      classPerformedAsTraining: lr.classPerformedAsTraining,
+      canMaintainDiscipline: lr.canMaintainDiscipline,
+      studentsUnderstandLesson: lr.studentsUnderstandLesson,
+      isClassInteractive: lr.isClassInteractive,
+      teacherSignsHomeworkDiary: lr.teacherSignsHomeworkDiary,
+      teacherChecksDiary: lr.teacherChecksDiary,
+      otherComments: lr.otherComments,
+      reviewedAt: lr.reviewedAt,
+    };
+  }
 
   return {
     _id: doc.id,
@@ -152,9 +165,9 @@ if (doc.languageReview) {
     uploadedBy: doc.uploadedBy.toString(),
     status: doc.status,
     assignedReviewer: assignedReviewerField || undefined,
-     review: reviewField,
-     languageReview: languageReviewField,
-  teacherComment:  teacherCommentField,
+    review: reviewField,
+    languageReview: languageReviewField,
+    teacherComment: teacherCommentField,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -187,16 +200,21 @@ export const createVideo = async (
 };
 
 // 2️⃣ List videos with optional filters
-export const listVideos = async (filters: {
-  status?: VideoStatus;
-  assignedReviewer?: string;
-  classId?: string;
-  sectionId?: string;
-  subjectId?: string;
-  teacherId?: string;
-  dateFrom?: string;
-  dateTo?: string;
-}): Promise<IVideo[]> => {
+export const listVideos = async (
+  filters: {
+    status?: VideoStatus;
+    assignedReviewer?: string;
+    classId?: string;
+    sectionId?: string;
+    subjectId?: string;
+    teacherId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  },
+  options: TPaginationOptions,
+): Promise<{ data: IVideo[]; meta: TMeta }> => {
+  const { page, limit, skip, sortBy, sortOrder } = paginationHelper.calculatePagination(options);
+
   const query: any = {};
   if (filters.status) query.status = filters.status;
   if (filters.assignedReviewer) query.assignedReviewer = filters.assignedReviewer;
@@ -210,15 +228,22 @@ export const listVideos = async (filters: {
     if (filters.dateTo) query.date.$lte = new Date(filters.dateTo);
   }
 
-  const docs = await Video.find(query)
-    .populate('teacher')
-    .populate('assignedReviewer')
-    .populate('class')
-    .populate('section')
-    .populate('subject')
-    .sort('-createdAt');
+  const [docs, total] = await Promise.all([
+    Video.find(query)
+      .populate('teacher')
+      .populate('assignedReviewer')
+      .populate('class')
+      .populate('section')
+      .populate('subject')
+      .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
+      .skip(skip)
+      .limit(limit),
+    Video.countDocuments(query),
+  ]);
 
-  return docs.map(mapVideo);
+  const totalPage = Math.ceil(total / limit);
+  const data = docs.map(mapVideo);
+  return { data, meta: { page, limit, total, totalPage } };
 };
 
 // 3️⃣ Fetch a single video by ID
@@ -229,9 +254,9 @@ export const getVideoById = async (id: string): Promise<IVideo> => {
     .populate('uploadedBy')
     .populate('class')
     .populate('section')
-     .populate('subject')
-  .populate('review.reviewer')
-  .populate('teacherComment.commenter');
+    .populate('subject')
+    .populate('review.reviewer')
+    .populate('teacherComment.commenter');
 
   if (!doc) {
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
@@ -254,9 +279,9 @@ export const assignReviewer = async (videoId: string, reviewerId: string): Promi
 
 // 5️⃣ Submit review feedback (marks status = reviewed)
 export const submitReview = async (
-videoId:    string,
+  videoId: string,
   reviewerId: string,
-  reviewData: IReviewInput
+  reviewData: IReviewInput,
 ): Promise<IVideo> => {
   const doc = await Video.findById(videoId);
   if (!doc) {
@@ -264,20 +289,20 @@ videoId:    string,
   }
 
   doc.review = {
-    reviewer:                         new Types.ObjectId(reviewerId),
-    subjectKnowledge:                 reviewData.subjectKnowledge,
-    engagementWithStudents:           reviewData.engagementWithStudents,
-    useOfTeachingAids:                reviewData.useOfTeachingAids,
-    interactionAndQuestionHandling:   reviewData.interactionAndQuestionHandling,
-    studentDiscipline:                reviewData.studentDiscipline,
-    teachersControlOverClass:         reviewData.teachersControlOverClass,
-    participationLevelOfStudents:     reviewData.participationLevelOfStudents,
-    completionOfPlannedSyllabus:      reviewData.completionOfPlannedSyllabus,
-    overallComments:                  reviewData.overallComments,
-    strengthsObserved:                reviewData.strengthsObserved ?? '',
-    areasForImprovement:              reviewData.areasForImprovement ?? '',
-    immediateSuggestions:             reviewData.immediateSuggestions ?? '',
-    reviewedAt:                       new Date(),
+    reviewer: new Types.ObjectId(reviewerId),
+    subjectKnowledge: reviewData.subjectKnowledge,
+    engagementWithStudents: reviewData.engagementWithStudents,
+    useOfTeachingAids: reviewData.useOfTeachingAids,
+    interactionAndQuestionHandling: reviewData.interactionAndQuestionHandling,
+    studentDiscipline: reviewData.studentDiscipline,
+    teachersControlOverClass: reviewData.teachersControlOverClass,
+    participationLevelOfStudents: reviewData.participationLevelOfStudents,
+    completionOfPlannedSyllabus: reviewData.completionOfPlannedSyllabus,
+    overallComments: reviewData.overallComments,
+    strengthsObserved: reviewData.strengthsObserved ?? '',
+    areasForImprovement: reviewData.areasForImprovement ?? '',
+    immediateSuggestions: reviewData.immediateSuggestions ?? '',
+    reviewedAt: new Date(),
   };
   doc.status = 'reviewed' as VideoStatus;
 
@@ -298,21 +323,32 @@ export const publishReview = async (videoId: string): Promise<IVideo> => {
 };
 
 // 7️⃣ List all published feedback for a given teacher
-export const listTeacherFeedback = async (teacherId: string): Promise<IVideo[]> => {
+export const listTeacherFeedback = async (
+  teacherId: string,
+  options: TPaginationOptions,
+): Promise<{ data: IVideo[]; meta: TMeta }> => {
+  const { page, limit, skip, sortBy, sortOrder } = paginationHelper.calculatePagination(options);
 
-
-  const docs = await Video.find({
+  const filter = {
     teacher: new Types.ObjectId(teacherId),
-    status: 'published',
-  })
-   .populate('teacher')
-    .populate('assignedReviewer')
-    .populate('uploadedBy')
-    .populate('class')
-    .populate('section')
-    .populate('subject')
-  .sort('date');
-  return docs.map(mapVideo);
+    status: 'published' as VideoStatus,
+  };
+
+  const [docs, total] = await Promise.all([
+    Video.find(filter)
+      .populate('teacher')
+      .populate('assignedReviewer')
+      .populate('uploadedBy')
+      .populate('class')
+      .populate('section')
+      .populate('subject')
+      .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
+      .skip(skip)
+      .limit(limit),
+    Video.countDocuments(filter),
+  ]);
+  const totalPage = Math.ceil(total / limit);
+  return { data: docs.map(mapVideo), meta: { page, limit, total, totalPage } };
 };
 
 // 8️⃣ Add teacher’s own comment to a published review
@@ -325,14 +361,11 @@ export const addTeacherComment = async (
   if (!doc) {
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
   }
- 
-    if (doc.teacherComment) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'You have already added a comment to this video'
-    );
+
+  if (doc.teacherComment) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You have already added a comment to this video');
   }
-  
+
   if (doc.teacher.toString() !== teacherId) {
     throw new AppError(httpStatus.FORBIDDEN, 'Not authorized to comment on this video');
   }
@@ -351,19 +384,31 @@ export const addTeacherComment = async (
 };
 
 export const listMyAssigned = async (
-  reviewerId: string
-): Promise<IVideo[]> => {
-  const docs = await Video.find({
-    assignedReviewer: new Types.ObjectId(reviewerId),
-    status: 'assigned',
-  })
-    .populate('teacher')
-    .populate('class')
-    .populate('section')
-    .populate('subject')
-    .sort('date');
+  reviewerId: string,
+  options: TPaginationOptions,
+): Promise<{ data: IVideo[]; meta: TMeta }> => {
+  const { page, limit, skip, sortBy, sortOrder } = paginationHelper.calculatePagination(options);
 
-  return docs.map(mapVideo);
+  const filter = {
+    assignedReviewer: new Types.ObjectId(reviewerId),
+    status: 'assigned' as VideoStatus,
+  };
+
+  const [docs, total] = await Promise.all([
+    Video.find(filter)
+      .populate('teacher')
+      .populate('class')
+      .populate('section')
+      .populate('subject')
+      .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
+      .skip(skip)
+      .limit(limit),
+    Video.countDocuments(filter),
+  ]);
+
+  const totalPage = Math.ceil(total / limit);
+
+  return { data: docs.map(mapVideo), meta: { page, limit, total, totalPage } };
 };
 
 // export const submitLanguageReview = async (
@@ -393,30 +438,30 @@ export const listMyAssigned = async (
 // };
 
 export const submitLanguageReview = async (
-  videoId:    string,
+  videoId: string,
   reviewerId: string,
-  reviewData: ILanguageReviewInput
+  reviewData: ILanguageReviewInput,
 ): Promise<IVideo> => {
   const update = await Video.findByIdAndUpdate(
     videoId,
     {
       $set: {
         languageReview: {
-          reviewer:                    new Types.ObjectId(reviewerId),
-          classStartedOnTime:          reviewData.classStartedOnTime,
-          classPerformedAsTraining:    reviewData.classPerformedAsTraining,
-          canMaintainDiscipline:       reviewData.canMaintainDiscipline,
-          studentsUnderstandLesson:    reviewData.studentsUnderstandLesson,
-          isClassInteractive:          reviewData.isClassInteractive,
-          teacherSignsHomeworkDiary:   reviewData.teacherSignsHomeworkDiary,
-          teacherChecksDiary:          reviewData.teacherChecksDiary,
-          otherComments:               reviewData.otherComments ?? '',
-          reviewedAt:                  new Date(),
+          reviewer: new Types.ObjectId(reviewerId),
+          classStartedOnTime: reviewData.classStartedOnTime,
+          classPerformedAsTraining: reviewData.classPerformedAsTraining,
+          canMaintainDiscipline: reviewData.canMaintainDiscipline,
+          studentsUnderstandLesson: reviewData.studentsUnderstandLesson,
+          isClassInteractive: reviewData.isClassInteractive,
+          teacherSignsHomeworkDiary: reviewData.teacherSignsHomeworkDiary,
+          teacherChecksDiary: reviewData.teacherChecksDiary,
+          otherComments: reviewData.otherComments ?? '',
+          reviewedAt: new Date(),
         },
         status: 'reviewed' as VideoStatus,
       },
     },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
 
   if (!update) {
