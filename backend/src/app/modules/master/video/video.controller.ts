@@ -134,19 +134,6 @@ const addTeacherComment = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// const listAssignedVideos = catchAsync(async (req: Request, res: Response) => {
-//   const reviewerId = req.user!.userId;  
-//   const videos = await VideoServices.listVideos({
-//     assignedReviewer: reviewerId,
-//     status: 'assigned',
-//   });
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: 'Assigned videos retrieved successfully',
-//     data: videos,
-//   });
-// });
 
 const listMyAssigned = catchAsync(async (req: Request, res: Response) => {
   const options = pickFields(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);

@@ -41,6 +41,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { PaginationControl } from "@/components/ui/shared/Pagination";
+import { useGetAllClassesQuery } from "@/hooks/use-class";
+import { useGetAllSectionsQuery } from "@/hooks/use-section";
+import { useGetAllSubjectsQuery } from "@/hooks/use-subject";
+import { Input } from "@/components/ui/input";
 
 export default function VideoListPage() {
   const router = useRouter();
@@ -52,29 +56,59 @@ export default function VideoListPage() {
     | "reviewed"
     | "published";
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
+  const [classFilter, setClassFilter] = useState("");
+  const [sectionFilter, setSectionFilter] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [teacherFilter, setTeacherFilter] = useState("");
+  const [dateFromFilter, setDateFromFilter] = useState("");
+  const [dateToFilter, setDateToFilter] = useState("");
+
   const [dialogVideoId, setDialogVideoId] = useState<string | null>(null);
   const [selectedReviewer, setSelectedReviewer] = useState<string>("");
+
+  // --- pagination state
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  // 1️⃣ Fetch videos (automatically typed)
-  const filters =
-    statusFilter === "all"
-      ? {}
-      : ({ status: statusFilter } as { status: Exclude<FilterStatus, "all"> });
+  // --- fetch filter options
+  const { data: classes = [] } = useGetAllClassesQuery();
+  const { data: sections = [] } = useGetAllSectionsQuery();
+  const { data: subjects = [] } = useGetAllSubjectsQuery();
+  const { data: teachers = [] } = useGetAllTeachers();
+
+  // --- build filter object only with active filters
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filters: Record<string, any> = {};
+  if (statusFilter !== "all") filters.status = statusFilter;
+  if (classFilter) filters.classId = classFilter;
+  if (sectionFilter) filters.sectionId = sectionFilter;
+  if (subjectFilter) filters.subjectId = subjectFilter;
+  if (teacherFilter) filters.teacherId = teacherFilter;
+  if (dateFromFilter) filters.dateFrom = dateFromFilter;
+  if (dateToFilter) filters.dateTo = dateToFilter;
+
   const queryParams = { ...filters, page, limit };
 
-  const { data, isFetching } = useGetAllVideosQuery(queryParams);
+  const { data, isFetching, refetch } = useGetAllVideosQuery(queryParams);
   const videos = data?.data ?? [];
   const totalPage = data?.meta.totalPage ?? 1;
-
-  // 2️⃣ Fetch teachers (for the Assign dialog)
-  const { data: teachers = [] } = useGetAllTeachers();
 
   // 3️⃣ Mutations
   const assignReviewer = useAssignReviewerMutation();
 
   const publishVideo = usePublishVideoMutation();
+
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setClassFilter("");
+    setSectionFilter("");
+    setSubjectFilter("");
+    setTeacherFilter("");
+    setDateFromFilter("");
+    setDateToFilter("");
+    setPage(1);
+    refetch();
+  };
 
   return (
     <div className="p-4">
@@ -87,7 +121,8 @@ export default function VideoListPage() {
         </CardHeader>
         <CardContent>
           {/* Filter bar */}
-          <div className="flex items-center space-x-4 mb-4">
+          <div className="flex flex-wrap items-center space-x-4 mb-4">
+            {/* Status */}
             <Select
               value={statusFilter}
               onValueChange={(val: string) =>
@@ -105,13 +140,81 @@ export default function VideoListPage() {
                 <SelectItem value="published">Published</SelectItem>
               </SelectContent>
             </Select>
-            <Button
-              onClick={() => {
-                /* React-Query refetch happens automatically on statusFilter change */
-              }}
-            >
-              Refresh
-            </Button>
+            {/* Class */}
+            <Select value={classFilter} onValueChange={setClassFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Class" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((c) => (
+                  <SelectItem key={c._id} value={c._id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Section */}
+            <Select value={sectionFilter} onValueChange={setSectionFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Section" />
+              </SelectTrigger>
+              <SelectContent>
+                {sections.map((s) => (
+                  <SelectItem key={s._id} value={s._id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Subject */}
+            <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {subjects.map((s) => (
+                  <SelectItem key={s._id} value={s._id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Teacher */}
+            <Select value={teacherFilter} onValueChange={setTeacherFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Teacher" />
+              </SelectTrigger>
+              <SelectContent>
+                {teachers.map((t) => (
+                  <SelectItem key={t._id} value={t._id}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex justify-center items-center gap-2">
+              {/* Date From */}
+              <Input
+                type="date"
+                value={dateFromFilter}
+                onChange={(e) => setDateFromFilter(e.target.value)}
+                placeholder="From"
+              />
+
+              {/* Date To */}
+              <Input
+                type="date"
+                value={dateToFilter}
+                onChange={(e) => setDateToFilter(e.target.value)}
+                placeholder="To"
+              />
+            </div>
+
+            <Button onClick={clearFilters}>Clear Filters</Button>
           </div>
 
           {/* Table */}
