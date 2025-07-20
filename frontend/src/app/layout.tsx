@@ -32,7 +32,7 @@ export default function RootLayout({
       >
          <AuthProvider>
           <NavBar />
-          <main>{children}</main>
+          <main className="bg-body-bg">{children}</main>
         <Toaster/>
         </AuthProvider>
       </body>

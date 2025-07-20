@@ -8,6 +8,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateClassMutation } from "@/hooks/use-class";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   name: z.string().min(1, "Class name cannot be empty"),
@@ -16,6 +17,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const CreateClassPage = () => {
+  const router = useRouter()
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "" },
@@ -25,10 +27,11 @@ const CreateClassPage = () => {
   const onSubmit = (values: FormValues) => {
     mutate(values);
     form.reset();
+    router.push('/dashboard/admin/classes/class-list')
   };
 
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className="flex justify-center items-center pt-10">
       <div className="w-full max-w-md">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 px-5">

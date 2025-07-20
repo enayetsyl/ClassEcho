@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+@theme {
+  /* Layout & Surfaces */
+  --color-body-bg: #F9FAFB;         /* gray-50 */  
+  --color-navbar-bg: #F3F4F6;       /* gray-100 */  
+  --color-card-bg: #FFFFFF;         /* white */  
+
+  /* Borders */
+  --color-border: #E5E7EB;          /* gray-200 */  
+
+  /* Primary Action */
+  --color-btn-bg: #3B82F6;          /* blue-500 */  
+  --color-btn-text: #FFFFFF;        /* white */  
+  --color-btn-hover-bg: #2563EB;    /* blue-600 */  
+  --color-btn-hover-text: #FFFFFF;  /* white */  
+
+  /* Semantic Status */
+  --color-success: #10B981;         /* emerald-500 */  
+  --color-danger: #EF4444;          /* red-500 */  
+  --color-info: #0EA5E9;            /* sky-500 */  
+  --color-warning: #F59E0B;         /* amber-500 */  
+}
+
+/* Optionally set the default body background */
+body {
+  background-color: var(--color-body-bg);
+}
