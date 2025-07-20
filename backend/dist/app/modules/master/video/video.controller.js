@@ -20,6 +20,7 @@ const video_service_1 = require("./video.service");
 const app_error_1 = __importDefault(require("../../../errors/app-error"));
 const video_model_1 = require("./video.model");
 const http_status_1 = __importDefault(require("http-status"));
+const pick_1 = require("../../../utils/pick");
 const createVideo = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     const video = yield video_service_1.VideoServices.createVideo(req.body, (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId);
@@ -31,12 +32,24 @@ const createVideo = (0, catch_async_1.default)((req, res) => __awaiter(void 0, v
     });
 }));
 const listVideos = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const videos = yield video_service_1.VideoServices.listVideos(req.query);
+    const filters = (0, pick_1.pickFields)(req.query, [
+        'status',
+        'assignedReviewer',
+        'classId',
+        'sectionId',
+        'subjectId',
+        'teacherId',
+        'dateFrom',
+        'dateTo',
+    ]);
+    const options = (0, pick_1.pickFields)(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
+    const result = yield video_service_1.VideoServices.listVideos(filters, options);
     (0, send_response_1.default)(res, {
         statusCode: 200,
         success: true,
         message: 'Videos retrieved successfully',
-        data: videos,
+        data: result.data,
+        meta: result.meta,
     });
 }));
 const getVideoById = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -89,12 +102,14 @@ const publishReview = (0, catch_async_1.default)((req, res) => __awaiter(void 0,
     });
 }));
 const listTeacherFeedback = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const feedback = yield video_service_1.VideoServices.listTeacherFeedback(req.user.userId);
+    const options = (0, pick_1.pickFields)(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
+    const result = yield video_service_1.VideoServices.listTeacherFeedback(req.user.userId, options);
     (0, send_response_1.default)(res, {
         statusCode: 200,
         success: true,
         message: 'Teacher feedback retrieved successfully',
-        data: feedback,
+        data: result.data,
+        meta: result.meta,
     });
 }));
 const addTeacherComment = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -106,26 +121,28 @@ const addTeacherComment = (0, catch_async_1.default)((req, res) => __awaiter(voi
         data: updated,
     });
 }));
-const listAssignedVideos = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const reviewerId = req.user.userId;
-    const videos = yield video_service_1.VideoServices.listVideos({
-        assignedReviewer: reviewerId,
-        status: 'assigned',
-    });
-    (0, send_response_1.default)(res, {
-        statusCode: 200,
-        success: true,
-        message: 'Assigned videos retrieved successfully',
-        data: videos,
-    });
-}));
+// const listAssignedVideos = catchAsync(async (req: Request, res: Response) => {
+//   const reviewerId = req.user!.userId;  
+//   const videos = await VideoServices.listVideos({
+//     assignedReviewer: reviewerId,
+//     status: 'assigned',
+//   });
+//   sendResponse(res, {
+//     statusCode: 200,
+//     success: true,
+//     message: 'Assigned videos retrieved successfully',
+//     data: videos,
+//   });
+// });
 const listMyAssigned = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const videos = yield video_service_1.VideoServices.listMyAssigned(req.user.userId);
+    const options = (0, pick_1.pickFields)(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
+    const result = yield video_service_1.VideoServices.listMyAssigned(req.user.userId, options);
     (0, send_response_1.default)(res, {
         statusCode: 200,
         success: true,
         message: 'Assigned videos retrieved successfully',
-        data: videos,
+        data: result.data,
+        meta: result.meta,
     });
 }));
 exports.VideoControllers = {
@@ -137,6 +154,6 @@ exports.VideoControllers = {
     publishReview,
     listTeacherFeedback,
     addTeacherComment,
-    listAssignedVideos,
+    // listAssignedVideos,
     listMyAssigned
 };

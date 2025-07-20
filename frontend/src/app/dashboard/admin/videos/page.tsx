@@ -40,6 +40,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 export default function VideoListPage() {
   const router = useRouter();
@@ -53,14 +54,20 @@ export default function VideoListPage() {
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
   const [dialogVideoId, setDialogVideoId] = useState<string | null>(null);
   const [selectedReviewer, setSelectedReviewer] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+
 
   // 1️⃣ Fetch videos (automatically typed)
-  const params =
+  const filters =
     statusFilter === "all"
       ? {}
       : ({ status: statusFilter } as { status: Exclude<FilterStatus, "all"> });
+  const queryParams = { ...filters, page, limit };
 
-  const { data: videos = [], isFetching } = useGetAllVideosQuery(params);
+  const { data, isFetching } = useGetAllVideosQuery(queryParams);
+   const videos = data?.data ?? [];
+  const totalPage = data?.meta.totalPage ?? 1;
 
   // 2️⃣ Fetch teachers (for the Assign dialog)
   const { data: teachers = [] } = useGetAllTeachers();
@@ -200,6 +207,48 @@ export default function VideoListPage() {
         </Table>
 
         {isFetching && <div className="text-center py-4">Loading…</div>}
+        <div className="flex justify-end mt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (page > 1) setPage(page - 1);
+                    }}
+                    
+                  />
+                </PaginationItem>
+
+                {Array.from({ length: totalPage }).map((_, idx) => (
+                  <PaginationItem key={idx}>
+                    <PaginationLink
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage(idx + 1);
+                      }}
+                      isActive={page === idx + 1}
+                    >
+                      {idx + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (page < totalPage) setPage(page + 1);
+                    }}
+                    
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+            </div>
       </CardContent>
     </Card>
    </div>

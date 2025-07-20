@@ -95,8 +95,20 @@ export interface TListVideosParams {
   sectionId?: string;
   subjectId?: string;
   teacherId?: string;
-  dateFrom?: string;   // ISO date
-  dateTo?: string;     // ISO date
+  dateFrom?: string;   
+  dateTo?: string;     
+    page?: number;
+  limit?: number;
+}
+
+export interface TPaginatedVideos {
+  data: TVideo[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPage: number;
+  };
 }
 
 /** Payload to assign/reassign a reviewer */

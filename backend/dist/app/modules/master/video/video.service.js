@@ -18,6 +18,7 @@ const mongoose_1 = require("mongoose");
 const video_model_1 = require("./video.model");
 const app_error_1 = __importDefault(require("../../../errors/app-error"));
 const http_status_1 = __importDefault(require("http-status"));
+const pagination_1 = require("../../../utils/pagination");
 // helper: convert a VideoDocument to your IVideo API type
 const mapVideo = (doc) => {
     var _a;
@@ -129,7 +130,11 @@ const mapVideo = (doc) => {
         // if you populated the reviewer
         let reviewerField = typeof lr.reviewer === 'string'
             ? lr.reviewer
-            : { _id: lr.reviewer.toString(), name: lr.reviewer.name, email: lr.reviewer.email };
+            : {
+                _id: lr.reviewer.toString(),
+                name: lr.reviewer.name,
+                email: lr.reviewer.email,
+            };
         languageReviewField = {
             reviewer: reviewerField,
             classStartedOnTime: lr.classStartedOnTime,
@@ -177,7 +182,8 @@ const createVideo = (payload, uploadedBy) => __awaiter(void 0, void 0, void 0, f
 });
 exports.createVideo = createVideo;
 // 2️⃣ List videos with optional filters
-const listVideos = (filters) => __awaiter(void 0, void 0, void 0, function* () {
+const listVideos = (filters, options) => __awaiter(void 0, void 0, void 0, function* () {
+    const { page, limit, skip, sortBy, sortOrder } = pagination_1.paginationHelper.calculatePagination(options);
     const query = {};
     if (filters.status)
         query.status = filters.status;
@@ -198,14 +204,21 @@ const listVideos = (filters) => __awaiter(void 0, void 0, void 0, function* () {
         if (filters.dateTo)
             query.date.$lte = new Date(filters.dateTo);
     }
-    const docs = yield video_model_1.Video.find(query)
-        .populate('teacher')
-        .populate('assignedReviewer')
-        .populate('class')
-        .populate('section')
-        .populate('subject')
-        .sort('-createdAt');
-    return docs.map(mapVideo);
+    const [docs, total] = yield Promise.all([
+        video_model_1.Video.find(query)
+            .populate('teacher')
+            .populate('assignedReviewer')
+            .populate('class')
+            .populate('section')
+            .populate('subject')
+            .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
+            .skip(skip)
+            .limit(limit),
+        video_model_1.Video.countDocuments(query),
+    ]);
+    const totalPage = Math.ceil(total / limit);
+    const data = docs.map(mapVideo);
+    return { data, meta: { page, limit, total, totalPage } };
 });
 exports.listVideos = listVideos;
 // 3️⃣ Fetch a single video by ID
@@ -272,19 +285,27 @@ const publishReview = (videoId) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.publishReview = publishReview;
 // 7️⃣ List all published feedback for a given teacher
-const listTeacherFeedback = (teacherId) => __awaiter(void 0, void 0, void 0, function* () {
-    const docs = yield video_model_1.Video.find({
+const listTeacherFeedback = (teacherId, options) => __awaiter(void 0, void 0, void 0, function* () {
+    const { page, limit, skip, sortBy, sortOrder } = pagination_1.paginationHelper.calculatePagination(options);
+    const filter = {
         teacher: new mongoose_1.Types.ObjectId(teacherId),
         status: 'published',
-    })
-        .populate('teacher')
-        .populate('assignedReviewer')
-        .populate('uploadedBy')
-        .populate('class')
-        .populate('section')
-        .populate('subject')
-        .sort('date');
-    return docs.map(mapVideo);
+    };
+    const [docs, total] = yield Promise.all([
+        video_model_1.Video.find(filter)
+            .populate('teacher')
+            .populate('assignedReviewer')
+            .populate('uploadedBy')
+            .populate('class')
+            .populate('section')
+            .populate('subject')
+            .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
+            .skip(skip)
+            .limit(limit),
+        video_model_1.Video.countDocuments(filter),
+    ]);
+    const totalPage = Math.ceil(total / limit);
+    return { data: docs.map(mapVideo), meta: { page, limit, total, totalPage } };
 });
 exports.listTeacherFeedback = listTeacherFeedback;
 // 8️⃣ Add teacher’s own comment to a published review
@@ -311,17 +332,25 @@ const addTeacherComment = (videoId, teacherId, comment) => __awaiter(void 0, voi
     return mapVideo(doc);
 });
 exports.addTeacherComment = addTeacherComment;
-const listMyAssigned = (reviewerId) => __awaiter(void 0, void 0, void 0, function* () {
-    const docs = yield video_model_1.Video.find({
+const listMyAssigned = (reviewerId, options) => __awaiter(void 0, void 0, void 0, function* () {
+    const { page, limit, skip, sortBy, sortOrder } = pagination_1.paginationHelper.calculatePagination(options);
+    const filter = {
         assignedReviewer: new mongoose_1.Types.ObjectId(reviewerId),
         status: 'assigned',
-    })
-        .populate('teacher')
-        .populate('class')
-        .populate('section')
-        .populate('subject')
-        .sort('date');
-    return docs.map(mapVideo);
+    };
+    const [docs, total] = yield Promise.all([
+        video_model_1.Video.find(filter)
+            .populate('teacher')
+            .populate('class')
+            .populate('section')
+            .populate('subject')
+            .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
+            .skip(skip)
+            .limit(limit),
+        video_model_1.Video.countDocuments(filter),
+    ]);
+    const totalPage = Math.ceil(total / limit);
+    return { data: docs.map(mapVideo), meta: { page, limit, total, totalPage } };
 });
 exports.listMyAssigned = listMyAssigned;
 // export const submitLanguageReview = async (

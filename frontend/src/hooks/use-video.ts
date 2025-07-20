@@ -9,12 +9,13 @@ import {
   TAssignReviewerPayload,
   TSubmitReviewPayload,
   TTeacherCommentPayload,
+  TPaginatedVideos,
 } from "@/types/video.types";
 import * as videoService from "@/services/video.service";
 
 /** 1️⃣ Fetch all videos (with optional filters) */
 export const useGetAllVideosQuery = (params?: TListVideosParams) =>
-  useQuery<TVideo[], Error>({
+  useQuery<TPaginatedVideos, Error>({
     queryKey: ["videos", params],
     queryFn: () => videoService.getAllVideos(params),
   });
