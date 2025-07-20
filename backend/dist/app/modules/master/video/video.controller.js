@@ -121,19 +121,6 @@ const addTeacherComment = (0, catch_async_1.default)((req, res) => __awaiter(voi
         data: updated,
     });
 }));
-// const listAssignedVideos = catchAsync(async (req: Request, res: Response) => {
-//   const reviewerId = req.user!.userId;  
-//   const videos = await VideoServices.listVideos({
-//     assignedReviewer: reviewerId,
-//     status: 'assigned',
-//   });
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: 'Assigned videos retrieved successfully',
-//     data: videos,
-//   });
-// });
 const listMyAssigned = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const options = (0, pick_1.pickFields)(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
     const result = yield video_service_1.VideoServices.listMyAssigned(req.user.userId, options);
