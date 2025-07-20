@@ -10,6 +10,8 @@ import {
   TSubmitReviewPayload,
   TTeacherCommentPayload,
   TPaginatedVideos,
+  TListAssignedParams,
+  TListTeacherFeedbackParams,
 } from "@/types/video.types";
 import * as videoService from "@/services/video.service";
 
@@ -20,10 +22,10 @@ export const useGetAllVideosQuery = (params?: TListVideosParams) =>
     queryFn: () => videoService.getAllVideos(params),
   });
 
-export const useGetAssignedVideosQuery = () =>
-  useQuery<TVideo[], Error>({
+export const useGetAssignedVideosQuery = (params: TListAssignedParams) =>
+  useQuery<TPaginatedVideos, Error>({
     queryKey: ['videos', 'assigned'],
-    queryFn: videoService.getAssignedVideos,
+    queryFn: () =>  videoService.getAssignedVideos(params),
   });
 
 /** 2️⃣ Fetch single video detail */
@@ -107,10 +109,10 @@ export const usePublishVideoMutation = () => {
 };
 
 /** 7️⃣ Teacher: list all published feedback */
-export const useGetTeacherFeedbackQuery = () =>
-  useQuery<TVideo[], Error>({
+export const useGetTeacherFeedbackQuery = (params: TListTeacherFeedbackParams)  =>
+ useQuery<TPaginatedVideos, Error>({
     queryKey: ["teacherFeedback"],
-    queryFn: () => videoService.getTeacherFeedback(),
+    queryFn: () => videoService.getTeacherFeedback(params),
   });
 
 /** 8️⃣ Teacher: add a comment to a published review */

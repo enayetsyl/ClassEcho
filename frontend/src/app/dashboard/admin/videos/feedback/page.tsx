@@ -1,19 +1,21 @@
 "use client";
 
-import React from "react";
+import React, {useState} from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useGetTeacherFeedbackQuery } from "@/hooks/use-video";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 export default function TeacherFeedbackList() {
   const router = useRouter();
-    const {
-    data: videos = [],
-    isLoading,
-    isError,
-  } = useGetTeacherFeedbackQuery();
+    const [page, setPage]   = useState(1);
+  const [limit] = useState(10);
+
+  const { data, isLoading, isError } =
+    useGetTeacherFeedbackQuery({ page, limit });
+
 
   if (isLoading) {
     return (
@@ -30,6 +32,9 @@ export default function TeacherFeedbackList() {
       </Card>
     );
   }
+
+    const videos    = data!.data;
+  const totalPage = data!.meta.totalPage;
 
   return (
     <div className="px-5">
@@ -63,6 +68,47 @@ export default function TeacherFeedbackList() {
             ))}
           </TableBody>
         </Table>
+         {/* Pagination */}
+          <div className="flex justify-end mt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    href={page > 1 ? "#" : undefined}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (page > 1) setPage(page - 1);
+                    }}
+                  />
+                </PaginationItem>
+
+                {Array.from({ length: totalPage }).map((_, idx) => (
+                  <PaginationItem key={idx}>
+                    <PaginationLink
+                      href="#"
+                      isActive={page === idx + 1}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPage(idx + 1);
+                      }}
+                    >
+                      {idx + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+
+                <PaginationItem>
+                  <PaginationNext
+                    href={page < totalPage ? "#" : undefined}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (page < totalPage) setPage(page + 1);
+                    }}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
       </CardContent>
     </Card>
     </div>

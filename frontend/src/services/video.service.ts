@@ -7,6 +7,8 @@ import {
   TSubmitReviewPayload,
   TTeacherCommentPayload,
   TPaginatedVideos,
+  TListAssignedParams,
+  TListTeacherFeedbackParams,
 } from "@/types/video.types";
 
 /** GET /videos → TVideo[] */
@@ -31,13 +33,23 @@ export const getAllVideos = async (
 };
 
 
-export const getAssignedVideos = async (): Promise<TVideo[]> => {
+export const getAssignedVideos = async (params: TListAssignedParams = {}): Promise<TPaginatedVideos> => {
   const res = await apiClient.get<{
     success: boolean;
     message: string;
     data: TVideo[];
-  }>("/admin/videos/my-assigned");
-  return res.data.data;
+     meta: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPage: number;
+    };
+  }>("/admin/videos/my-assigned", { params });
+  
+    return {
+    data: res.data.data,
+    meta: res.data.meta,
+  };
 };
 
 /** GET /videos/:id → TVideo */
@@ -99,13 +111,23 @@ export const publishVideo = async (id: string): Promise<TVideo> => {
 };
 
 /** GET /me/feedback → TVideo[] */
-export const getTeacherFeedback = async (): Promise<TVideo[]> => {
+export const getTeacherFeedback = async (  params: TListTeacherFeedbackParams = {}):  Promise<TPaginatedVideos> => {
   const res = await apiClient.get<{
     success: boolean;
     message: string;
     data: TVideo[];
-  }>("/admin/videos/me/feedback");
-  return res.data.data;
+     meta: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPage: number;
+    };
+  }>("/admin/videos/me/feedback", { params });
+  
+   return {
+    data: res.data.data,
+    meta: res.data.meta,
+  };
 };
 
 /** POST /videos/:id/teacher-comment → TVideo */

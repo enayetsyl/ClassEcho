@@ -139,6 +139,17 @@ export interface TSubmitReviewPayload {
   immediateSuggestions?:       string;
 }
 
+export interface TListAssignedParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface TListTeacherFeedbackParams {
+  page?: number;
+  limit?: number;
+}
+
+
 /** Payload to add a comment as teacher */
 export interface TTeacherCommentPayload {
   comment: string;

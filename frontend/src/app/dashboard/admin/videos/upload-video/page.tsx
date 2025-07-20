@@ -295,7 +295,7 @@ const UploadVideoPage: React.FC = () => {
                 </Button>
               ) : (
                 <Button
-                  variant="destructive"
+                  
                   onClick={handleSignout}
                   className="w-full sm:w-auto"
                 >
