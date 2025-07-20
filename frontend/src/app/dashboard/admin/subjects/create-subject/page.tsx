@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateSubjectMutation } from "@/hooks/use-subject";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   name: z.string().min(1, "Subject name cannot be empty"),
@@ -23,6 +24,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const CreateSubjectPage = () => {
+  const router = useRouter();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "" },
@@ -32,10 +34,11 @@ const CreateSubjectPage = () => {
   const onSubmit = (values: FormValues) => {
     mutate(values);
     form.reset();
+    router.push("/dashboard/admin/subjects/subject-list");
   };
 
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className="flex justify-center items-center pt-10">
       <div className="w-full max-w-md">
         <Form {...form}>
           <form
@@ -66,9 +69,5 @@ const CreateSubjectPage = () => {
 };
 
 export default CreateSubjectPage;
-
-
-
-
 
 // . @ section.controller.ts, section.model.ts, section.routes.ts, section.service.ts, section.type.ts, section.validation.ts, subject.controller.ts, subject.model.ts, subject.routes.ts, subject.service.ts, subject.type.ts, subject.validation.ts

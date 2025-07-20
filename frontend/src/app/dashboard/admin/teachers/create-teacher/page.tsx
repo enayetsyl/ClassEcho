@@ -15,11 +15,13 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/route/ProtectedRoute'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 export default function CreateTeacherPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const { mutate, isPending } = useCreateTeacher()
+ const router = useRouter()
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -27,9 +29,10 @@ export default function CreateTeacherPage() {
       { name, email },
       {
         onSuccess: () => {
-          toast.success('Teacher created; email sent')
+          toast.success('Teacher created; Email sent with login instructions')
           setName('')
           setEmail('')
+           router.push('/dashboard/admin/teachers/teacher-list')
         },
         onError: (err: Error) => toast.error(err.message),
       }

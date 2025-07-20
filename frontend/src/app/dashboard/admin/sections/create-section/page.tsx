@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useCreateSectionMutation } from "@/hooks/use-section";
+import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   name: z.string().min(1, "Section name cannot be empty"),
@@ -23,6 +24,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const CreateSectionPage = () => {
+   const router = useRouter()
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "" },
@@ -32,10 +34,11 @@ const CreateSectionPage = () => {
   const onSubmit = (values: FormValues) => {
     mutate(values);
     form.reset();
+     router.push('/dashboard/admin/sections/section-list')
   };
 
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className="flex justify-center items-center pt-10">
       <div className="w-full max-w-md">
         <Form {...form}>
           <form
