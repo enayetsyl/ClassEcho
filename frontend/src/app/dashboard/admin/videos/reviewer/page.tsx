@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {  useGetAssignedVideosQuery } from "@/hooks/use-video";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { PaginationControl } from "@/components/ui/shared/Pagination";
 
 export default function ReviewerDashboard() {
   const router = useRouter();
@@ -69,47 +69,11 @@ export default function ReviewerDashboard() {
         </Table>
         {/* pagination controls */}
           <div className="flex justify-end mt-4">
-            <Pagination>
-              <PaginationContent>
-                {/* Prev */}
-                <PaginationItem>
-                  <PaginationPrevious
-                    href={page > 1 ? "#" : undefined}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (page > 1) setPage(page - 1);
-                    }}
-                  />
-                </PaginationItem>
-
-                {/* page numbers */}
-                {Array.from({ length: totalPage }).map((_, idx) => (
-                  <PaginationItem key={idx}>
-                    <PaginationLink
-                      href="#"
-                      isActive={page === idx + 1}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        setPage(idx + 1);
-                      }}
-                    >
-                      {idx + 1}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-
-                {/* Next */}
-                <PaginationItem>
-                  <PaginationNext
-                    href={page < totalPage ? "#" : undefined}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (page < totalPage) setPage(page + 1);
-                    }}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+           <PaginationControl
+  page={page}
+  totalPage={totalPage}
+  onPageChange={setPage}
+/>
           </div>
       </CardContent>
     </Card>
