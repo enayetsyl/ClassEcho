@@ -191,9 +191,7 @@ const UploadVideoPage: React.FC = () => {
      <Card className="max-w-xl w-full mx-auto">
         <CardHeader>
           <CardTitle>Upload Class Recording</CardTitle>
-          <CardDescription>
-            Choose metadata, upload to YouTube, then save the link.
-          </CardDescription>
+      
         </CardHeader>
         <CardContent className="space-y-6">
             {/* dropdowns in 2-col grid on md+ */}
