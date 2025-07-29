@@ -9,6 +9,7 @@ import {
   TPaginatedVideos,
   TListAssignedParams,
   TListTeacherFeedbackParams,
+  TSubmitLanguageReviewPayload,
 } from "@/types/video.types";
 
 /** GET /videos → TVideo[] */
@@ -99,6 +100,20 @@ export const submitReview = async (
   }>(`/admin/videos/${id}/review`, payload);
   return res.data.data;
 };
+
+/** POST /admin/videos/:id/review → language‐review payload */
+export const submitLanguageReview = async (
+  id: string,
+  payload: TSubmitLanguageReviewPayload
+): Promise<TVideo> => {
+  const res = await apiClient.post<{
+    success: boolean;
+    message: string;
+    data: TVideo;
+  }>(`/admin/videos/${id}/review`, payload);
+  return res.data.data;
+};
+
 
 /** POST /videos/:id/publish → TVideo */
 export const publishVideo = async (id: string): Promise<TVideo> => {

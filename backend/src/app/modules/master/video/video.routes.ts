@@ -47,7 +47,7 @@ router.post('/:id/assign',
 
 router.post('/:id/review',
   requireAuth, requireRole(['Teacher']),
-  validateRequest(submitReviewValidation),
+  // validateRequest(submitReviewValidation),
   VideoControllers.submitReview
 );
 

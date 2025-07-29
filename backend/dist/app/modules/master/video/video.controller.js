@@ -72,11 +72,11 @@ const assignReviewer = (0, catch_async_1.default)((req, res) => __awaiter(void 0
 }));
 const submitReview = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     // 1️⃣ look up the video (and its subject) first
-    const videoDoc = yield video_model_1.Video.findById(req.params.id).populate('subject');
+    const videoDoc = yield video_model_1.Video.findById(req.params.id).populate('class');
     if (!videoDoc)
         throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
     // 2️⃣ decide which review to apply
-    const subjName = videoDoc.subject.name.toLowerCase();
+    const subjName = videoDoc.class.name.toLowerCase();
     let updated;
     if (['quran', 'arabic'].includes(subjName)) {
         // validate req.body against your language Zod schema if you wish

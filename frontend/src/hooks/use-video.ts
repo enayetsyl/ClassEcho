@@ -12,6 +12,7 @@ import {
   TPaginatedVideos,
   TListAssignedParams,
   TListTeacherFeedbackParams,
+  TSubmitLanguageReviewPayload,
 } from "@/types/video.types";
 import * as videoService from "@/services/video.service";
 
@@ -91,6 +92,27 @@ export const useSubmitReviewMutation = () => {
     },
   });
 };
+
+/** 5.1️⃣ Submit a Qur’an/Arabic (language) review */
+export const useSubmitLanguageReviewMutation = () => {
+  const qc = useQueryClient();
+  return useMutation<
+    TVideo,
+    AxiosError<IGenericErrorResponse>,
+    { id: string; data: TSubmitLanguageReviewPayload }
+  >({
+    mutationFn: ({ id, data }) => videoService.submitLanguageReview(id, data),
+    onSuccess: () => {
+      toast.success("Review submitted successfully");
+      qc.invalidateQueries({ queryKey: ["videos"] });
+    },
+    onError: (err) => {
+      const msg = err.response?.data.message ?? "Failed to submit language review";
+      toast.error(msg);
+    },
+  });
+};
+
 
 /** 6️⃣ Publish a reviewed video */
 export const usePublishVideoMutation = () => {

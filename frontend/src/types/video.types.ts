@@ -154,3 +154,14 @@ export interface TListTeacherFeedbackParams {
 export interface TTeacherCommentPayload {
   comment: string;
 }
+
+export interface TSubmitLanguageReviewPayload {
+  classStartedOnTime:        TLanguageReviewCriterion;
+  classPerformedAsTraining:  TLanguageReviewCriterion;
+  canMaintainDiscipline:     TLanguageReviewCriterion;
+  studentsUnderstandLesson:  TLanguageReviewCriterion;
+  isClassInteractive:        TLanguageReviewCriterion;
+  teacherSignsHomeworkDiary: TLanguageReviewCriterion;
+  teacherChecksDiary:        TLanguageReviewCriterion;
+  otherComments?:            string;
+}

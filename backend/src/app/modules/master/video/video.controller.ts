@@ -68,12 +68,15 @@ const assignReviewer = catchAsync(async (req: Request, res: Response) => {
 
 const submitReview = catchAsync(async (req: Request, res: Response) => {
   // 1️⃣ look up the video (and its subject) first
-  const videoDoc = await Video.findById(req.params.id).populate('subject');
+  const videoDoc = await Video.findById(req.params.id).populate('class');
   if (!videoDoc) throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
 
   // 2️⃣ decide which review to apply
-  const subjName = (videoDoc.subject as any).name.toLowerCase();
+  const subjName = (videoDoc.class as any).name.toLowerCase();
   let updated: IVideo;
+
+
+
   if (['quran','arabic'].includes(subjName)) {
     // validate req.body against your language Zod schema if you wish
     updated = await VideoServices.submitLanguageReview(
@@ -88,6 +91,8 @@ const submitReview = catchAsync(async (req: Request, res: Response) => {
       req.body as IReviewInput
     );
   }
+
+  
   sendResponse(res, {
     statusCode: 200,
     success: true,
