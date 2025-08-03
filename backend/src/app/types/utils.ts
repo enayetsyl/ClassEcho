@@ -15,7 +15,7 @@ export type TResponse<T> = {
 
 
 export type  SendMailOptions = {
-  to: string;
+  to: string | string[];
   subject: string;
   text?: string;
   html?: string;

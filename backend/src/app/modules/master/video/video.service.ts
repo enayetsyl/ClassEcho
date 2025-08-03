@@ -17,6 +17,8 @@ import { ISectionDocument } from '../section/section.model';
 import { ISubjectDocument } from '../subject/subject.model';
 import { TMeta, TPaginationOptions } from '../../../types/utils';
 import { paginationHelper } from '../../../utils/pagination';
+import { sendMail } from '../../../utils/send-mail';
+import { notifyLanguageReviewSubmitted, notifyReviewerAssigned, notifyReviewSubmitted, notifyTeacherVideoPublished } from '../../../utils/video-mailer';
 
 // helper: convert a VideoDocument to your IVideo API type
 const mapVideo = (doc: IVideoDocument): IVideo => {
@@ -274,6 +276,19 @@ export const assignReviewer = async (videoId: string, reviewerId: string): Promi
   if (!doc) {
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
   }
+
+  const populatedDoc = await doc.populate('assignedReviewer');
+
+  // 🛡️ Safe guard for undefined and type assertion
+  if (!populatedDoc.assignedReviewer || typeof populatedDoc.assignedReviewer === 'string') {
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to populate reviewer');
+  }
+
+  await notifyReviewerAssigned(
+  populatedDoc.assignedReviewer as unknown as IUserDocument,
+  doc.date,
+);
+
   return mapVideo(doc);
 };
 
@@ -307,6 +322,24 @@ export const submitReview = async (
   doc.status = 'reviewed' as VideoStatus;
 
   await doc.save();
+
+
+// Populate reviewer to extract email/name for notification
+  const populatedDoc = await doc.populate('review.reviewer');
+
+  if (
+    !populatedDoc.review?.reviewer ||
+    typeof populatedDoc.review.reviewer === 'string'
+  ) {
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to populate reviewer');
+  }
+
+  await notifyReviewSubmitted(
+    populatedDoc.review.reviewer as unknown as IUserDocument,
+    doc.date,
+  );
+
+
   return mapVideo(doc);
 };
 // 6️⃣ Publish a reviewed video (marks status = published)
@@ -319,6 +352,19 @@ export const publishReview = async (videoId: string): Promise<IVideo> => {
   if (!doc) {
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
   }
+
+const populatedDoc = await doc.populate('teacher');
+
+  if (!populatedDoc.teacher) {
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to populate teacher');
+  }
+
+  await notifyTeacherVideoPublished(
+    populatedDoc.teacher as unknown as IUserDocument,
+    doc.date,
+  );
+
+
   return mapVideo(doc);
 };
 
@@ -411,32 +457,6 @@ export const listMyAssigned = async (
   return { data: docs.map(mapVideo), meta: { page, limit, total, totalPage } };
 };
 
-// export const submitLanguageReview = async (
-//   videoId:    string,
-//   reviewerId: string,
-//   reviewData: ILanguageReviewInput
-// ): Promise<IVideo> => {
-//   const doc = await Video.findById(videoId);
-//   if (!doc) throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
-
-//   doc.languageReview = {
-//     reviewer:                      new Types.ObjectId(reviewerId),
-//     classStartedOnTime:            reviewData.classStartedOnTime,
-//     classPerformedAsTraining:      reviewData.classPerformedAsTraining,
-//     canMaintainDiscipline:         reviewData.canMaintainDiscipline,
-//     studentsUnderstandLesson:      reviewData.studentsUnderstandLesson,
-//     isClassInteractive:            reviewData.isClassInteractive,
-//     teacherSignsHomeworkDiary:     reviewData.teacherSignsHomeworkDiary,
-//     teacherChecksDiary:            reviewData.teacherChecksDiary,
-//     otherComments:                 reviewData.otherComments ?? '',
-//     reviewedAt:                    new Date(),
-//   };
-
-//   doc.status = 'reviewed' as VideoStatus;
-//   await doc.save();
-//   return mapVideo(doc);
-// };
-
 export const submitLanguageReview = async (
   videoId: string,
   reviewerId: string,
@@ -467,6 +487,21 @@ export const submitLanguageReview = async (
   if (!update) {
     throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
   }
+
+  // Ensure reviewer is populated and type-safe
+  const populated = await update.populate('languageReview.reviewer');
+
+  if (
+    !populated.languageReview?.reviewer ||
+    typeof populated.languageReview.reviewer === 'string'
+  ) {
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to populate language reviewer');
+  }
+
+  await notifyLanguageReviewSubmitted(
+    populated.languageReview.reviewer as unknown as IUserDocument,
+    update.date,
+  );
 
   return mapVideo(update);
 };

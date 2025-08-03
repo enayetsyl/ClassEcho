@@ -9,7 +9,7 @@ import transporter from './mailer';
 export const sendMail = async (options: SendMailOptions) => {
   await transporter.sendMail({
     from: config.mail_from,
-    to: options.to,
+    to: Array.isArray(options.to) ? options.to.join(',') : options.to,
     subject: options.subject,
     text: options.text,
     html: options.html,

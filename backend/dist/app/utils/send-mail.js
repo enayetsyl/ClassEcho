@@ -22,7 +22,7 @@ const mailer_1 = __importDefault(require("./mailer"));
 const sendMail = (options) => __awaiter(void 0, void 0, void 0, function* () {
     yield mailer_1.default.sendMail({
         from: config_1.default.mail_from,
-        to: options.to,
+        to: Array.isArray(options.to) ? options.to.join(',') : options.to,
         subject: options.subject,
         text: options.text,
         html: options.html,

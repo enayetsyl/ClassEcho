@@ -19,6 +19,7 @@ const video_model_1 = require("./video.model");
 const app_error_1 = __importDefault(require("../../../errors/app-error"));
 const http_status_1 = __importDefault(require("http-status"));
 const pagination_1 = require("../../../utils/pagination");
+const video_mailer_1 = require("../../../utils/video-mailer");
 // helper: convert a VideoDocument to your IVideo API type
 const mapVideo = (doc) => {
     var _a;
@@ -244,12 +245,18 @@ const assignReviewer = (videoId, reviewerId) => __awaiter(void 0, void 0, void 0
     if (!doc) {
         throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
     }
+    const populatedDoc = yield doc.populate('assignedReviewer');
+    // 🛡️ Safe guard for undefined and type assertion
+    if (!populatedDoc.assignedReviewer || typeof populatedDoc.assignedReviewer === 'string') {
+        throw new app_error_1.default(http_status_1.default.INTERNAL_SERVER_ERROR, 'Failed to populate reviewer');
+    }
+    yield (0, video_mailer_1.notifyReviewerAssigned)(populatedDoc.assignedReviewer, doc.date);
     return mapVideo(doc);
 });
 exports.assignReviewer = assignReviewer;
 // 5️⃣ Submit review feedback (marks status = reviewed)
 const submitReview = (videoId, reviewerId, reviewData) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     const doc = yield video_model_1.Video.findById(videoId);
     if (!doc) {
         throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
@@ -272,6 +279,13 @@ const submitReview = (videoId, reviewerId, reviewData) => __awaiter(void 0, void
     };
     doc.status = 'reviewed';
     yield doc.save();
+    // Populate reviewer to extract email/name for notification
+    const populatedDoc = yield doc.populate('review.reviewer');
+    if (!((_d = populatedDoc.review) === null || _d === void 0 ? void 0 : _d.reviewer) ||
+        typeof populatedDoc.review.reviewer === 'string') {
+        throw new app_error_1.default(http_status_1.default.INTERNAL_SERVER_ERROR, 'Failed to populate reviewer');
+    }
+    yield (0, video_mailer_1.notifyReviewSubmitted)(populatedDoc.review.reviewer, doc.date);
     return mapVideo(doc);
 });
 exports.submitReview = submitReview;
@@ -281,6 +295,11 @@ const publishReview = (videoId) => __awaiter(void 0, void 0, void 0, function* (
     if (!doc) {
         throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
     }
+    const populatedDoc = yield doc.populate('teacher');
+    if (!populatedDoc.teacher) {
+        throw new app_error_1.default(http_status_1.default.INTERNAL_SERVER_ERROR, 'Failed to populate teacher');
+    }
+    yield (0, video_mailer_1.notifyTeacherVideoPublished)(populatedDoc.teacher, doc.date);
     return mapVideo(doc);
 });
 exports.publishReview = publishReview;
@@ -353,31 +372,8 @@ const listMyAssigned = (reviewerId, options) => __awaiter(void 0, void 0, void 0
     return { data: docs.map(mapVideo), meta: { page, limit, total, totalPage } };
 });
 exports.listMyAssigned = listMyAssigned;
-// export const submitLanguageReview = async (
-//   videoId:    string,
-//   reviewerId: string,
-//   reviewData: ILanguageReviewInput
-// ): Promise<IVideo> => {
-//   const doc = await Video.findById(videoId);
-//   if (!doc) throw new AppError(httpStatus.NOT_FOUND, 'Video not found');
-//   doc.languageReview = {
-//     reviewer:                      new Types.ObjectId(reviewerId),
-//     classStartedOnTime:            reviewData.classStartedOnTime,
-//     classPerformedAsTraining:      reviewData.classPerformedAsTraining,
-//     canMaintainDiscipline:         reviewData.canMaintainDiscipline,
-//     studentsUnderstandLesson:      reviewData.studentsUnderstandLesson,
-//     isClassInteractive:            reviewData.isClassInteractive,
-//     teacherSignsHomeworkDiary:     reviewData.teacherSignsHomeworkDiary,
-//     teacherChecksDiary:            reviewData.teacherChecksDiary,
-//     otherComments:                 reviewData.otherComments ?? '',
-//     reviewedAt:                    new Date(),
-//   };
-//   doc.status = 'reviewed' as VideoStatus;
-//   await doc.save();
-//   return mapVideo(doc);
-// };
 const submitLanguageReview = (videoId, reviewerId, reviewData) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b;
     const update = yield video_model_1.Video.findByIdAndUpdate(videoId, {
         $set: {
             languageReview: {
@@ -398,6 +394,13 @@ const submitLanguageReview = (videoId, reviewerId, reviewData) => __awaiter(void
     if (!update) {
         throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
     }
+    // Ensure reviewer is populated and type-safe
+    const populated = yield update.populate('languageReview.reviewer');
+    if (!((_b = populated.languageReview) === null || _b === void 0 ? void 0 : _b.reviewer) ||
+        typeof populated.languageReview.reviewer === 'string') {
+        throw new app_error_1.default(http_status_1.default.INTERNAL_SERVER_ERROR, 'Failed to populate language reviewer');
+    }
+    yield (0, video_mailer_1.notifyLanguageReviewSubmitted)(populated.languageReview.reviewer, update.date);
     return mapVideo(update);
 });
 exports.submitLanguageReview = submitLanguageReview;
