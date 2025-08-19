@@ -20,6 +20,12 @@ const app_error_1 = __importDefault(require("../../../errors/app-error"));
 const http_status_1 = __importDefault(require("http-status"));
 const pagination_1 = require("../../../utils/pagination");
 const video_mailer_1 = require("../../../utils/video-mailer");
+const displayName_1 = require("../../../utils/displayName");
+// const displayName = (obj: any) =>
+//   obj?.name
+//   ?? obj?.fullName
+//   ?? obj?.title
+//   ?? (obj?.firstName && obj?.lastName ? `${obj.firstName} ${obj.lastName}` : '');
 // helper: convert a VideoDocument to your IVideo API type
 const mapVideo = (doc) => {
     var _a;
@@ -245,12 +251,31 @@ const assignReviewer = (videoId, reviewerId) => __awaiter(void 0, void 0, void 0
     if (!doc) {
         throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
     }
-    const populatedDoc = yield doc.populate('assignedReviewer');
-    // 🛡️ Safe guard for undefined and type assertion
-    if (!populatedDoc.assignedReviewer || typeof populatedDoc.assignedReviewer === 'string') {
+    const populatedDoc = yield doc
+        .populate([
+        { path: 'assignedReviewer', select: 'email name fullName firstName lastName' },
+        { path: 'teacher', select: 'name fullName firstName lastName' },
+        { path: 'class', select: 'name title' },
+        { path: 'section', select: 'name title' },
+        { path: 'subject', select: 'name title' },
+    ]);
+    const reviewer = populatedDoc.assignedReviewer;
+    if (!reviewer || typeof reviewer === 'string') {
         throw new app_error_1.default(http_status_1.default.INTERNAL_SERVER_ERROR, 'Failed to populate reviewer');
     }
-    yield (0, video_mailer_1.notifyReviewerAssigned)(populatedDoc.assignedReviewer, doc.date);
+    const teacherName = (0, displayName_1.displayName)(populatedDoc.teacher) || 'Unknown';
+    const className = (0, displayName_1.displayName)(populatedDoc.class) || 'Unknown';
+    const sectionName = (0, displayName_1.displayName)(populatedDoc.section) || 'Unknown';
+    const subjectName = (0, displayName_1.displayName)(populatedDoc.subject) || 'Unknown';
+    // Notify with rich context
+    yield (0, video_mailer_1.notifyReviewerAssigned)({
+        reviewer: reviewer,
+        videoDate: populatedDoc.date,
+        className,
+        sectionName,
+        subjectName,
+        teacherName,
+    });
     return mapVideo(doc);
 });
 exports.assignReviewer = assignReviewer;
@@ -280,12 +305,33 @@ const submitReview = (videoId, reviewerId, reviewData) => __awaiter(void 0, void
     doc.status = 'reviewed';
     yield doc.save();
     // Populate reviewer to extract email/name for notification
-    const populatedDoc = yield doc.populate('review.reviewer');
-    if (!((_d = populatedDoc.review) === null || _d === void 0 ? void 0 : _d.reviewer) ||
-        typeof populatedDoc.review.reviewer === 'string') {
+    // Populate everything needed for the notification in ONE go
+    const populatedDoc = yield doc.populate([
+        { path: 'review.reviewer', select: 'email name fullName firstName lastName' },
+        { path: 'teacher', select: 'name fullName firstName lastName title' },
+        { path: 'class', select: 'name title' },
+        { path: 'section', select: 'name title' },
+        { path: 'subject', select: 'name title' },
+    ]);
+    // Guards
+    const reviewer = (_d = populatedDoc.review) === null || _d === void 0 ? void 0 : _d.reviewer;
+    if (!reviewer || typeof reviewer === 'string') {
         throw new app_error_1.default(http_status_1.default.INTERNAL_SERVER_ERROR, 'Failed to populate reviewer');
     }
-    yield (0, video_mailer_1.notifyReviewSubmitted)(populatedDoc.review.reviewer, doc.date);
+    const reviewerName = (0, displayName_1.displayName)(reviewer) || 'Unknown';
+    const teacherName = (0, displayName_1.displayName)(populatedDoc.teacher) || 'Unknown';
+    const className = (0, displayName_1.displayName)(populatedDoc.class) || 'Unknown';
+    const sectionName = (0, displayName_1.displayName)(populatedDoc.section) || 'Unknown';
+    const subjectName = (0, displayName_1.displayName)(populatedDoc.subject) || 'Unknown';
+    console.log('populated doc', populatedDoc);
+    yield (0, video_mailer_1.notifyReviewSubmitted)({
+        reviewerName,
+        videoDate: populatedDoc.date,
+        className,
+        sectionName,
+        subjectName,
+        teacherName,
+    });
     return mapVideo(doc);
 });
 exports.submitReview = submitReview;
@@ -395,12 +441,33 @@ const submitLanguageReview = (videoId, reviewerId, reviewData) => __awaiter(void
         throw new app_error_1.default(http_status_1.default.NOT_FOUND, 'Video not found');
     }
     // Ensure reviewer is populated and type-safe
-    const populated = yield update.populate('languageReview.reviewer');
-    if (!((_b = populated.languageReview) === null || _b === void 0 ? void 0 : _b.reviewer) ||
-        typeof populated.languageReview.reviewer === 'string') {
+    const populated = yield update.populate([
+        { path: 'languageReview.reviewer', select: 'email name fullName firstName lastName' },
+        { path: 'teacher', select: 'name fullName firstName lastName title' },
+        { path: 'class', select: 'name title' },
+        { path: 'section', select: 'name title' },
+        { path: 'subject', select: 'name title' },
+    ]);
+    // Safeguard reviewer
+    const langReviewer = (_b = populated.languageReview) === null || _b === void 0 ? void 0 : _b.reviewer;
+    if (!langReviewer || typeof langReviewer === 'string') {
         throw new app_error_1.default(http_status_1.default.INTERNAL_SERVER_ERROR, 'Failed to populate language reviewer');
     }
-    yield (0, video_mailer_1.notifyLanguageReviewSubmitted)(populated.languageReview.reviewer, update.date);
+    // Resolve display names
+    const reviewerName = (0, displayName_1.displayName)(langReviewer) || 'Unknown';
+    const teacherName = (0, displayName_1.displayName)(populated.teacher) || 'Unknown';
+    const className = (0, displayName_1.displayName)(populated.class) || 'Unknown';
+    const sectionName = (0, displayName_1.displayName)(populated.section) || 'Unknown';
+    const subjectName = (0, displayName_1.displayName)(populated.subject) || 'Unknown';
+    // Notify admins with rich context
+    yield (0, video_mailer_1.notifyLanguageReviewSubmitted)({
+        reviewerName,
+        videoDate: populated.date,
+        className,
+        sectionName,
+        subjectName,
+        teacherName,
+    });
     return mapVideo(update);
 });
 exports.submitLanguageReview = submitLanguageReview;

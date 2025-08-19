@@ -13,27 +13,61 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifyTeacherCommentAdded = exports.notifyTeacherVideoPublished = exports.notifyLanguageReviewSubmitted = exports.notifyReviewSubmitted = exports.notifyReviewerAssigned = void 0;
 const send_mail_1 = require("./send-mail");
 const ADMIN_EMAILS = ['enayetflweb@gmail.com', 'armustak@gmail.com'];
-const notifyReviewerAssigned = (reviewer, videoDate) => __awaiter(void 0, void 0, void 0, function* () {
+const notifyReviewerAssigned = (_a) => __awaiter(void 0, [_a], void 0, function* ({ reviewer, videoDate, className, sectionName, subjectName, teacherName, }) {
+    const dateStr = videoDate.toDateString();
     yield (0, send_mail_1.sendMail)({
         to: reviewer.email,
         subject: 'You have been assigned a video to review',
-        text: `You have been assigned to review a video scheduled on ${videoDate.toDateString()}.`,
+        text: `You have been assigned to review a video.
+
+Details:
+- Date: ${dateStr}
+- Class: ${className}
+- Section: ${sectionName}
+- Subject: ${subjectName}
+- Teacher: ${teacherName}
+
+Please log in to the dashboard to proceed.`,
     });
 });
 exports.notifyReviewerAssigned = notifyReviewerAssigned;
-const notifyReviewSubmitted = (reviewer, videoDate) => __awaiter(void 0, void 0, void 0, function* () {
+const notifyReviewSubmitted = (params) => __awaiter(void 0, void 0, void 0, function* () {
+    const { reviewerName, videoDate, className, sectionName, subjectName, teacherName, } = params;
+    const dateStr = videoDate.toDateString();
     yield (0, send_mail_1.sendMail)({
         to: ADMIN_EMAILS,
         subject: 'A new video review has been submitted',
-        text: `Reviewer ${reviewer.name} has submitted a review for a class on ${videoDate.toDateString()}.`,
+        text: `A new classroom video review has been submitted.
+
+Details:
+- Reviewer: ${reviewerName}
+- Date: ${dateStr}
+- Class: ${className}
+- Section: ${sectionName}
+- Subject: ${subjectName}
+- Teacher: ${teacherName}
+
+Please log in to the dashboard to view the full review.`,
     });
 });
 exports.notifyReviewSubmitted = notifyReviewSubmitted;
-const notifyLanguageReviewSubmitted = (reviewer, videoDate) => __awaiter(void 0, void 0, void 0, function* () {
+const notifyLanguageReviewSubmitted = (params) => __awaiter(void 0, void 0, void 0, function* () {
+    const { reviewerName, videoDate, className, sectionName, subjectName, teacherName, } = params;
+    const dateStr = videoDate.toDateString();
     yield (0, send_mail_1.sendMail)({
         to: ADMIN_EMAILS,
-        subject: 'A new language class review has been submitted',
-        text: `Language reviewer ${reviewer.name} submitted a review for class on ${videoDate.toDateString()}.`,
+        subject: 'A new language review has been submitted',
+        text: `A new language-focused classroom review has been submitted.
+
+Details:
+- Reviewer: ${reviewerName}
+- Date: ${dateStr}
+- Class: ${className}
+- Section: ${sectionName}
+- Subject: ${subjectName}
+- Teacher: ${teacherName}
+
+Please log in to the dashboard to view the full review.`,
     });
 });
 exports.notifyLanguageReviewSubmitted = notifyLanguageReviewSubmitted;
