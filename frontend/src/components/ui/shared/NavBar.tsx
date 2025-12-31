@@ -29,6 +29,7 @@ export function NavBar() {
     { href: '/dashboard/admin/teachers/teacher-list', label: 'Teachers',   roles: ['SeniorAdmin','Management'] },
     { href: '/dashboard/admin/videos',          label: 'All Videos',    roles: ['SeniorAdmin','Management','Admin'] },
     { href: '/dashboard/admin/videos/upload-video', label: 'Upload Video', roles: ['SeniorAdmin','Management','Admin'] },
+    { href: '/dashboard/admin/reports', label: 'Reports', roles: ['SeniorAdmin','Management','Admin'] },
     { href: '/dashboard/admin/videos/feedback',     label: 'My Feedback',  roles: ['Teacher'] },
     { href: '/dashboard/admin/videos/reviewer',     label: 'To Review',    roles: ['Teacher'] },
   ]

@@ -1,56 +1,81 @@
-// src/hooks/use-reports.ts
-
 import { useQuery } from "@tanstack/react-query";
-import {
-  ITeacherPerformanceMetrics,
-  ITeacherPerformanceFilters,
-  ITeacherActivityBySubject,
-  ITeacherActivityByClass,
-  ITeacherPerformanceSummary,
-} from "@/types/reports.types";
+import { TReportsParams } from "@/types/reports.types";
 import * as reportsService from "@/services/reports.service";
 
-/**
- * Get teacher performance metrics
- */
-export const useGetTeacherPerformanceMetricsQuery = (filters?: ITeacherPerformanceFilters) =>
-  useQuery<ITeacherPerformanceMetrics[], Error>({
-    queryKey: ["reports", "teacher-performance", filters],
-    queryFn: () => reportsService.getTeacherPerformanceMetrics(filters),
+/** Get status distribution report */
+export const useStatusDistributionQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "status-distribution", params],
+    queryFn: () => reportsService.getStatusDistribution(params),
   });
 
-/**
- * Get teacher performance summary
- */
-export const useGetTeacherPerformanceSummaryQuery = (filters?: ITeacherPerformanceFilters) =>
-  useQuery<ITeacherPerformanceSummary, Error>({
-    queryKey: ["reports", "teacher-summary", filters],
-    queryFn: () => reportsService.getTeacherPerformanceSummary(filters),
+/** Get turnaround time report */
+export const useTurnaroundTimeQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "turnaround-time", params],
+    queryFn: () => reportsService.getTurnaroundTime(params),
   });
 
-/**
- * Get teacher activity by subject
- */
-export const useGetTeacherActivityBySubjectQuery = (
-  teacherId: string,
-  filters?: Pick<ITeacherPerformanceFilters, "dateFrom" | "dateTo">
-) =>
-  useQuery<ITeacherActivityBySubject[], Error>({
-    queryKey: ["reports", "teacher-activity-subjects", teacherId, filters],
-    queryFn: () => reportsService.getTeacherActivityBySubject(teacherId, filters),
-    enabled: Boolean(teacherId),
+/** Get teacher performance report */
+export const useTeacherPerformanceQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "teacher-performance", params],
+    queryFn: () => reportsService.getTeacherPerformance(params),
   });
 
-/**
- * Get teacher activity by class
- */
-export const useGetTeacherActivityByClassQuery = (
-  teacherId: string,
-  filters?: Pick<ITeacherPerformanceFilters, "dateFrom" | "dateTo">
-) =>
-  useQuery<ITeacherActivityByClass[], Error>({
-    queryKey: ["reports", "teacher-activity-classes", teacherId, filters],
-    queryFn: () => reportsService.getTeacherActivityByClass(teacherId, filters),
-    enabled: Boolean(teacherId),
+/** Get reviewer productivity report */
+export const useReviewerProductivityQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "reviewer-productivity", params],
+    queryFn: () => reportsService.getReviewerProductivity(params),
+  });
+
+/** Get subject analytics */
+export const useSubjectAnalyticsQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "subject-analytics", params],
+    queryFn: () => reportsService.getSubjectAnalytics(params),
+  });
+
+/** Get class analytics */
+export const useClassAnalyticsQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "class-analytics", params],
+    queryFn: () => reportsService.getClassAnalytics(params),
+  });
+
+/** Get language review compliance */
+export const useLanguageReviewComplianceQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "language-review-compliance", params],
+    queryFn: () => reportsService.getLanguageReviewCompliance(params),
+  });
+
+/** Get time trends */
+export const useTimeTrendsQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "time-trends", params],
+    queryFn: () => reportsService.getTimeTrends(params),
+  });
+
+/** Get operational efficiency */
+export const useOperationalEfficiencyQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "operational-efficiency", params],
+    queryFn: () => reportsService.getOperationalEfficiency(params),
+  });
+
+/** Get quality metrics */
+export const useQualityMetricsQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "quality-metrics", params],
+    queryFn: () => reportsService.getQualityMetrics(params),
+  });
+
+/** Get management dashboard */
+export const useManagementDashboardQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "dashboard", params],
+    queryFn: () => reportsService.getManagementDashboard(params),
   });
 

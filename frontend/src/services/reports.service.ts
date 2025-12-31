@@ -1,73 +1,152 @@
-// src/services/reports.service.ts
-
-import apiClient from '@/lib/api-client';
+import apiClient from "@/lib/api-client";
 import {
-  ITeacherPerformanceMetrics,
-  ITeacherPerformanceFilters,
-  ITeacherActivityBySubject,
-  ITeacherActivityByClass,
-  ITeacherPerformanceSummary,
-} from '@/types/reports.types';
+  IStatusDistributionReport,
+  ITurnaroundTimeReport,
+  ITeacherPerformanceReport,
+  IReviewerProductivityReport,
+  ISubjectAnalytics,
+  IClassAnalytics,
+  ILanguageReviewCompliance,
+  ITimeTrendReport,
+  IOperationalEfficiency,
+  IQualityMetrics,
+  IManagementDashboard,
+  TReportsParams,
+} from "@/types/reports.types";
 
-/**
- * Get teacher performance metrics
- * GET /admin/reports/teachers/performance
- */
-export const getTeacherPerformanceMetrics = async (
-  filters?: ITeacherPerformanceFilters
-): Promise<ITeacherPerformanceMetrics[]> => {
-  const res = await apiClient.get<{
-    success: boolean;
-    message: string;
-    data: ITeacherPerformanceMetrics[];
-  }>('/admin/reports/teachers/performance', { params: filters });
-  return res.data.data;
+const getApiResponse = <T>(res: { success: boolean; message: string; data: T }) => {
+  return res.data;
 };
 
-/**
- * Get teacher performance summary
- * GET /admin/reports/teachers/summary
- */
-export const getTeacherPerformanceSummary = async (
-  filters?: ITeacherPerformanceFilters
-): Promise<ITeacherPerformanceSummary> => {
+/** GET /admin/reports/status-distribution */
+export const getStatusDistribution = async (
+  params?: TReportsParams
+): Promise<IStatusDistributionReport> => {
   const res = await apiClient.get<{
     success: boolean;
     message: string;
-    data: ITeacherPerformanceSummary;
-  }>('/admin/reports/teachers/summary', { params: filters });
-  return res.data.data;
+    data: IStatusDistributionReport;
+  }>("/admin/reports/status-distribution", { params });
+  return getApiResponse(res.data);
 };
 
-/**
- * Get teacher activity by subject
- * GET /admin/reports/teachers/:teacherId/activity/subjects
- */
-export const getTeacherActivityBySubject = async (
-  teacherId: string,
-  filters?: Pick<ITeacherPerformanceFilters, 'dateFrom' | 'dateTo'>
-): Promise<ITeacherActivityBySubject[]> => {
+/** GET /admin/reports/turnaround-time */
+export const getTurnaroundTime = async (
+  params?: TReportsParams
+): Promise<ITurnaroundTimeReport> => {
   const res = await apiClient.get<{
     success: boolean;
     message: string;
-    data: ITeacherActivityBySubject[];
-  }>(`/admin/reports/teachers/${teacherId}/activity/subjects`, { params: filters });
-  return res.data.data;
+    data: ITurnaroundTimeReport;
+  }>("/admin/reports/turnaround-time", { params });
+  return getApiResponse(res.data);
 };
 
-/**
- * Get teacher activity by class
- * GET /admin/reports/teachers/:teacherId/activity/classes
- */
-export const getTeacherActivityByClass = async (
-  teacherId: string,
-  filters?: Pick<ITeacherPerformanceFilters, 'dateFrom' | 'dateTo'>
-): Promise<ITeacherActivityByClass[]> => {
+/** GET /admin/reports/teacher-performance */
+export const getTeacherPerformance = async (
+  params?: TReportsParams
+): Promise<ITeacherPerformanceReport> => {
   const res = await apiClient.get<{
     success: boolean;
     message: string;
-    data: ITeacherActivityByClass[];
-  }>(`/admin/reports/teachers/${teacherId}/activity/classes`, { params: filters });
-  return res.data.data;
+    data: ITeacherPerformanceReport;
+  }>("/admin/reports/teacher-performance", { params });
+  return getApiResponse(res.data);
+};
+
+/** GET /admin/reports/reviewer-productivity */
+export const getReviewerProductivity = async (
+  params?: TReportsParams
+): Promise<IReviewerProductivityReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IReviewerProductivityReport;
+  }>("/admin/reports/reviewer-productivity", { params });
+  return getApiResponse(res.data);
+};
+
+/** GET /admin/reports/subject-analytics */
+export const getSubjectAnalytics = async (
+  params?: TReportsParams
+): Promise<ISubjectAnalytics[]> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: ISubjectAnalytics[];
+  }>("/admin/reports/subject-analytics", { params });
+  return getApiResponse(res.data);
+};
+
+/** GET /admin/reports/class-analytics */
+export const getClassAnalytics = async (
+  params?: TReportsParams
+): Promise<IClassAnalytics[]> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IClassAnalytics[];
+  }>("/admin/reports/class-analytics", { params });
+  return getApiResponse(res.data);
+};
+
+/** GET /admin/reports/language-review-compliance */
+export const getLanguageReviewCompliance = async (
+  params?: TReportsParams
+): Promise<ILanguageReviewCompliance> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: ILanguageReviewCompliance;
+  }>("/admin/reports/language-review-compliance", { params });
+  return getApiResponse(res.data);
+};
+
+/** GET /admin/reports/time-trends */
+export const getTimeTrends = async (
+  params?: TReportsParams
+): Promise<ITimeTrendReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: ITimeTrendReport;
+  }>("/admin/reports/time-trends", { params });
+  return getApiResponse(res.data);
+};
+
+/** GET /admin/reports/operational-efficiency */
+export const getOperationalEfficiency = async (
+  params?: TReportsParams
+): Promise<IOperationalEfficiency> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IOperationalEfficiency;
+  }>("/admin/reports/operational-efficiency", { params });
+  return getApiResponse(res.data);
+};
+
+/** GET /admin/reports/quality-metrics */
+export const getQualityMetrics = async (
+  params?: TReportsParams
+): Promise<IQualityMetrics> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IQualityMetrics;
+  }>("/admin/reports/quality-metrics", { params });
+  return getApiResponse(res.data);
+};
+
+/** GET /admin/reports/dashboard */
+export const getManagementDashboard = async (
+  params?: TReportsParams
+): Promise<IManagementDashboard> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IManagementDashboard;
+  }>("/admin/reports/dashboard", { params });
+  return getApiResponse(res.data);
 };
 

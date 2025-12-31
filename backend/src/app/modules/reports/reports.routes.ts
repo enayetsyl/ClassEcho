@@ -1,41 +1,113 @@
-// src/app/modules/reports/reports.routes.ts
-
 import express from 'express';
-import { requireAuth, requireRole } from '../../../middlewares/auth-middleware';
+import validateRequest from '../../middlewares/validate-request';
+import { requireAuth, requireRole } from '../../middlewares/auth-middleware';
+import { UserRole } from '../user/user.type';
+import {
+  getStatusDistributionValidation,
+  getTurnaroundTimeValidation,
+  getTeacherPerformanceValidation,
+  getReviewerProductivityValidation,
+  getSubjectAnalyticsValidation,
+  getClassAnalyticsValidation,
+  getLanguageReviewComplianceValidation,
+  getTimeTrendsValidation,
+  getOperationalEfficiencyValidation,
+  getQualityMetricsValidation,
+  getManagementDashboardValidation,
+} from './reports.validation';
 import { ReportsControllers } from './reports.controller';
 
 const router = express.Router();
 
-// Get teacher performance metrics
+// All reports are accessible to Management, SeniorAdmin, and Admin roles
+const reportRoles: UserRole[] = ['Management', 'SeniorAdmin', 'Admin'];
+
 router.get(
-  '/teachers/performance',
+  '/status-distribution',
   requireAuth,
-  requireRole(['Admin', 'SeniorAdmin', 'Management']),
-  ReportsControllers.getTeacherPerformanceMetrics
+  requireRole(reportRoles),
+  validateRequest(getStatusDistributionValidation),
+  ReportsControllers.getStatusDistribution,
 );
 
-// Get teacher performance summary
 router.get(
-  '/teachers/summary',
+  '/turnaround-time',
   requireAuth,
-  requireRole(['Admin', 'SeniorAdmin', 'Management']),
-  ReportsControllers.getTeacherPerformanceSummary
+  requireRole(reportRoles),
+  validateRequest(getTurnaroundTimeValidation),
+  ReportsControllers.getTurnaroundTime,
 );
 
-// Get teacher activity by subject
 router.get(
-  '/teachers/:teacherId/activity/subjects',
+  '/teacher-performance',
   requireAuth,
-  requireRole(['Admin', 'SeniorAdmin', 'Management']),
-  ReportsControllers.getTeacherActivityBySubject
+  requireRole(reportRoles),
+  validateRequest(getTeacherPerformanceValidation),
+  ReportsControllers.getTeacherPerformance,
 );
 
-// Get teacher activity by class
 router.get(
-  '/teachers/:teacherId/activity/classes',
+  '/reviewer-productivity',
   requireAuth,
-  requireRole(['Admin', 'SeniorAdmin', 'Management']),
-  ReportsControllers.getTeacherActivityByClass
+  requireRole(reportRoles),
+  validateRequest(getReviewerProductivityValidation),
+  ReportsControllers.getReviewerProductivity,
+);
+
+router.get(
+  '/subject-analytics',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getSubjectAnalyticsValidation),
+  ReportsControllers.getSubjectAnalytics,
+);
+
+router.get(
+  '/class-analytics',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getClassAnalyticsValidation),
+  ReportsControllers.getClassAnalytics,
+);
+
+router.get(
+  '/language-review-compliance',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getLanguageReviewComplianceValidation),
+  ReportsControllers.getLanguageReviewCompliance,
+);
+
+router.get(
+  '/time-trends',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getTimeTrendsValidation),
+  ReportsControllers.getTimeTrends,
+);
+
+router.get(
+  '/operational-efficiency',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getOperationalEfficiencyValidation),
+  ReportsControllers.getOperationalEfficiency,
+);
+
+router.get(
+  '/quality-metrics',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getQualityMetricsValidation),
+  ReportsControllers.getQualityMetrics,
+);
+
+router.get(
+  '/dashboard',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getManagementDashboardValidation),
+  ReportsControllers.getManagementDashboard,
 );
 
 export const ReportsRoutes = router;
