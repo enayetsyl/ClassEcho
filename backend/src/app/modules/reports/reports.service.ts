@@ -276,7 +276,8 @@ export const getReviewerProductivity = async (
         reviews: {
           $push: {
             reviewedAt: '$review.reviewedAt',
-            assignedAt: '$updatedAt', // Approximation
+            createdAt: '$createdAt',
+            updatedAt: '$updatedAt',
           },
         },
       },
@@ -297,9 +298,29 @@ export const getReviewerProductivity = async (
     stat.reviews.forEach((review: any) => {
       if (review.reviewedAt) {
         const reviewedDate = new Date(review.reviewedAt);
-        const assignedDate = review.assignedAt ? new Date(review.assignedAt) : reviewedDate;
+        const createdAt = review.createdAt ? new Date(review.createdAt) : reviewedDate;
+        const updatedAt = review.updatedAt ? new Date(review.updatedAt) : reviewedDate;
+        
+        // Determine assignment date:
+        // 1. If updatedAt is before reviewedAt, it might be from assignment (but could be from earlier updates)
+        // 2. Use the earlier of createdAt or updatedAt (before review) as assignment approximation
+        // 3. Videos are typically assigned soon after creation, so createdAt is a reasonable approximation
+        let assignedDate: Date;
+        if (updatedAt < reviewedDate && updatedAt > createdAt) {
+          // updatedAt is between creation and review - likely the assignment time
+          assignedDate = updatedAt;
+        } else {
+          // Use createdAt as fallback (videos assigned soon after creation)
+          // This is more reliable than updatedAt which can be after review (when published)
+          assignedDate = createdAt;
+        }
+        
         const days = (reviewedDate.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
-        completionTimes.push(days);
+        
+        // Only include positive or zero values (sanity check)
+        if (days >= 0) {
+          completionTimes.push(days);
+        }
 
         if (
           reviewedDate.getMonth() === currentMonth &&
