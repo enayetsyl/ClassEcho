@@ -5,6 +5,7 @@ import { ClassRoutes } from '../modules/master/class/class.routes';
 import { SectionRoutes } from '../modules/master/section/section.routes';
 import { SubjectRoutes } from '../modules/master/subject/subject.routes';
 import { VideoRoutes } from '../modules/master/video/video.routes';
+import { ReportsRoutes } from '../modules/reports/reports.routes';
 
 
 const router = Router();
@@ -33,7 +34,11 @@ const moduleRoutes = [
   {
     path: '/admin/videos',
     route: VideoRoutes,
-  }, 
+  },
+  {
+    path: '/admin/reports',
+    route: ReportsRoutes,
+  },
 
 ];
 
