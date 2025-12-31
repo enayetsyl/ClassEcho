@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useManagementDashboardQuery } from "@/hooks/use-reports";
 import {
   Card,
@@ -16,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 
 export default function ReportsDashboardPage() {
-  const router = useRouter();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 

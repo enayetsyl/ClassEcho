@@ -21,6 +21,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { IStatusDistribution } from "@/types/reports.types";
 
 export default function StatusDistributionPage() {
   const [dateFrom, setDateFrom] = useState("");
@@ -139,7 +140,7 @@ export default function StatusDistributionPage() {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {distributions.map((dist: any) => (
+                              {distributions.map((dist: IStatusDistribution) => (
                                 <TableRow key={dist.status}>
                                   <TableCell>
                                     <Badge className={getStatusColor(dist.status)}>
