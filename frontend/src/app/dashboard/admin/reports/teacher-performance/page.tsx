@@ -32,7 +32,10 @@ import {
 } from "@/components/ui/select";
 import { useGetAllClassesQuery } from "@/hooks/use-class";
 import { useGetAllSubjectsQuery } from "@/hooks/use-subject";
-import { ITeacherPerformanceMetrics } from "@/types/reports.types";
+import {
+  ITeacherPerformanceMetrics,
+  ITeacherPerformanceFilters,
+} from "@/types/reports.types";
 
 export default function TeacherPerformancePage() {
   const [dateFrom, setDateFrom] = useState("");
@@ -45,7 +48,7 @@ export default function TeacherPerformancePage() {
   const { data: classes = [] } = useGetAllClassesQuery();
   const { data: subjects = [] } = useGetAllSubjectsQuery();
 
-  const filters: any = {};
+  const filters: ITeacherPerformanceFilters = {};
   if (dateFrom) filters.dateFrom = dateFrom;
   if (dateTo) filters.dateTo = dateTo;
   if (subjectFilter) filters.subjectId = subjectFilter;
@@ -78,7 +81,11 @@ export default function TeacherPerformancePage() {
   const getTrendBadge = (trend: string) => {
     switch (trend) {
       case "improving":
-        return <Badge variant="default" className="bg-green-500">Improving</Badge>;
+        return (
+          <Badge variant="default" className="bg-green-500">
+            Improving
+          </Badge>
+        );
       case "declining":
         return <Badge variant="destructive">Declining</Badge>;
       default:
@@ -180,8 +187,12 @@ export default function TeacherPerformancePage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <Card>
                 <CardContent className="pt-6">
-                  <div className="text-sm text-muted-foreground">Total Teachers</div>
-                  <div className="text-2xl font-bold">{summary.totalTeachers}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Total Teachers
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {summary.totalTeachers}
+                  </div>
                 </CardContent>
               </Card>
               <Card>
@@ -237,7 +248,9 @@ export default function TeacherPerformancePage() {
                   {summary.topPerformers.map((teacher) => (
                     <Card key={teacher.teacherId}>
                       <CardContent className="pt-6">
-                        <div className="font-semibold">{teacher.teacherName}</div>
+                        <div className="font-semibold">
+                          {teacher.teacherName}
+                        </div>
                         <div className="text-sm text-muted-foreground">
                           {teacher.teacherEmail}
                         </div>
@@ -277,7 +290,9 @@ export default function TeacherPerformancePage() {
                   {summary.needsImprovement.map((teacher) => (
                     <Card key={teacher.teacherId}>
                       <CardContent className="pt-6">
-                        <div className="font-semibold">{teacher.teacherName}</div>
+                        <div className="font-semibold">
+                          {teacher.teacherName}
+                        </div>
                         <div className="text-sm text-muted-foreground">
                           {teacher.teacherEmail}
                         </div>
@@ -377,4 +392,3 @@ export default function TeacherPerformancePage() {
     </div>
   );
 }
-
