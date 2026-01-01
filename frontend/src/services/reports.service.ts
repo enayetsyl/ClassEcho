@@ -11,6 +11,7 @@ import {
   IOperationalEfficiency,
   IQualityMetrics,
   IManagementDashboard,
+  IPendingVideosReport,
   TReportsParams,
 } from "@/types/reports.types";
 
@@ -147,6 +148,18 @@ export const getManagementDashboard = async (
     message: string;
     data: IManagementDashboard;
   }>("/admin/reports/dashboard", { params });
+  return getApiResponse(res.data);
+};
+
+/** GET /admin/reports/pending-videos */
+export const getPendingVideos = async (
+  params?: TReportsParams
+): Promise<IPendingVideosReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IPendingVideosReport;
+  }>("/admin/reports/pending-videos", { params });
   return getApiResponse(res.data);
 };
 

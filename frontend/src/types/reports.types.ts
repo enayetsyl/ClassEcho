@@ -204,3 +204,35 @@ export interface TReportsParams extends IDateRangeFilter {
   period?: 'daily' | 'weekly' | 'monthly';
 }
 
+export interface IPendingVideo {
+  videoId: string;
+  teacherName: string;
+  teacherEmail: string;
+  className: string;
+  sectionName: string;
+  subjectName: string;
+  date: string;
+  youtubeUrl: string;
+  assignedReviewerName?: string;
+  assignedReviewerEmail?: string;
+  daysInStatus: number;
+  status: 'assigned' | 'reviewed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IPendingVideosReport {
+  pendingReview: {
+    total: number;
+    videos: IPendingVideo[];
+    averageDays: number;
+    exceedingSLA: number;
+  };
+  pendingPublication: {
+    total: number;
+    videos: IPendingVideo[];
+    averageDays: number;
+    exceedingSLA: number;
+  };
+}
+

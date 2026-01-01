@@ -14,6 +14,7 @@ import {
   getOperationalEfficiencyValidation,
   getQualityMetricsValidation,
   getManagementDashboardValidation,
+  getPendingVideosValidation,
 } from './reports.validation';
 import { ReportsControllers } from './reports.controller';
 
@@ -110,5 +111,12 @@ router.get(
   ReportsControllers.getManagementDashboard,
 );
 
-export const ReportsRoutes = router;
+router.get(
+  '/pending-videos',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getPendingVideosValidation),
+  ReportsControllers.getPendingVideos,
+);
 
+export const ReportsRoutes = router;

@@ -49,3 +49,5 @@ export const getQualityMetricsValidation = dateRangeValidation;
 
 export const getManagementDashboardValidation = dateRangeValidation;
 
+export const getPendingVideosValidation = dateRangeValidation;
+

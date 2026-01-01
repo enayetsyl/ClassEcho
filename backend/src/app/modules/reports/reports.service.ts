@@ -20,6 +20,8 @@ import {
   ITeacherPerformanceScore,
   IReviewerProductivity,
   ITimeTrend,
+  IPendingVideosReport,
+  IPendingVideo,
 } from './reports.type';
 
 // Helper to build date filter
@@ -837,6 +839,102 @@ export const getManagementDashboard = async (
   };
 };
 
+// 12. Pending Videos Report
+export const getPendingVideos = async (
+  filters: IDateRangeFilter = {},
+): Promise<IPendingVideosReport> => {
+  const dateFilter = buildDateFilter(filters);
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+  // Get videos pending review (assigned but not reviewed)
+  const pendingReviewVideos = await Video.find({
+    ...dateFilter,
+    status: 'assigned',
+  })
+    .populate('teacher', 'name email')
+    .populate('assignedReviewer', 'name email')
+    .populate('class', 'name')
+    .populate('section', 'name')
+    .populate('subject', 'name')
+    .lean();
+
+  // Get videos pending publication (reviewed but not published)
+  const pendingPublicationVideos = await Video.find({
+    ...dateFilter,
+    status: 'reviewed',
+  })
+    .populate('teacher', 'name email')
+    .populate('assignedReviewer', 'name email')
+    .populate('class', 'name')
+    .populate('section', 'name')
+    .populate('subject', 'name')
+    .lean();
+
+  const mapPendingVideo = (video: any): IPendingVideo => {
+    const updatedAt = new Date(video.updatedAt);
+    const daysInStatus = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
+
+    return {
+      videoId: video._id.toString(),
+      teacherName: (video.teacher as any)?.name || 'Unknown',
+      teacherEmail: (video.teacher as any)?.email || '',
+      className: (video.class as any)?.name || 'Unknown',
+      sectionName: (video.section as any)?.name || 'Unknown',
+      subjectName: (video.subject as any)?.name || 'Unknown',
+      date: video.date,
+      youtubeUrl: video.youtubeUrl,
+      assignedReviewerName: (video.assignedReviewer as any)?.name,
+      assignedReviewerEmail: (video.assignedReviewer as any)?.email,
+      daysInStatus: Math.round(daysInStatus * 100) / 100,
+      status: video.status as 'assigned' | 'reviewed',
+      createdAt: video.createdAt,
+      updatedAt: video.updatedAt,
+    };
+  };
+
+  const pendingReviewMapped = pendingReviewVideos.map(mapPendingVideo);
+  const pendingPublicationMapped = pendingPublicationVideos.map(mapPendingVideo);
+
+  // Calculate averages and SLA violations
+  const reviewDays = pendingReviewMapped.map((v) => v.daysInStatus);
+  const publicationDays = pendingPublicationMapped.map((v) => v.daysInStatus);
+
+  const avgReviewDays =
+    reviewDays.length > 0 ? reviewDays.reduce((a, b) => a + b, 0) / reviewDays.length : 0;
+  const avgPublicationDays =
+    publicationDays.length > 0
+      ? publicationDays.reduce((a, b) => a + b, 0) / publicationDays.length
+      : 0;
+
+  const reviewExceedingSLA = pendingReviewMapped.filter(
+    (v) => new Date(v.updatedAt) < sevenDaysAgo,
+  ).length;
+  const publicationExceedingSLA = pendingPublicationMapped.filter(
+    (v) => new Date(v.updatedAt) < threeDaysAgo,
+  ).length;
+
+  // Sort by days in status (oldest first)
+  pendingReviewMapped.sort((a, b) => b.daysInStatus - a.daysInStatus);
+  pendingPublicationMapped.sort((a, b) => b.daysInStatus - a.daysInStatus);
+
+  return {
+    pendingReview: {
+      total: pendingReviewMapped.length,
+      videos: pendingReviewMapped,
+      averageDays: Math.round(avgReviewDays * 100) / 100,
+      exceedingSLA: reviewExceedingSLA,
+    },
+    pendingPublication: {
+      total: pendingPublicationMapped.length,
+      videos: pendingPublicationMapped,
+      averageDays: Math.round(avgPublicationDays * 100) / 100,
+      exceedingSLA: publicationExceedingSLA,
+    },
+  };
+};
+
 export const ReportsServices = {
   getStatusDistribution,
   getTurnaroundTime,
@@ -849,5 +947,6 @@ export const ReportsServices = {
   getOperationalEfficiency,
   getQualityMetrics,
   getManagementDashboard,
+  getPendingVideos,
 };
 

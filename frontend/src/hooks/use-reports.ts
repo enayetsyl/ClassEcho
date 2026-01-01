@@ -79,3 +79,10 @@ export const useManagementDashboardQuery = (params?: TReportsParams) =>
     queryFn: () => reportsService.getManagementDashboard(params),
   });
 
+/** Get pending videos */
+export const usePendingVideosQuery = (params?: TReportsParams) =>
+  useQuery({
+    queryKey: ["reports", "pending-videos", params],
+    queryFn: () => reportsService.getPendingVideos(params),
+  });
+

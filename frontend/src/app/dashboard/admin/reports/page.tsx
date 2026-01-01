@@ -86,6 +86,12 @@ export default function ReportsDashboardPage() {
       href: "/dashboard/admin/reports/quality-metrics",
       color: "bg-yellow-500",
     },
+    {
+      title: "Pending Videos",
+      description: "Videos pending review or publication",
+      href: "/dashboard/admin/reports/pending-videos",
+      color: "bg-rose-500",
+    },
   ];
 
   return (

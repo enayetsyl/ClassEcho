@@ -200,3 +200,35 @@ export interface IManagementDashboard {
   };
 }
 
+export interface IPendingVideo {
+  videoId: string;
+  teacherName: string;
+  teacherEmail: string;
+  className: string;
+  sectionName: string;
+  subjectName: string;
+  date: Date;
+  youtubeUrl: string;
+  assignedReviewerName?: string;
+  assignedReviewerEmail?: string;
+  daysInStatus: number;
+  status: 'assigned' | 'reviewed';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IPendingVideosReport {
+  pendingReview: {
+    total: number;
+    videos: IPendingVideo[];
+    averageDays: number;
+    exceedingSLA: number; // > 7 days
+  };
+  pendingPublication: {
+    total: number;
+    videos: IPendingVideo[];
+    averageDays: number;
+    exceedingSLA: number; // > 3 days
+  };
+}
+
