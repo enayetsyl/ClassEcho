@@ -40,6 +40,18 @@ export default function TeacherPerformancePage() {
     return "bg-red-500";
   };
 
+  const getTrendColor = (trend: "improving" | "declining" | "stable") => {
+    if (trend === "improving") return "bg-green-500";
+    if (trend === "declining") return "bg-red-500";
+    return "bg-gray-500";
+  };
+
+  const getTrendIcon = (trend: "improving" | "declining" | "stable") => {
+    if (trend === "improving") return "↑";
+    if (trend === "declining") return "↓";
+    return "→";
+  };
+
   return (
     <div className="p-4 space-y-6">
       <Card>
@@ -127,6 +139,7 @@ export default function TeacherPerformancePage() {
                         <TableHead>Teacher</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Avg Rating</TableHead>
+                        <TableHead>Trend</TableHead>
                         <TableHead>Videos</TableHead>
                         <TableHead>Published</TableHead>
                       </TableRow>
@@ -141,6 +154,11 @@ export default function TeacherPerformancePage() {
                           <TableCell>
                             <Badge className={getRatingColor(teacher.averageRating)}>
                               {teacher.averageRating.toFixed(2)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getTrendColor(teacher.trend)}>
+                              {getTrendIcon(teacher.trend)} {teacher.trend}
                             </Badge>
                           </TableCell>
                           <TableCell>{teacher.totalVideos}</TableCell>
@@ -201,6 +219,7 @@ export default function TeacherPerformancePage() {
                         <TableHead>Teacher</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Avg Rating</TableHead>
+                        <TableHead>Trend</TableHead>
                         <TableHead>Videos</TableHead>
                         <TableHead>Published</TableHead>
                         <TableHead>Comment Rate</TableHead>
@@ -216,6 +235,11 @@ export default function TeacherPerformancePage() {
                           <TableCell>
                             <Badge className={getRatingColor(teacher.averageRating)}>
                               {teacher.averageRating.toFixed(2)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getTrendColor(teacher.trend)}>
+                              {getTrendIcon(teacher.trend)} {teacher.trend}
                             </Badge>
                           </TableCell>
                           <TableCell>{teacher.totalVideos}</TableCell>
@@ -241,6 +265,7 @@ export default function TeacherPerformancePage() {
                         <TableHead>Teacher</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Avg Rating</TableHead>
+                        <TableHead>Trend</TableHead>
                         <TableHead>Videos</TableHead>
                         <TableHead>Published</TableHead>
                         <TableHead>Comment Rate</TableHead>
@@ -256,6 +281,11 @@ export default function TeacherPerformancePage() {
                           <TableCell>
                             <Badge className={getRatingColor(teacher.averageRating)}>
                               {teacher.averageRating.toFixed(2)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getTrendColor(teacher.trend)}>
+                              {getTrendIcon(teacher.trend)} {teacher.trend}
                             </Badge>
                           </TableCell>
                           <TableCell>{teacher.totalVideos}</TableCell>

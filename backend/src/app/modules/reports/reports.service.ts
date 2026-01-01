@@ -149,6 +149,140 @@ export const getTurnaroundTime = async (
   };
 };
 
+// Helper function to calculate trend based on historical comparison
+const calculateTrend = async (
+  teacherId: any, // Can be ObjectId or string
+  currentPeriodFilter: any,
+  currentAverage: number,
+): Promise<'improving' | 'declining' | 'stable'> => {
+  // Determine previous period based on current filter
+  let previousPeriodFilter: any = {};
+  
+  if (currentPeriodFilter.date) {
+    // If date range is provided, calculate previous period of same duration
+    const dateFrom = currentPeriodFilter.date.$gte;
+    const dateTo = currentPeriodFilter.date.$lte;
+    
+    if (dateFrom && dateTo) {
+      const periodDuration = dateTo.getTime() - dateFrom.getTime();
+      const previousDateTo = new Date(dateFrom.getTime() - 1); // Day before current period starts
+      const previousDateFrom = new Date(previousDateTo.getTime() - periodDuration);
+      
+      previousPeriodFilter = {
+        date: {
+          $gte: previousDateFrom,
+          $lte: previousDateTo,
+        },
+      };
+    } else if (dateFrom) {
+      // Only start date provided - use 30 days before
+      const previousDateTo = new Date(dateFrom.getTime() - 1);
+      const previousDateFrom = new Date(previousDateTo.getTime() - 30 * 24 * 60 * 60 * 1000);
+      previousPeriodFilter = {
+        date: {
+          $gte: previousDateFrom,
+          $lte: previousDateTo,
+        },
+      };
+    } else if (dateTo) {
+      // Only end date provided - use 30 days before
+      const previousDateTo = new Date(dateTo.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const previousDateFrom = new Date(previousDateTo.getTime() - 30 * 24 * 60 * 60 * 1000);
+      previousPeriodFilter = {
+        date: {
+          $gte: previousDateFrom,
+          $lte: previousDateTo,
+        },
+      };
+    } else {
+      // No date filter - compare last 30 days vs previous 30 days
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+      
+      previousPeriodFilter = {
+        date: {
+          $gte: sixtyDaysAgo,
+          $lte: thirtyDaysAgo,
+        },
+      };
+    }
+  } else {
+    // No date filter - compare last 30 days vs previous 30 days
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+    
+    previousPeriodFilter = {
+      date: {
+        $gte: sixtyDaysAgo,
+        $lte: thirtyDaysAgo,
+      },
+    };
+  }
+
+  // Get previous period ratings for this teacher
+  const previousPeriodStats = await Video.aggregate([
+    {
+      $match: {
+        ...previousPeriodFilter,
+        teacher: teacherId,
+        review: { $exists: true, $ne: null },
+      },
+    },
+    {
+      $group: {
+        _id: '$teacher',
+        ratings: {
+          $push: {
+            subjectKnowledge: '$review.subjectKnowledge.rating',
+            engagementWithStudents: '$review.engagementWithStudents.rating',
+            useOfTeachingAids: '$review.useOfTeachingAids.rating',
+            interactionAndQuestionHandling: '$review.interactionAndQuestionHandling.rating',
+            studentDiscipline: '$review.studentDiscipline.rating',
+            teachersControlOverClass: '$review.teachersControlOverClass.rating',
+            participationLevelOfStudents: '$review.participationLevelOfStudents.rating',
+            completionOfPlannedSyllabus: '$review.completionOfPlannedSyllabus.rating',
+          },
+        },
+      },
+    },
+  ]);
+
+  if (previousPeriodStats.length === 0) {
+    // No previous data available
+    return 'stable';
+  }
+
+  const previousRatings: number[] = [];
+  previousPeriodStats[0].ratings.forEach((rating: any) => {
+    Object.values(rating).forEach((value: any) => {
+      if (typeof value === 'number' && value > 0) {
+        previousRatings.push(value);
+      }
+    });
+  });
+
+  if (previousRatings.length === 0) {
+    return 'stable';
+  }
+
+  const previousAverage =
+    previousRatings.reduce((a, b) => a + b, 0) / previousRatings.length;
+
+  // Calculate trend with threshold to avoid noise (0.1 difference)
+  const difference = currentAverage - previousAverage;
+  const threshold = 0.1;
+
+  if (difference > threshold) {
+    return 'improving';
+  } else if (difference < -threshold) {
+    return 'declining';
+  } else {
+    return 'stable';
+  }
+};
+
 // 3. Teacher Performance Report
 export const getTeacherPerformance = async (
   filters: IDateRangeFilter = {},
@@ -183,64 +317,72 @@ export const getTeacherPerformance = async (
     { $unwind: { path: '$teacherInfo', preserveNullAndEmptyArrays: true } },
   ]);
 
-  const teachers: ITeacherPerformanceScore[] = teacherStats.map((stat) => {
-    const isActive = stat.teacherInfo?.active !== false; // Default to true if not found
-    const allRatings: number[] = [];
-    const criteriaTotals: Record<string, number[]> = {
-      subjectKnowledge: [],
-      engagementWithStudents: [],
-      useOfTeachingAids: [],
-      interactionAndQuestionHandling: [],
-      studentDiscipline: [],
-      teachersControlOverClass: [],
-      participationLevelOfStudents: [],
-      completionOfPlannedSyllabus: [],
-    };
+  // Calculate trends for all teachers
+  const teachersWithTrends = await Promise.all(
+    teacherStats.map(async (stat) => {
+      const isActive = stat.teacherInfo?.active !== false; // Default to true if not found
+      const allRatings: number[] = [];
+      const criteriaTotals: Record<string, number[]> = {
+        subjectKnowledge: [],
+        engagementWithStudents: [],
+        useOfTeachingAids: [],
+        interactionAndQuestionHandling: [],
+        studentDiscipline: [],
+        teachersControlOverClass: [],
+        participationLevelOfStudents: [],
+        completionOfPlannedSyllabus: [],
+      };
 
-    stat.ratings.forEach((rating: any) => {
-      Object.keys(criteriaTotals).forEach((key) => {
-        if (rating[key]) {
-          criteriaTotals[key].push(rating[key]);
-          allRatings.push(rating[key]);
-        }
+      stat.ratings.forEach((rating: any) => {
+        Object.keys(criteriaTotals).forEach((key) => {
+          if (rating[key]) {
+            criteriaTotals[key].push(rating[key]);
+            allRatings.push(rating[key]);
+          }
+        });
       });
-    });
 
-    const criteriaScores: any = {};
-    Object.keys(criteriaTotals).forEach((key) => {
-      const arr = criteriaTotals[key];
-      criteriaScores[key] = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-    });
+      const criteriaScores: any = {};
+      Object.keys(criteriaTotals).forEach((key) => {
+        const arr = criteriaTotals[key];
+        criteriaScores[key] = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+      });
 
-    const averageRating =
-      allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 0;
+      const averageRating =
+        allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 0;
 
-    return {
-      teacherId: stat._id.toString(),
-      teacherName: stat.teacherInfo?.name || 'Unknown',
-      teacherEmail: stat.teacherInfo?.email || '',
-      totalVideos: stat.totalVideos,
-      publishedVideos: stat.publishedVideos,
-      averageRating: Math.round(averageRating * 100) / 100,
-      criteriaScores: {
-        subjectKnowledge: Math.round(criteriaScores.subjectKnowledge * 100) / 100,
-        engagementWithStudents: Math.round(criteriaScores.engagementWithStudents * 100) / 100,
-        useOfTeachingAids: Math.round(criteriaScores.useOfTeachingAids * 100) / 100,
-        interactionAndQuestionHandling:
-          Math.round(criteriaScores.interactionAndQuestionHandling * 100) / 100,
-        studentDiscipline: Math.round(criteriaScores.studentDiscipline * 100) / 100,
-        teachersControlOverClass: Math.round(criteriaScores.teachersControlOverClass * 100) / 100,
-        participationLevelOfStudents:
-          Math.round(criteriaScores.participationLevelOfStudents * 100) / 100,
-        completionOfPlannedSyllabus:
-          Math.round(criteriaScores.completionOfPlannedSyllabus * 100) / 100,
-      },
-      trend: 'stable' as const, // Simplified - would need historical data
-      commentRate:
-        stat.publishedVideos > 0 ? (stat.commentsCount / stat.publishedVideos) * 100 : 0,
-      isActive, // Store active status
-    };
-  });
+      // Calculate dynamic trend
+      const trend = await calculateTrend(stat._id, dateFilter, averageRating);
+
+      return {
+        teacherId: stat._id.toString(),
+        teacherName: stat.teacherInfo?.name || 'Unknown',
+        teacherEmail: stat.teacherInfo?.email || '',
+        totalVideos: stat.totalVideos,
+        publishedVideos: stat.publishedVideos,
+        averageRating: Math.round(averageRating * 100) / 100,
+        criteriaScores: {
+          subjectKnowledge: Math.round(criteriaScores.subjectKnowledge * 100) / 100,
+          engagementWithStudents: Math.round(criteriaScores.engagementWithStudents * 100) / 100,
+          useOfTeachingAids: Math.round(criteriaScores.useOfTeachingAids * 100) / 100,
+          interactionAndQuestionHandling:
+            Math.round(criteriaScores.interactionAndQuestionHandling * 100) / 100,
+          studentDiscipline: Math.round(criteriaScores.studentDiscipline * 100) / 100,
+          teachersControlOverClass: Math.round(criteriaScores.teachersControlOverClass * 100) / 100,
+          participationLevelOfStudents:
+            Math.round(criteriaScores.participationLevelOfStudents * 100) / 100,
+          completionOfPlannedSyllabus:
+            Math.round(criteriaScores.completionOfPlannedSyllabus * 100) / 100,
+        },
+        trend,
+        commentRate:
+          stat.publishedVideos > 0 ? (stat.commentsCount / stat.publishedVideos) * 100 : 0,
+        isActive, // Store active status
+      };
+    }),
+  );
+
+  const teachers: ITeacherPerformanceScore[] = teachersWithTrends;
 
   // Separate active and deactivated teachers
   const activeTeachers: ITeacherPerformanceScore[] = [];
