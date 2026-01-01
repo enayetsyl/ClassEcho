@@ -57,7 +57,9 @@ export interface ITeacherPerformanceScore {
 }
 
 export interface ITeacherPerformanceReport {
-  teachers: ITeacherPerformanceScore[];
+  teachers: ITeacherPerformanceScore[]; // Active teachers only (for backward compatibility)
+  activeTeachers: ITeacherPerformanceScore[];
+  deactivatedTeachers: ITeacherPerformanceScore[];
   overallAverage: number;
   topPerformers: ITeacherPerformanceScore[];
   needsImprovement: ITeacherPerformanceScore[];

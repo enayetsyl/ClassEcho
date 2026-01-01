@@ -83,7 +83,7 @@ export default function TeacherPerformancePage() {
             <Skeleton className="h-64" />
           ) : report ? (
             <>
-              <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold">
@@ -97,16 +97,27 @@ export default function TeacherPerformancePage() {
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-2xl font-bold">
-                      {report.teachers.length}
+                      {report.activeTeachers?.length || report.teachers.length}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Total Teachers
+                      Active Teachers
                     </p>
                   </CardContent>
                 </Card>
+                {report.deactivatedTeachers && report.deactivatedTeachers.length > 0 && (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-muted-foreground">
+                        {report.deactivatedTeachers.length}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Deactivated Teachers
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
-              {/* Top Performers */}
               {report.topPerformers.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold mb-4">Top Performers</h3>
@@ -141,42 +152,123 @@ export default function TeacherPerformancePage() {
                 </div>
               )}
 
-              {/* All Teachers */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">All Teachers</h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Teacher</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Avg Rating</TableHead>
-                      <TableHead>Videos</TableHead>
-                      <TableHead>Published</TableHead>
-                      <TableHead>Comment Rate</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {report.teachers.map((teacher) => (
-                      <TableRow key={teacher.teacherId}>
-                        <TableCell className="font-medium">
-                          {teacher.teacherName}
-                        </TableCell>
-                        <TableCell>{teacher.teacherEmail}</TableCell>
-                        <TableCell>
-                          <Badge className={getRatingColor(teacher.averageRating)}>
-                            {teacher.averageRating.toFixed(2)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{teacher.totalVideos}</TableCell>
-                        <TableCell>{teacher.publishedVideos}</TableCell>
-                        <TableCell>
-                          {teacher.commentRate.toFixed(1)}%
-                        </TableCell>
+              {report.activeTeachers && report.activeTeachers.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-4">Active Teachers</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Teacher</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Avg Rating</TableHead>
+                        <TableHead>Videos</TableHead>
+                        <TableHead>Published</TableHead>
+                        <TableHead>Comment Rate</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {report.activeTeachers.map((teacher) => (
+                        <TableRow key={teacher.teacherId}>
+                          <TableCell className="font-medium">
+                            {teacher.teacherName}
+                          </TableCell>
+                          <TableCell>{teacher.teacherEmail}</TableCell>
+                          <TableCell>
+                            <Badge className={getRatingColor(teacher.averageRating)}>
+                              {teacher.averageRating.toFixed(2)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{teacher.totalVideos}</TableCell>
+                          <TableCell>{teacher.publishedVideos}</TableCell>
+                          <TableCell>
+                            {teacher.commentRate.toFixed(1)}%
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {report.deactivatedTeachers && report.deactivatedTeachers.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 text-muted-foreground">
+                    Deactivated Teachers
+                  </h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Teacher</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Avg Rating</TableHead>
+                        <TableHead>Videos</TableHead>
+                        <TableHead>Published</TableHead>
+                        <TableHead>Comment Rate</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {report.deactivatedTeachers.map((teacher) => (
+                        <TableRow key={teacher.teacherId} className="opacity-60">
+                          <TableCell className="font-medium">
+                            {teacher.teacherName}
+                          </TableCell>
+                          <TableCell>{teacher.teacherEmail}</TableCell>
+                          <TableCell>
+                            <Badge className={getRatingColor(teacher.averageRating)}>
+                              {teacher.averageRating.toFixed(2)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{teacher.totalVideos}</TableCell>
+                          <TableCell>{teacher.publishedVideos}</TableCell>
+                          <TableCell>
+                            {teacher.commentRate.toFixed(1)}%
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {(!report.activeTeachers || report.activeTeachers.length === 0) &&
+               (!report.deactivatedTeachers || report.deactivatedTeachers.length === 0) &&
+               report.teachers && report.teachers.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">All Teachers</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Teacher</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Avg Rating</TableHead>
+                        <TableHead>Videos</TableHead>
+                        <TableHead>Published</TableHead>
+                        <TableHead>Comment Rate</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {report.teachers.map((teacher) => (
+                        <TableRow key={teacher.teacherId}>
+                          <TableCell className="font-medium">
+                            {teacher.teacherName}
+                          </TableCell>
+                          <TableCell>{teacher.teacherEmail}</TableCell>
+                          <TableCell>
+                            <Badge className={getRatingColor(teacher.averageRating)}>
+                              {teacher.averageRating.toFixed(2)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{teacher.totalVideos}</TableCell>
+                          <TableCell>{teacher.publishedVideos}</TableCell>
+                          <TableCell>
+                            {teacher.commentRate.toFixed(1)}%
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </>
           ) : (
             <div className="text-center py-8 text-muted-foreground">

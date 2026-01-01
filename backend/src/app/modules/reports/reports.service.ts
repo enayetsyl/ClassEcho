@@ -182,6 +182,7 @@ export const getTeacherPerformance = async (
   ]);
 
   const teachers: ITeacherPerformanceScore[] = teacherStats.map((stat) => {
+    const isActive = stat.teacherInfo?.active !== false; // Default to true if not found
     const allRatings: number[] = [];
     const criteriaTotals: Record<string, number[]> = {
       subjectKnowledge: [],
@@ -235,23 +236,44 @@ export const getTeacherPerformance = async (
       trend: 'stable' as const, // Simplified - would need historical data
       commentRate:
         stat.publishedVideos > 0 ? (stat.commentsCount / stat.publishedVideos) * 100 : 0,
+      isActive, // Store active status
     };
   });
 
-  const overallAverage =
-    teachers.length > 0
-      ? teachers.reduce((sum, t) => sum + t.averageRating, 0) / teachers.length
+  // Separate active and deactivated teachers
+  const activeTeachers: ITeacherPerformanceScore[] = [];
+  const deactivatedTeachers: ITeacherPerformanceScore[] = [];
+
+  teachers.forEach((teacher) => {
+    if ((teacher as any).isActive) {
+      activeTeachers.push(teacher);
+    } else {
+      deactivatedTeachers.push(teacher);
+    }
+  });
+
+  const sortedActive = [...activeTeachers].sort((a, b) => b.averageRating - a.averageRating);
+  const topPerformers = sortedActive.slice(0, Math.min(5, sortedActive.length));
+  const needsImprovement = sortedActive.slice(-Math.min(5, sortedActive.length)).reverse();
+
+  // Calculate overall average only for active teachers
+  const activeOverallAverage =
+    activeTeachers.length > 0
+      ? activeTeachers.reduce((sum, t) => sum + t.averageRating, 0) / activeTeachers.length
       : 0;
 
-  const sorted = [...teachers].sort((a, b) => b.averageRating - a.averageRating);
-  const topPerformers = sorted.slice(0, Math.min(5, sorted.length));
-  const needsImprovement = sorted.slice(-Math.min(5, sorted.length)).reverse();
+  // Remove isActive from teacher objects before returning
+  const cleanTeachers = teachers.map(({ isActive, ...rest }) => rest);
+  const cleanActiveTeachers = activeTeachers.map(({ isActive, ...rest }) => rest);
+  const cleanDeactivatedTeachers = deactivatedTeachers.map(({ isActive, ...rest }) => rest);
 
   return {
-    teachers,
-    overallAverage: Math.round(overallAverage * 100) / 100,
-    topPerformers,
-    needsImprovement,
+    teachers: cleanActiveTeachers, // Keep for backward compatibility (only active)
+    activeTeachers: cleanActiveTeachers,
+    deactivatedTeachers: cleanDeactivatedTeachers,
+    overallAverage: Math.round(activeOverallAverage * 100) / 100,
+    topPerformers: topPerformers.map(({ isActive, ...rest }) => rest),
+    needsImprovement: needsImprovement.map(({ isActive, ...rest }) => rest),
   };
 };
 
