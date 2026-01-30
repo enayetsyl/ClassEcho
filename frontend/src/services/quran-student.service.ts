@@ -7,7 +7,7 @@ import {
   IQuranBulkImportResult,
 } from "@/types/quran.types";
 
-const BASE = "/quran/students";
+const BASE = "quran/students";
 
 export const getAllQuranStudents = async (
   params?: IQuranStudentFilters,
