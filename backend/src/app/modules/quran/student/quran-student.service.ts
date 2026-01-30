@@ -14,19 +14,25 @@ export type TQuranStudentQueryFilters = {
   search?: string;
 };
 
-const mapStudent = (doc: IQuranStudentDocument): IQuranStudent => ({
-  _id: doc.id,
-  studentId: doc.studentId,
-  nameEn: doc.nameEn,
-  nameBn: doc.nameBn,
-  class: doc.class,
-  supervision: doc.supervision,
-  active: doc.active,
-  notes: doc.notes,
-  photo: doc.photo,
-  createdAt: doc.createdAt,
-  updatedAt: doc.updatedAt,
-});
+const mapStudent = (doc: IQuranStudentDocument | Record<string, unknown>): IQuranStudent => {
+  const id =
+    (doc as IQuranStudentDocument).id ??
+    (doc as { _id?: { toString(): string } })._id?.toString?.() ??
+    (doc as { _id?: string })._id;
+  return {
+    _id: id != null ? String(id) : '',
+    studentId: (doc as IQuranStudentDocument).studentId,
+    nameEn: doc.nameEn,
+    nameBn: doc.nameBn,
+    class: doc.class,
+    supervision: doc.supervision,
+    active: doc.active,
+    notes: (doc as IQuranStudentDocument).notes,
+    photo: (doc as IQuranStudentDocument).photo,
+    createdAt: (doc as IQuranStudentDocument).createdAt,
+    updatedAt: (doc as IQuranStudentDocument).updatedAt,
+  };
+};
 
 export const createStudent = async (data: TCreateQuranStudent): Promise<IQuranStudent> => {
   const existing = await QuranStudent.findOne({ studentId: data.studentId });

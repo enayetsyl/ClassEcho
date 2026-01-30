@@ -9,6 +9,8 @@ import {
   IQuranOverallReport,
   IQuranWeeklySummary,
   IQuranWeeklyTrendReport,
+  IQuranWeeklySupervisionReport,
+  IQuranWeeklySupervisionRow,
   IQuranClassBreakdown,
   IQuranStudentReport,
   IQuranSupervisionComparison,
@@ -244,6 +246,99 @@ export const getWeeklySummary = async (
   }
 
   return { weeks, trend, avgMistakesChange };
+};
+
+/** Weekly comparison: supervised vs unsupervised Fath and Tanbih per week */
+export const getWeeklySupervisionComparison = async (
+  filters: TQuranReportFilters,
+): Promise<IQuranWeeklySupervisionReport> => {
+  const dateRange = getDateRange(filters);
+
+  const pipeline: Record<string, unknown>[] = [
+    { $match: { reportDate: { $gte: dateRange.start, $lte: dateRange.end } } },
+    {
+      $lookup: {
+        from: 'quranstudents',
+        localField: 'student',
+        foreignField: '_id',
+        as: 'studentDoc',
+      },
+    },
+    { $unwind: '$studentDoc' },
+    ...(filters.class ? [{ $match: { 'studentDoc.class': filters.class } }] : []),
+    {
+      $group: {
+        _id: {
+          year: { $year: '$reportDate' },
+          week: { $week: '$reportDate' },
+          supervision: '$studentDoc.supervision',
+        },
+        reportDate: { $first: '$reportDate' },
+        totalFath: { $sum: '$totalFath' },
+        totalTanbih: { $sum: '$totalTanbih' },
+      },
+    },
+    { $sort: { '_id.year': 1, '_id.week': 1 } },
+  ];
+
+  const rows = await QuranEntry.aggregate(pipeline);
+
+  const byWeekKey = new Map<
+    string,
+    {
+      weekStart: Date;
+      supervised: { fath: number; tanbih: number };
+      nonSupervised: { fath: number; tanbih: number };
+    }
+  >();
+
+  for (const row of rows as Array<{
+    _id: { year: number; week: number; supervision: boolean };
+    reportDate: Date;
+    totalFath: number;
+    totalTanbih: number;
+  }>) {
+    const d = new Date(row.reportDate);
+    const weekStart = getWeekStart(d);
+    const key = weekStart.toISOString().slice(0, 10);
+    const existing = byWeekKey.get(key);
+    const fath = row.totalFath ?? 0;
+    const tanbih = row.totalTanbih ?? 0;
+    if (row._id.supervision === true) {
+      if (existing) {
+        existing.supervised.fath += fath;
+        existing.supervised.tanbih += tanbih;
+      } else {
+        byWeekKey.set(key, {
+          weekStart,
+          supervised: { fath, tanbih },
+          nonSupervised: { fath: 0, tanbih: 0 },
+        });
+      }
+    } else {
+      if (existing) {
+        existing.nonSupervised.fath += fath;
+        existing.nonSupervised.tanbih += tanbih;
+      } else {
+        byWeekKey.set(key, {
+          weekStart,
+          supervised: { fath: 0, tanbih: 0 },
+          nonSupervised: { fath, tanbih },
+        });
+      }
+    }
+  }
+
+  const result: IQuranWeeklySupervisionRow[] = Array.from(byWeekKey.entries())
+    .map(([, v]) => ({
+      weekStart: v.weekStart,
+      weekEnd: getWeekEnd(v.weekStart),
+      supervised: { totalFath: v.supervised.fath, totalTanbih: v.supervised.tanbih },
+      nonSupervised: { totalFath: v.nonSupervised.fath, totalTanbih: v.nonSupervised.tanbih },
+    }))
+    .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
+
+  return result;
 };
 
 export const getClassBreakdown = async (
@@ -614,6 +709,7 @@ export const getUstadSummary = async (
 export const QuranReportsServices = {
   getOverallReport,
   getWeeklySummary,
+  getWeeklySupervisionComparison,
   getClassBreakdown,
   getStudentReport,
   getSupervisionComparison,

@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useCreateQuranStudentMutation } from "@/hooks/use-quran-students";
 import { useRouter } from "next/navigation";
@@ -165,12 +165,12 @@ export default function AddQuranStudentPage() {
                     render={({ field }) => (
                       <FormItem className="flex items-center gap-2 space-y-0">
                         <FormControl>
-                          <Switch
+                          <Checkbox
                             checked={field.value}
-                            onCheckedChange={field.onChange}
+                            onCheckedChange={(v) => field.onChange(v === true)}
                           />
                         </FormControl>
-                        <FormLabel className="!mt-0">
+                        <FormLabel className="!mt-0 cursor-pointer">
                           Under supervision
                         </FormLabel>
                         <FormMessage />
@@ -183,12 +183,14 @@ export default function AddQuranStudentPage() {
                     render={({ field }) => (
                       <FormItem className="flex items-center gap-2 space-y-0">
                         <FormControl>
-                          <Switch
+                          <Checkbox
                             checked={field.value}
-                            onCheckedChange={field.onChange}
+                            onCheckedChange={(v) => field.onChange(v === true)}
                           />
                         </FormControl>
-                        <FormLabel className="!mt-0">Active</FormLabel>
+                        <FormLabel className="!mt-0 cursor-pointer">
+                          Active
+                        </FormLabel>
                         <FormMessage />
                       </FormItem>
                     )}

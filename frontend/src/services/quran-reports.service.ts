@@ -3,6 +3,7 @@ import {
   IQuranReportFilters,
   IQuranOverallReport,
   IQuranWeeklyTrendReport,
+  IQuranWeeklySupervisionReport,
   IQuranClassBreakdown,
   IQuranStudentReport,
   IQuranSupervisionComparison,
@@ -30,6 +31,17 @@ export const getQuranWeeklySummary = async (
     message: string;
     data: IQuranWeeklyTrendReport;
   }>(`${BASE}/weekly-summary`, { params });
+  return res.data.data;
+};
+
+export const getQuranWeeklySupervisionReport = async (
+  params?: IQuranReportFilters,
+): Promise<IQuranWeeklySupervisionReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IQuranWeeklySupervisionReport;
+  }>(`${BASE}/weekly-supervision`, { params });
   return res.data.data;
 };
 

@@ -157,6 +157,16 @@ export interface IQuranStudentReport {
   };
 }
 
+/** One week in weekly supervision comparison (Fath/Tanbih by supervised vs unsupervised) */
+export interface IQuranWeeklySupervisionRow {
+  weekStart: string;
+  weekEnd: string;
+  supervised: { totalFath: number; totalTanbih: number };
+  nonSupervised: { totalFath: number; totalTanbih: number };
+}
+
+export type IQuranWeeklySupervisionReport = IQuranWeeklySupervisionRow[];
+
 export interface IQuranSupervisionComparison {
   supervised: {
     studentCount: number;

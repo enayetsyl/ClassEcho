@@ -38,6 +38,17 @@ const getWeeklySummary = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getWeeklySupervisionReport = catchAsync(async (req: Request, res: Response) => {
+  const filters = getReportFilters(req);
+  const data = await QuranReportsServices.getWeeklySupervisionComparison(filters);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Quran weekly supervision comparison retrieved successfully',
+    data,
+  });
+});
+
 const getClassBreakdown = catchAsync(async (req: Request, res: Response) => {
   const filters = getReportFilters(req);
   const data = await QuranReportsServices.getClassBreakdown(filters);
@@ -86,6 +97,7 @@ const getUstadSummary = catchAsync(async (req: Request, res: Response) => {
 export const QuranReportsControllers = {
   getOverallReport,
   getWeeklySummary,
+  getWeeklySupervisionReport,
   getClassBreakdown,
   getStudentReport,
   getSupervisionReport,

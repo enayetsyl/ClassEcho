@@ -6,6 +6,7 @@ import { requireAuth, requireRole } from '../../../middlewares/auth-middleware';
 import {
   getQuranOverallReportValidation,
   getQuranWeeklySummaryValidation,
+  getQuranWeeklySupervisionValidation,
   getQuranClassBreakdownValidation,
   getQuranStudentReportValidation,
   getQuranSupervisionReportValidation,
@@ -31,6 +32,14 @@ router.get(
   requireRole(reportRoles),
   validateRequest(getQuranWeeklySummaryValidation),
   QuranReportsControllers.getWeeklySummary,
+);
+
+router.get(
+  '/weekly-supervision',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getQuranWeeklySupervisionValidation),
+  QuranReportsControllers.getWeeklySupervisionReport,
 );
 
 router.get(

@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -49,13 +49,14 @@ export default function EditQuranStudentPage() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string | undefined;
+  const hasValidId = id && id !== "undefined";
 
   const {
     data: student,
     isLoading,
     isError,
     error,
-  } = useGetQuranStudentQuery(id);
+  } = useGetQuranStudentQuery(hasValidId ? id : undefined);
   const { mutate, isPending } = useUpdateQuranStudentMutation();
 
   const form = useForm<FormValues>({
@@ -106,6 +107,28 @@ export default function EditQuranStudentPage() {
       },
     );
   };
+
+  if (!hasValidId) {
+    return (
+      <ProtectedRoute>
+        <div className="p-4 max-w-xl mx-auto">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground">
+                Invalid student link. The student ID is missing.
+              </p>
+              <Link
+                href="/dashboard/admin/quran/students"
+                className="inline-block mt-2"
+              >
+                <Button variant="outline">Back to list</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -245,12 +268,12 @@ export default function EditQuranStudentPage() {
                     render={({ field }) => (
                       <FormItem className="flex items-center gap-2 space-y-0">
                         <FormControl>
-                          <Switch
+                          <Checkbox
                             checked={field.value}
-                            onCheckedChange={field.onChange}
+                            onCheckedChange={(v) => field.onChange(v === true)}
                           />
                         </FormControl>
-                        <FormLabel className="!mt-0">
+                        <FormLabel className="!mt-0 cursor-pointer">
                           Under supervision
                         </FormLabel>
                         <FormMessage />
@@ -263,12 +286,14 @@ export default function EditQuranStudentPage() {
                     render={({ field }) => (
                       <FormItem className="flex items-center gap-2 space-y-0">
                         <FormControl>
-                          <Switch
+                          <Checkbox
                             checked={field.value}
-                            onCheckedChange={field.onChange}
+                            onCheckedChange={(v) => field.onChange(v === true)}
                           />
                         </FormControl>
-                        <FormLabel className="!mt-0">Active</FormLabel>
+                        <FormLabel className="!mt-0 cursor-pointer">
+                          Active
+                        </FormLabel>
                         <FormMessage />
                       </FormItem>
                     )}

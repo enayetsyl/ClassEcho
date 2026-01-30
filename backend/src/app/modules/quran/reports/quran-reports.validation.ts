@@ -69,6 +69,10 @@ export const getQuranStudentReportValidation = z.object({
     ),
 });
 
+export const getQuranWeeklySupervisionValidation = z.object({
+  query: reportFiltersQuery,
+});
+
 export const getQuranSupervisionReportValidation = z.object({
   query: reportFiltersQuery,
 });

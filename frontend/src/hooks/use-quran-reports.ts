@@ -3,6 +3,7 @@ import {
   IQuranReportFilters,
   IQuranOverallReport,
   IQuranWeeklyTrendReport,
+  IQuranWeeklySupervisionReport,
   IQuranClassBreakdown,
   IQuranStudentReport,
   IQuranSupervisionComparison,
@@ -21,6 +22,12 @@ export const useQuranWeeklySummaryQuery = (params?: IQuranReportFilters) =>
   useQuery<IQuranWeeklyTrendReport, Error>({
     queryKey: ["quran-report-weekly", params],
     queryFn: () => quranReportsService.getQuranWeeklySummary(params),
+  });
+
+export const useQuranWeeklySupervisionQuery = (params?: IQuranReportFilters) =>
+  useQuery<IQuranWeeklySupervisionReport, Error>({
+    queryKey: ["quran-report-weekly-supervision", params],
+    queryFn: () => quranReportsService.getQuranWeeklySupervisionReport(params),
   });
 
 export const useQuranClassBreakdownQuery = (params?: IQuranReportFilters) =>

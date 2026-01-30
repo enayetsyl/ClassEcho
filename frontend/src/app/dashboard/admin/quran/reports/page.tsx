@@ -136,6 +136,9 @@ export default function QuranReportsPage() {
             <Link href="/dashboard/admin/quran/reports/weekly">
               <Button variant="outline">Weekly summary</Button>
             </Link>
+            <Link href="/dashboard/admin/quran/reports/weekly-supervision">
+              <Button variant="outline">Weekly supervision</Button>
+            </Link>
             <Link href="/dashboard/admin/quran/reports/class">
               <Button variant="outline">Class breakdown</Button>
             </Link>

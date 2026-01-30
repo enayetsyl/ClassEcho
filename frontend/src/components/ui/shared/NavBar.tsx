@@ -100,13 +100,13 @@ export function NavBar() {
   );
 
   return (
-    <nav className="flex items-center justify-between p-4 bg-navbar-bg">
-      <div className="flex items-center space-x-4">
+    <nav className="flex items-center justify-between gap-4 p-4 bg-navbar-bg w-full min-w-0">
+      <div className="min-w-0 flex-1 overflow-x-auto">
         {user && (
           <>
-            {/* Desktop-only */}
-            <div className="hidden md:flex space-x-2">
-              <Link href="/dashboard/profile">
+            {/* Desktop: scrollable link row so navbar doesn't cause page overflow */}
+            <div className="hidden md:flex md:items-center md:space-x-2 md:flex-nowrap md:py-1">
+              <Link href="/dashboard/profile" className="flex-shrink-0">
                 <Button
                   variant={pathname === "/dashboard" ? "default" : "outline"}
                 >
@@ -114,7 +114,11 @@ export function NavBar() {
                 </Button>
               </Link>
               {allowedItems.map((item) => (
-                <Link href={item.href} key={item.href}>
+                <Link
+                  href={item.href}
+                  key={item.href}
+                  className="flex-shrink-0"
+                >
                   <Button
                     variant={
                       pathname.startsWith(item.href) ? "default" : "outline"
@@ -183,7 +187,7 @@ export function NavBar() {
         )}
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-4 flex-shrink-0">
         {user ? (
           <>
             <span className="font-bold">Hello, {user.name}</span>
