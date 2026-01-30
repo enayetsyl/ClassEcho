@@ -10,7 +10,7 @@ import {
   IQuranUstadSummaryItem,
 } from "@/types/quran.types";
 
-const BASE = "/quran/reports";
+const BASE = "quran/reports";
 
 export const getQuranOverallReport = async (
   params?: IQuranReportFilters,

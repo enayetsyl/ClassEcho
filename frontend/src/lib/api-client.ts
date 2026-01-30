@@ -1,20 +1,24 @@
 // src/lib/api-client.ts
-import axios from 'axios'
+import axios from "axios";
+
+// Ensure baseURL ends with exactly one slash so paths like "quran/students" resolve correctly
+const rawBase = process.env.NEXT_PUBLIC_API_URL ?? "";
+const baseURL = rawBase ? rawBase.replace(/\/+$/, "") + "/" : "";
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  headers: { 'Content-Type': 'application/json' },
-})
+  baseURL,
+  headers: { "Content-Type": "application/json" },
+});
 
 // only install this in the browser
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   apiClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem("token");
     if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    return config
-  })
+    return config;
+  });
 }
 
-export default apiClient
+export default apiClient;
