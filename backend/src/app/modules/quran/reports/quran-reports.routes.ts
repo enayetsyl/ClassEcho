@@ -12,6 +12,14 @@ import {
   getQuranStudentReportValidation,
   getQuranSupervisionReportValidation,
   getQuranUstadSummaryValidation,
+  getTestTypeAnalysisValidation,
+  getTimeAnalysisValidation,
+  getStudentTrendValidation,
+  getStudentContentValidation,
+  getSurahAnalysisValidation,
+  getJuzAnalysisValidation,
+  getPerformersValidation,
+  getSupervisionDetailedValidation,
 } from './quran-reports.validation';
 import { QuranReportsControllers } from './quran-reports.controller';
 
@@ -73,6 +81,63 @@ router.get(
   requireRole(reportRoles),
   validateRequest(getQuranUstadSummaryValidation),
   QuranReportsControllers.getUstadSummary,
+);
+
+router.get(
+  '/test-type-analysis',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getTestTypeAnalysisValidation),
+  QuranReportsControllers.getTestTypeAnalysis,
+);
+router.get(
+  '/time-analysis',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getTimeAnalysisValidation),
+  QuranReportsControllers.getTimeAnalysis,
+);
+router.get(
+  '/student-trend/:studentId',
+  requireAuth,
+  requireRole([...reportRoles, 'Teacher' as UserRole]),
+  validateRequest(getStudentTrendValidation),
+  QuranReportsControllers.getStudentTrend,
+);
+router.get(
+  '/student-content/:studentId',
+  requireAuth,
+  requireRole([...reportRoles, 'Teacher' as UserRole]),
+  validateRequest(getStudentContentValidation),
+  QuranReportsControllers.getStudentContent,
+);
+router.get(
+  '/surah-analysis',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getSurahAnalysisValidation),
+  QuranReportsControllers.getSurahAnalysis,
+);
+router.get(
+  '/juz-analysis',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getJuzAnalysisValidation),
+  QuranReportsControllers.getJuzAnalysis,
+);
+router.get(
+  '/performers',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getPerformersValidation),
+  QuranReportsControllers.getPerformers,
+);
+router.get(
+  '/supervision-detailed',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getSupervisionDetailedValidation),
+  QuranReportsControllers.getSupervisionDetailed,
 );
 
 export const QuranReportsRoutes = router;

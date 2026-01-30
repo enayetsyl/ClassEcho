@@ -1,14 +1,13 @@
 "use strict";
 // src/app/modules/quran/reports/quran-reports.validation.ts
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getQuranUstadSummaryValidation = exports.getQuranSupervisionReportValidation = exports.getQuranWeeklySupervisionValidation = exports.getQuranStudentReportValidation = exports.getQuranClassBreakdownValidation = exports.getQuranWeeklySummaryValidation = exports.getQuranOverallReportValidation = void 0;
+exports.getStudentContentValidation = exports.getStudentTrendValidation = exports.getSupervisionDetailedValidation = exports.getPerformersValidation = exports.getJuzAnalysisValidation = exports.getSurahAnalysisValidation = exports.getTimeAnalysisValidation = exports.getTestTypeAnalysisValidation = exports.getQuranUstadSummaryValidation = exports.getQuranSupervisionReportValidation = exports.getQuranWeeklySupervisionValidation = exports.getQuranStudentReportValidation = exports.getQuranClassBreakdownValidation = exports.getQuranWeeklySummaryValidation = exports.getQuranOverallReportValidation = void 0;
 const zod_1 = require("zod");
 const mongoIdSchema = zod_1.z
     .string()
     .length(24, 'Invalid ID')
     .regex(/^[a-f0-9]{24}$/i, 'Invalid ID format');
-const reportFiltersQuery = zod_1.z
-    .object({
+const reportFiltersBase = zod_1.z.object({
     startDate: zod_1.z
         .string()
         .optional()
@@ -20,8 +19,8 @@ const reportFiltersQuery = zod_1.z
     class: zod_1.z.string().optional(),
     supervision: zod_1.z.enum(['true', 'false']).optional(),
     studentId: mongoIdSchema.optional(),
-})
-    .refine((data) => {
+});
+const reportFiltersQuery = reportFiltersBase.refine((data) => {
     if (!data.startDate || !data.endDate)
         return true;
     const start = Date.parse(data.startDate);
@@ -68,4 +67,36 @@ exports.getQuranSupervisionReportValidation = zod_1.z.object({
 });
 exports.getQuranUstadSummaryValidation = zod_1.z.object({
     query: reportFiltersQuery,
+});
+const extendedReportQuery = reportFiltersBase
+    .extend({
+    groupBy: zod_1.z.enum(['day', 'week', 'month']).optional(),
+    granularity: zod_1.z.enum(['day', 'week', 'month']).optional(),
+    testType: zod_1.z.enum(['all', 'new', 'recent', 'older']).optional(),
+    metric: zod_1.z.enum(['tanbih', 'fath', 'total', 'completion_rate']).optional(),
+    limit: zod_1.z.string().optional().transform((v) => (v ? parseInt(v, 10) : undefined)),
+    surahNumber: zod_1.z.string().optional().transform((v) => (v ? parseInt(v, 10) : undefined)),
+    juzNumber: zod_1.z.string().optional().transform((v) => (v ? parseInt(v, 10) : undefined)),
+    minTests: zod_1.z.string().optional().transform((v) => (v ? parseInt(v, 10) : undefined)),
+})
+    .refine((data) => {
+    if (!data.startDate || !data.endDate)
+        return true;
+    const start = Date.parse(data.startDate);
+    const end = Date.parse(data.endDate);
+    return !isNaN(start) && !isNaN(end) && start <= end;
+}, { message: 'startDate must be before or equal to endDate', path: ['startDate'] });
+exports.getTestTypeAnalysisValidation = zod_1.z.object({ query: extendedReportQuery });
+exports.getTimeAnalysisValidation = zod_1.z.object({ query: extendedReportQuery });
+exports.getSurahAnalysisValidation = zod_1.z.object({ query: extendedReportQuery });
+exports.getJuzAnalysisValidation = zod_1.z.object({ query: extendedReportQuery });
+exports.getPerformersValidation = zod_1.z.object({ query: extendedReportQuery });
+exports.getSupervisionDetailedValidation = zod_1.z.object({ query: extendedReportQuery });
+exports.getStudentTrendValidation = zod_1.z.object({
+    params: zod_1.z.object({ studentId: mongoIdSchema }),
+    query: extendedReportQuery,
+});
+exports.getStudentContentValidation = zod_1.z.object({
+    params: zod_1.z.object({ studentId: mongoIdSchema }),
+    query: extendedReportQuery,
 });

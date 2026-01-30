@@ -5,7 +5,7 @@ import catchAsync from '../../../utils/catch-async';
 import sendResponse from '../../../utils/send-response';
 import { pickFields } from '../../../utils/pick';
 import { QuranReportsServices } from './quran-reports.service';
-import { TQuranReportFilters } from './quran-reports.type';
+import { TQuranReportFilters, TQuranReportFiltersExtended } from './quran-reports.type';
 
 function getReportFilters(req: Request): TQuranReportFilters {
   const query = req.query as Record<string, string | undefined>;
@@ -13,6 +13,21 @@ function getReportFilters(req: Request): TQuranReportFilters {
   const result: TQuranReportFilters = { ...filters };
   if (query.supervision === 'true') result.supervision = true;
   if (query.supervision === 'false') result.supervision = false;
+  return result;
+}
+
+function getReportFiltersExtended(req: Request): TQuranReportFiltersExtended {
+  const query = req.query as Record<string, string | undefined>;
+  const base = getReportFilters(req);
+  const result = { ...base } as TQuranReportFiltersExtended;
+  if (query.groupBy === 'day' || query.groupBy === 'week' || query.groupBy === 'month') result.groupBy = query.groupBy;
+  if (query.granularity === 'day' || query.granularity === 'week' || query.granularity === 'month') result.granularity = query.granularity;
+  if (query.testType === 'all' || query.testType === 'new' || query.testType === 'recent' || query.testType === 'older') result.testType = query.testType;
+  if (query.metric === 'tanbih' || query.metric === 'fath' || query.metric === 'total' || query.metric === 'completion_rate') result.metric = query.metric;
+  if (query.limit) result.limit = parseInt(query.limit, 10) || 10;
+  if (query.surahNumber) result.surahNumber = parseInt(query.surahNumber, 10);
+  if (query.juzNumber) result.juzNumber = parseInt(query.juzNumber, 10);
+  if (query.minTests) result.minTests = parseInt(query.minTests, 10);
   return result;
 }
 
@@ -94,6 +109,56 @@ const getUstadSummary = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getTestTypeAnalysis = catchAsync(async (req: Request, res: Response) => {
+  const filters = getReportFiltersExtended(req);
+  const data = await QuranReportsServices.getTestTypeAnalysisReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Test type analysis retrieved successfully', data });
+});
+
+const getTimeAnalysis = catchAsync(async (req: Request, res: Response) => {
+  const filters = getReportFiltersExtended(req);
+  const data = await QuranReportsServices.getTimeAnalysisReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Time analysis retrieved successfully', data });
+});
+
+const getStudentTrend = catchAsync(async (req: Request, res: Response) => {
+  const { studentId } = req.params;
+  const filters = getReportFiltersExtended(req);
+  const data = await QuranReportsServices.getStudentTrendReport(studentId, filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Student trend retrieved successfully', data });
+});
+
+const getStudentContent = catchAsync(async (req: Request, res: Response) => {
+  const { studentId } = req.params;
+  const filters = getReportFiltersExtended(req);
+  const data = await QuranReportsServices.getStudentContentReport(studentId, filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Student content analysis retrieved successfully', data });
+});
+
+const getSurahAnalysis = catchAsync(async (req: Request, res: Response) => {
+  const filters = getReportFiltersExtended(req);
+  const data = await QuranReportsServices.getSurahAnalysisReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Surah analysis retrieved successfully', data });
+});
+
+const getJuzAnalysis = catchAsync(async (req: Request, res: Response) => {
+  const filters = getReportFiltersExtended(req);
+  const data = await QuranReportsServices.getJuzAnalysisReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Juz analysis retrieved successfully', data });
+});
+
+const getPerformers = catchAsync(async (req: Request, res: Response) => {
+  const filters = getReportFiltersExtended(req);
+  const data = await QuranReportsServices.getPerformersReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Performers report retrieved successfully', data });
+});
+
+const getSupervisionDetailed = catchAsync(async (req: Request, res: Response) => {
+  const filters = getReportFiltersExtended(req);
+  const data = await QuranReportsServices.getSupervisionDetailedReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Supervision detailed report retrieved successfully', data });
+});
+
 export const QuranReportsControllers = {
   getOverallReport,
   getWeeklySummary,
@@ -102,4 +167,12 @@ export const QuranReportsControllers = {
   getStudentReport,
   getSupervisionReport,
   getUstadSummary,
+  getTestTypeAnalysis,
+  getTimeAnalysis,
+  getStudentTrend,
+  getStudentContent,
+  getSurahAnalysis,
+  getJuzAnalysis,
+  getPerformers,
+  getSupervisionDetailed,
 };
