@@ -21,7 +21,11 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedRoute } from "@/route/ProtectedRoute";
-import type { IQuranReportFilters } from "@/types/quran.types";
+import type {
+  IQuranReportFilters,
+  IQuranWeeklySupervisionByClassItem,
+  IQuranWeeklySupervisionRow,
+} from "@/types/quran.types";
 import { isValidDateRange } from "@/lib/validation";
 import { getApiErrorMessage } from "@/lib/api-error";
 import {
@@ -34,7 +38,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import type { IQuranWeeklySupervisionRow } from "@/types/quran.types";
 
 const COLOR_SUPERVISED = "#3B82F6";
 const COLOR_UNSUPERVISED = "#F59E0B";
@@ -51,6 +54,29 @@ function formatWeekLabel(weekStart: string | Date): string {
   }
 }
 
+function buildChartData(weeks: IQuranWeeklySupervisionRow[]) {
+  return weeks.map((w) => {
+    const ws =
+      typeof w.weekStart === "string"
+        ? w.weekStart
+        : ((w.weekStart as Date).toISOString?.() ?? String(w.weekStart));
+    return {
+      label: formatWeekLabel(ws),
+      weekStart: ws,
+      supervisedFath: w.supervised.fathPerTest,
+      unsupervisedFath: w.nonSupervised.fathPerTest,
+      supervisedTanbih: w.supervised.tanbihPerTest,
+      unsupervisedTanbih: w.nonSupervised.tanbihPerTest,
+      supervisedFathTotal: w.supervised.totalFath,
+      unsupervisedFathTotal: w.nonSupervised.totalFath,
+      supervisedTanbihTotal: w.supervised.totalTanbih,
+      unsupervisedTanbihTotal: w.nonSupervised.totalTanbih,
+      supervisedTestsGiven: w.supervised.testsGiven,
+      unsupervisedTestsGiven: w.nonSupervised.testsGiven,
+    };
+  });
+}
+
 export default function QuranWeeklySupervisionReportPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -58,6 +84,7 @@ export default function QuranWeeklySupervisionReportPage() {
   const [supervisionFilter, setSupervisionFilter] = useState<
     "all" | "true" | "false"
   >("all");
+  const [showRates, setShowRates] = useState<boolean>(true);
 
   const dateRangeValidation = useMemo(
     () =>
@@ -87,7 +114,7 @@ export default function QuranWeeklySupervisionReportPage() {
   ]);
 
   const {
-    data: weeks,
+    data: byClass,
     isLoading,
     isError,
     error,
@@ -100,23 +127,8 @@ export default function QuranWeeklySupervisionReportPage() {
     setSupervisionFilter("all");
   };
 
-  const chartData = useMemo(() => {
-    if (!weeks?.length) return [];
-    return weeks.map((w: IQuranWeeklySupervisionRow) => {
-      const ws =
-        typeof w.weekStart === "string"
-          ? w.weekStart
-          : ((w.weekStart as Date).toISOString?.() ?? String(w.weekStart));
-      return {
-        label: formatWeekLabel(ws),
-        weekStart: ws,
-        supervisedFath: w.supervised.totalFath,
-        unsupervisedFath: w.nonSupervised.totalFath,
-        supervisedTanbih: w.supervised.totalTanbih,
-        unsupervisedTanbih: w.nonSupervised.totalTanbih,
-      };
-    });
-  }, [weeks]);
+  const hasData =
+    byClass && byClass.length > 0 && byClass.some((c) => c.weeks.length > 0);
 
   return (
     <ProtectedRoute>
@@ -124,11 +136,12 @@ export default function QuranWeeklySupervisionReportPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-semibold">
-              Weekly supervision comparison
+              Weekly supervision comparison (by class)
             </h1>
             <p className="text-sm text-muted-foreground">
-              Fath and Tanbih by week: supervised vs unsupervised students
-              (default: last 365 days)
+              Fath and Tanbih by week, compared within each class: supervised vs
+              unsupervised. Uses &quot;per test given&quot; so totals are not
+              misleading when attendance or tests given differ.
             </p>
           </div>
           <Link href="/dashboard/admin/quran/reports">
@@ -208,107 +221,201 @@ export default function QuranWeeklySupervisionReportPage() {
                     <Skeleton className="h-[300px] w-full" />
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader>
-                    <Skeleton className="h-5 w-48" />
-                    <Skeleton className="h-4 w-64 mt-1" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-[300px] w-full" />
-                  </CardContent>
-                </Card>
               </div>
-            ) : chartData.length > 0 ? (
+            ) : hasData ? (
               <>
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      Fath by week: supervised vs unsupervised
-                    </CardTitle>
-                    <CardDescription>
-                      Total Fath per week for supervised and unsupervised
-                      students
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart
-                        data={chartData}
-                        margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          className="stroke-muted"
-                        />
-                        <XAxis dataKey="label" className="text-xs" />
-                        <YAxis className="text-xs" />
-                        <Tooltip />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="supervisedFath"
-                          name="Supervised Fath"
-                          stroke={COLOR_SUPERVISED}
-                          strokeWidth={2}
-                          dot={{ r: 3 }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="unsupervisedFath"
-                          name="Unsupervised Fath"
-                          stroke={COLOR_UNSUPERVISED}
-                          strokeWidth={2}
-                          dot={{ r: 3 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
+                <div className="flex items-center gap-4 mb-4">
+                  <span className="text-sm text-muted-foreground">
+                    Chart metric:
+                  </span>
+                  <Button
+                    variant={showRates ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowRates(true)}
+                  >
+                    Per test given (rate)
+                  </Button>
+                  <Button
+                    variant={!showRates ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowRates(false)}
+                  >
+                    Total
+                  </Button>
+                </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      Tanbih by week: supervised vs unsupervised
-                    </CardTitle>
-                    <CardDescription>
-                      Total Tanbih per week for supervised and unsupervised
-                      students
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart
-                        data={chartData}
-                        margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          className="stroke-muted"
-                        />
-                        <XAxis dataKey="label" className="text-xs" />
-                        <YAxis className="text-xs" />
-                        <Tooltip />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="supervisedTanbih"
-                          name="Supervised Tanbih"
-                          stroke={COLOR_SUPERVISED}
-                          strokeWidth={2}
-                          dot={{ r: 3 }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="unsupervisedTanbih"
-                          name="Unsupervised Tanbih"
-                          stroke={COLOR_UNSUPERVISED}
-                          strokeWidth={2}
-                          dot={{ r: 3 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
+                {(byClass as IQuranWeeklySupervisionByClassItem[]).map(
+                  (item) => {
+                    const weeks = item.weeks ?? [];
+                    if (weeks.length === 0) return null;
+                    const chartData = buildChartData(weeks);
+                    const useRates = showRates;
+                    const fathKeySup = useRates
+                      ? "supervisedFath"
+                      : "supervisedFathTotal";
+                    const fathKeyNon = useRates
+                      ? "unsupervisedFath"
+                      : "unsupervisedFathTotal";
+                    const tanbihKeySup = useRates
+                      ? "supervisedTanbih"
+                      : "supervisedTanbihTotal";
+                    const tanbihKeyNon = useRates
+                      ? "unsupervisedTanbih"
+                      : "unsupervisedTanbihTotal";
+
+                    return (
+                      <Card key={item.class} className="mb-6">
+                        <CardHeader>
+                          <CardTitle className="text-lg">
+                            Class: {item.class}
+                          </CardTitle>
+                          <CardDescription>
+                            Supervised vs unsupervised within this class. Hover
+                            for tests given.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">
+                              Fath {useRates ? "(per test given)" : "(total)"}
+                            </h4>
+                            <ResponsiveContainer width="100%" height={280}>
+                              <LineChart
+                                data={chartData}
+                                margin={{
+                                  top: 8,
+                                  right: 8,
+                                  left: 8,
+                                  bottom: 8,
+                                }}
+                              >
+                                <CartesianGrid
+                                  strokeDasharray="3 3"
+                                  className="stroke-muted"
+                                />
+                                <XAxis dataKey="label" className="text-xs" />
+                                <YAxis className="text-xs" />
+                                <Tooltip
+                                  content={({ active, payload, label }) => {
+                                    if (!active || !payload?.length)
+                                      return null;
+                                    const p = payload[0]?.payload;
+                                    return (
+                                      <div className="rounded-md border bg-background p-3 text-sm shadow">
+                                        <p className="font-medium mb-2">
+                                          {label}
+                                        </p>
+                                        {payload.map((entry) => (
+                                          <p key={entry.dataKey}>
+                                            {entry.name}:{" "}
+                                            {Number(entry.value).toFixed(2)}
+                                          </p>
+                                        ))}
+                                        {p && (
+                                          <p className="text-muted-foreground mt-2 border-t pt-2">
+                                            Tests given — Supervised:{" "}
+                                            {p.supervisedTestsGiven ?? 0},
+                                            Unsupervised:{" "}
+                                            {p.unsupervisedTestsGiven ?? 0}
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  }}
+                                />
+                                <Legend />
+                                <Line
+                                  type="monotone"
+                                  dataKey={fathKeySup}
+                                  name="Supervised Fath"
+                                  stroke={COLOR_SUPERVISED}
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey={fathKeyNon}
+                                  name="Unsupervised Fath"
+                                  stroke={COLOR_UNSUPERVISED}
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">
+                              Tanbih {useRates ? "(per test given)" : "(total)"}
+                            </h4>
+                            <ResponsiveContainer width="100%" height={280}>
+                              <LineChart
+                                data={chartData}
+                                margin={{
+                                  top: 8,
+                                  right: 8,
+                                  left: 8,
+                                  bottom: 8,
+                                }}
+                              >
+                                <CartesianGrid
+                                  strokeDasharray="3 3"
+                                  className="stroke-muted"
+                                />
+                                <XAxis dataKey="label" className="text-xs" />
+                                <YAxis className="text-xs" />
+                                <Tooltip
+                                  content={({ active, payload, label }) => {
+                                    if (!active || !payload?.length)
+                                      return null;
+                                    const p = payload[0]?.payload;
+                                    return (
+                                      <div className="rounded-md border bg-background p-3 text-sm shadow">
+                                        <p className="font-medium mb-2">
+                                          {label}
+                                        </p>
+                                        {payload.map((entry) => (
+                                          <p key={entry.dataKey}>
+                                            {entry.name}:{" "}
+                                            {Number(entry.value).toFixed(2)}
+                                          </p>
+                                        ))}
+                                        {p && (
+                                          <p className="text-muted-foreground mt-2 border-t pt-2">
+                                            Tests given — Supervised:{" "}
+                                            {p.supervisedTestsGiven ?? 0},
+                                            Unsupervised:{" "}
+                                            {p.unsupervisedTestsGiven ?? 0}
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  }}
+                                />
+                                <Legend />
+                                <Line
+                                  type="monotone"
+                                  dataKey={tanbihKeySup}
+                                  name="Supervised Tanbih"
+                                  stroke={COLOR_SUPERVISED}
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                />
+                                <Line
+                                  type="monotone"
+                                  dataKey={tanbihKeyNon}
+                                  name="Unsupervised Tanbih"
+                                  stroke={COLOR_UNSUPERVISED}
+                                  strokeWidth={2}
+                                  dot={{ r: 3 }}
+                                />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  },
+                )}
               </>
             ) : (
               <p className="text-muted-foreground py-4">

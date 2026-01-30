@@ -95,12 +95,30 @@ export interface IQuranStudentReport {
 export interface IQuranWeeklySupervisionRow {
   weekStart: Date;
   weekEnd: Date;
-  supervised: { totalFath: number; totalTanbih: number };
-  nonSupervised: { totalFath: number; totalTanbih: number };
+  supervised: {
+    totalFath: number;
+    totalTanbih: number;
+    testsGiven: number;
+    fathPerTest: number;
+    tanbihPerTest: number;
+  };
+  nonSupervised: {
+    totalFath: number;
+    totalTanbih: number;
+    testsGiven: number;
+    fathPerTest: number;
+    tanbihPerTest: number;
+  };
 }
 
-/** Weekly comparison: supervised vs unsupervised Fath and Tanbih per week */
-export type IQuranWeeklySupervisionReport = IQuranWeeklySupervisionRow[];
+/** One class's weekly supervised vs unsupervised comparison */
+export interface IQuranWeeklySupervisionByClassItem {
+  class: string;
+  weeks: IQuranWeeklySupervisionRow[];
+}
+
+/** Weekly comparison by class: supervised vs unsupervised Fath and Tanbih per week, per class */
+export type IQuranWeeklySupervisionReport = IQuranWeeklySupervisionByClassItem[];
 
 /** Supervised vs non-supervised comparison */
 export interface IQuranSupervisionComparison {
