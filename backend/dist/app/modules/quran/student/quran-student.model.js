@@ -46,6 +46,16 @@ const QuranStudentSchema = new mongoose_1.Schema({
         default: '',
         trim: true,
     },
+    // Computed consistency (optional; can be updated via cron or on entry save)
+    consistencyStats: {
+        currentStreak: { type: Number, default: 0 },
+        longestStreak: { type: Number, default: 0 },
+        lastEntryDate: { type: Date },
+        totalExpectedEntries: { type: Number, default: 0 },
+        totalActualEntries: { type: Number, default: 0 },
+        attendanceRate: { type: Number, default: 0 },
+        testRegularityScore: { type: Number, default: 0 },
+    },
 }, {
     timestamps: true,
 });

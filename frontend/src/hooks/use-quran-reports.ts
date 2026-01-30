@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   IQuranReportFilters,
   IQuranReportFiltersExtended,
+  IQuranConsistencyFilters,
   IQuranOverallReport,
   IQuranWeeklyTrendReport,
   IQuranWeeklySupervisionReport,
@@ -17,6 +18,7 @@ import {
   IJuzAnalysisReport,
   IPerformersReport,
   ISupervisionDetailedReport,
+  IConsistencyReport,
 } from "@/types/quran.types";
 import * as quranReportsService from "@/services/quran-reports.service";
 import { isValidMongoId } from "@/lib/validation";
@@ -133,4 +135,10 @@ export const useSupervisionDetailedQuery = (
   useQuery<ISupervisionDetailedReport, Error>({
     queryKey: ["quran-report-supervision-detailed", params],
     queryFn: () => quranReportsService.getSupervisionDetailedReport(params),
+  });
+
+export const useConsistencyReportQuery = (params?: IQuranConsistencyFilters) =>
+  useQuery<IConsistencyReport, Error>({
+    queryKey: ["quran-report-consistency", params],
+    queryFn: () => quranReportsService.getConsistencyReport(params),
   });

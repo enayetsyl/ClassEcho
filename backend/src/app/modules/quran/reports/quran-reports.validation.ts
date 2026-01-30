@@ -117,3 +117,21 @@ export const getStudentContentValidation = z.object({
   params: z.object({ studentId: mongoIdSchema }),
   query: extendedReportQuery,
 });
+
+const consistencyReportQuery = reportFiltersBase
+  .extend({
+    minEntries: z.string().optional().transform((v) => (v ? parseInt(v, 10) : undefined)),
+  })
+  .refine(
+    (data) => {
+      if (!data.startDate || !data.endDate) return true;
+      const start = Date.parse(data.startDate);
+      const end = Date.parse(data.endDate);
+      return !isNaN(start) && !isNaN(end) && start <= end;
+    },
+    { message: 'startDate must be before or equal to endDate', path: ['startDate'] },
+  );
+
+export const getConsistencyReportValidation = z.object({
+  query: consistencyReportQuery,
+});

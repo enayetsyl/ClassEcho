@@ -5,7 +5,7 @@ import catchAsync from '../../../utils/catch-async';
 import sendResponse from '../../../utils/send-response';
 import { pickFields } from '../../../utils/pick';
 import { QuranReportsServices } from './quran-reports.service';
-import { TQuranReportFilters, TQuranReportFiltersExtended } from './quran-reports.type';
+import { TQuranReportFilters, TQuranReportFiltersExtended, TQuranConsistencyFilters } from './quran-reports.type';
 
 function getReportFilters(req: Request): TQuranReportFilters {
   const query = req.query as Record<string, string | undefined>;
@@ -28,6 +28,14 @@ function getReportFiltersExtended(req: Request): TQuranReportFiltersExtended {
   if (query.surahNumber) result.surahNumber = parseInt(query.surahNumber, 10);
   if (query.juzNumber) result.juzNumber = parseInt(query.juzNumber, 10);
   if (query.minTests) result.minTests = parseInt(query.minTests, 10);
+  return result;
+}
+
+function getConsistencyFilters(req: Request): TQuranConsistencyFilters {
+  const base = getReportFilters(req);
+  const query = req.query as Record<string, string | undefined>;
+  const result = { ...base } as TQuranConsistencyFilters;
+  if (query.minEntries) result.minEntries = parseInt(query.minEntries, 10) || 4;
   return result;
 }
 
@@ -159,6 +167,12 @@ const getSupervisionDetailed = catchAsync(async (req: Request, res: Response) =>
   sendResponse(res, { statusCode: 200, success: true, message: 'Supervision detailed report retrieved successfully', data });
 });
 
+const getConsistencyReport = catchAsync(async (req: Request, res: Response) => {
+  const filters = getConsistencyFilters(req);
+  const data = await QuranReportsServices.getConsistencyReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Consistency report retrieved successfully', data });
+});
+
 export const QuranReportsControllers = {
   getOverallReport,
   getWeeklySummary,
@@ -175,4 +189,5 @@ export const QuranReportsControllers = {
   getJuzAnalysis,
   getPerformers,
   getSupervisionDetailed,
+  getConsistencyReport,
 };

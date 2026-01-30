@@ -2,6 +2,7 @@ import apiClient from "@/lib/api-client";
 import {
   IQuranReportFilters,
   IQuranReportFiltersExtended,
+  IQuranConsistencyFilters,
   IQuranOverallReport,
   IQuranWeeklyTrendReport,
   IQuranWeeklySupervisionReport,
@@ -17,6 +18,7 @@ import {
   IJuzAnalysisReport,
   IPerformersReport,
   ISupervisionDetailedReport,
+  IConsistencyReport,
 } from "@/types/quran.types";
 
 const BASE = "quran/reports";
@@ -188,5 +190,16 @@ export const getSupervisionDetailedReport = async (
     message: string;
     data: ISupervisionDetailedReport;
   }>(`${BASE}/supervision-detailed`, { params });
+  return res.data.data;
+};
+
+export const getConsistencyReport = async (
+  params?: IQuranConsistencyFilters,
+): Promise<IConsistencyReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IConsistencyReport;
+  }>(`${BASE}/consistency`, { params });
   return res.data.data;
 };

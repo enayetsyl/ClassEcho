@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QuranReportsServices = exports.getSupervisionDetailedReport = exports.getPerformersReport = exports.getJuzAnalysisReport = exports.getSurahAnalysisReport = exports.getStudentContentReport = exports.getStudentTrendReport = exports.getTimeAnalysisReport = exports.getTestTypeAnalysisReport = exports.getUstadSummary = exports.getSupervisionComparison = exports.getStudentReport = exports.getClassBreakdown = exports.getWeeklySupervisionComparison = exports.getWeeklySummary = exports.getOverallReport = void 0;
+exports.QuranReportsServices = exports.getConsistencyReport = exports.getSupervisionDetailedReport = exports.getPerformersReport = exports.getJuzAnalysisReport = exports.getSurahAnalysisReport = exports.getStudentContentReport = exports.getStudentTrendReport = exports.getTimeAnalysisReport = exports.getTestTypeAnalysisReport = exports.getUstadSummary = exports.getSupervisionComparison = exports.getStudentReport = exports.getClassBreakdown = exports.getWeeklySupervisionComparison = exports.getWeeklySummary = exports.getOverallReport = void 0;
 const mongoose_1 = require("mongoose");
 const quran_entry_model_1 = require("../entry/quran-entry.model");
 const quran_student_model_1 = require("../student/quran-student.model");
@@ -184,6 +184,47 @@ function getWeekEnd(d) {
     x.setDate(x.getDate() + (6 - day));
     x.setHours(23, 59, 59, 999);
     return x;
+}
+/** Get all week-start dates (ISO string) in range for consistency report */
+function getAllWeeksInRange(start, end) {
+    const weeks = [];
+    const cur = getWeekStart(new Date(start));
+    const endWeek = getWeekStart(new Date(end));
+    while (cur.getTime() <= endWeek.getTime()) {
+        weeks.push(cur.toISOString().slice(0, 10));
+        cur.setDate(cur.getDate() + 7);
+    }
+    return weeks;
+}
+/** Calculate current streak, longest streak, and consecutive missed weeks from entries */
+function calculateStreaks(entries, startDate, endDate) {
+    const weekMap = new Set();
+    entries.forEach((e) => {
+        const ws = getWeekStart(new Date(e.reportDate));
+        weekMap.add(ws.toISOString().slice(0, 10));
+    });
+    const allWeeks = getAllWeeksInRange(startDate, endDate);
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+    let consecutiveMissed = 0;
+    for (let i = allWeeks.length - 1; i >= 0; i--) {
+        const week = allWeeks[i];
+        if (weekMap.has(week)) {
+            tempStreak += 1;
+            consecutiveMissed = 0;
+            if (currentStreak === 0)
+                currentStreak = tempStreak;
+        }
+        else {
+            longestStreak = Math.max(longestStreak, tempStreak);
+            tempStreak = 0;
+            if (currentStreak === 0)
+                consecutiveMissed += 1;
+        }
+    }
+    longestStreak = Math.max(longestStreak, tempStreak);
+    return { currentStreak, longestStreak, consecutiveMissedWeeks: consecutiveMissed };
 }
 const getWeeklySummary = (filters) => __awaiter(void 0, void 0, void 0, function* () {
     const dateRange = getDateRange(filters);
@@ -1625,6 +1666,155 @@ const getSupervisionDetailedReport = (filters) => __awaiter(void 0, void 0, void
     };
 });
 exports.getSupervisionDetailedReport = getSupervisionDetailedReport;
+/** Consistency report (7.1): attendance, streaks, calendar, leaderboard */
+const getConsistencyReport = (filters) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const dateRange = getDateRange(filters);
+    const startStr = dateRange.start.toISOString().slice(0, 10);
+    const endStr = dateRange.end.toISOString().slice(0, 10);
+    const weeksInRange = getAllWeeksInRange(dateRange.start, dateRange.end);
+    const minEntries = (_a = filters.minEntries) !== null && _a !== void 0 ? _a : 4;
+    const studentMatch = { 'studentDoc.active': true };
+    if (filters.class)
+        studentMatch['studentDoc.class'] = filters.class;
+    if (filters.studentId)
+        studentMatch['student'] = new mongoose_1.Types.ObjectId(filters.studentId);
+    const pipeline = [
+        { $match: { reportDate: { $gte: dateRange.start, $lte: dateRange.end } } },
+        {
+            $lookup: {
+                from: 'quranstudents',
+                localField: 'student',
+                foreignField: '_id',
+                as: 'studentDoc',
+            },
+        },
+        { $unwind: '$studentDoc' },
+        { $match: studentMatch },
+        {
+            $group: {
+                _id: '$student',
+                studentDoc: { $first: '$studentDoc' },
+                entries: {
+                    $push: {
+                        reportDate: '$reportDate',
+                        testsGiven: '$testsGiven',
+                        testsMissed: '$testsMissed',
+                    },
+                },
+            },
+        },
+        { $match: { $expr: { $gte: [{ $size: '$entries' }, minEntries] } } },
+    ];
+    const grouped = yield quran_entry_model_1.QuranEntry.aggregate(pipeline);
+    const students = [];
+    const calendarByDate = new Map();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    for (let d = dateRange.start.getTime(); d <= dateRange.end.getTime(); d += oneDayMs) {
+        calendarByDate.set(new Date(d).toISOString().slice(0, 10), { count: 0, totalTests: 0, expected: 0 });
+    }
+    for (const row of grouped) {
+        const entries = row.entries;
+        const student = row.studentDoc;
+        const totalActualEntries = entries.length;
+        const totalTestsGiven = entries.reduce((s, e) => { var _a; return s + ((_a = e.testsGiven) !== null && _a !== void 0 ? _a : 0); }, 0);
+        const totalTestsPossible = totalActualEntries * 3;
+        const attendanceRate = weeksInRange.length > 0
+            ? (new Set(entries.map((e) => getWeekStart(new Date(e.reportDate)).toISOString().slice(0, 10))).size / weeksInRange.length) * 100
+            : 0;
+        const testRegularityScore = totalTestsPossible > 0 ? (totalTestsGiven / totalTestsPossible) * 100 : 0;
+        const { currentStreak, longestStreak, consecutiveMissedWeeks } = calculateStreaks(entries.map((e) => ({ reportDate: e.reportDate })), dateRange.start, dateRange.end);
+        const weeksWithEntry = new Set(entries.map((e) => getWeekStart(new Date(e.reportDate)).toISOString().slice(0, 10)));
+        const missedWeeks = weeksInRange.length - weeksWithEntry.size;
+        const lastEntry = entries.length
+            ? entries.reduce((a, e) => (new Date(e.reportDate) > new Date(a.reportDate) ? e : a), entries[0])
+            : null;
+        const lastEntryDate = lastEntry ? new Date(lastEntry.reportDate).toISOString().slice(0, 10) : null;
+        const daysSinceLastEntry = lastEntry
+            ? Math.floor((dateRange.end.getTime() - new Date(lastEntry.reportDate).getTime()) / oneDayMs)
+            : null;
+        const weeklyDetail = weeksInRange.map((weekStart) => {
+            const hasEntry = weeksWithEntry.has(weekStart);
+            const weekEntries = entries.filter((e) => getWeekStart(new Date(e.reportDate)).toISOString().slice(0, 10) === weekStart);
+            const testsGiven = weekEntries.reduce((s, e) => { var _a; return s + ((_a = e.testsGiven) !== null && _a !== void 0 ? _a : 0); }, 0);
+            const testsMissed = weekEntries.reduce((s, e) => { var _a; return s + ((_a = e.testsMissed) !== null && _a !== void 0 ? _a : 0); }, 0);
+            return { weekStart, hasEntry, testsGiven, testsMissed };
+        });
+        let status = 'good';
+        if (attendanceRate >= 90 && testRegularityScore >= 85 && consecutiveMissedWeeks === 0)
+            status = 'excellent';
+        else if (attendanceRate < 50 || testRegularityScore < 50 || consecutiveMissedWeeks >= 3)
+            status = 'critical';
+        else if (attendanceRate < 70 || testRegularityScore < 70 || consecutiveMissedWeeks >= 2)
+            status = 'warning';
+        entries.forEach((e) => {
+            var _a;
+            const day = new Date(e.reportDate).toISOString().slice(0, 10);
+            const rec = calendarByDate.get(day);
+            if (rec) {
+                rec.count += 1;
+                rec.totalTests += (_a = e.testsGiven) !== null && _a !== void 0 ? _a : 0;
+                rec.expected += 3;
+            }
+        });
+        students.push({
+            student: {
+                _id: String(student._id),
+                studentId: student.studentId,
+                nameEn: student.nameEn,
+                nameBn: student.nameBn,
+                class: student.class,
+            },
+            metrics: {
+                currentStreak,
+                longestStreak,
+                attendanceRate: Number(attendanceRate.toFixed(1)),
+                testRegularityScore: Number(testRegularityScore.toFixed(1)),
+                missedWeeks,
+                consecutiveMissedWeeks,
+                lastEntryDate,
+                daysSinceLastEntry,
+            },
+            weeklyDetail,
+            status,
+        });
+    }
+    const streakLeaderboard = [...students]
+        .sort((a, b) => b.metrics.currentStreak - a.metrics.currentStreak)
+        .slice(0, 20)
+        .map((s, i) => ({
+        rank: i + 1,
+        student: s.student,
+        currentStreak: s.metrics.currentStreak,
+        longestStreak: s.metrics.longestStreak,
+    }));
+    const summary = {
+        totalStudents: students.length,
+        avgAttendanceRate: students.length
+            ? Number((students.reduce((s, x) => s + x.metrics.attendanceRate, 0) / students.length).toFixed(1))
+            : 0,
+        avgTestRegularityScore: students.length
+            ? Number((students.reduce((s, x) => s + x.metrics.testRegularityScore, 0) / students.length).toFixed(1))
+            : 0,
+        studentsWithPerfectAttendance: students.filter((s) => s.metrics.attendanceRate >= 100).length,
+        studentsAtRisk: students.filter((s) => s.status === 'critical').length,
+    };
+    const calendarData = Array.from(calendarByDate.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, rec]) => ({
+        date,
+        entriesCount: rec.count,
+        status: (rec.count === 0 ? 'missing' : rec.totalTests >= rec.expected * 0.8 ? 'full' : 'partial'),
+    }));
+    return {
+        filters: Object.assign(Object.assign(Object.assign({ dateRange: { start: startStr, end: endStr } }, (filters.class && { class: filters.class })), (filters.studentId && { studentId: filters.studentId })), (filters.minEntries != null && { minEntries: filters.minEntries })),
+        summary,
+        students,
+        calendarData,
+        streakLeaderboard,
+    };
+});
+exports.getConsistencyReport = getConsistencyReport;
 exports.QuranReportsServices = {
     getOverallReport: exports.getOverallReport,
     getWeeklySummary: exports.getWeeklySummary,
@@ -1641,4 +1831,5 @@ exports.QuranReportsServices = {
     getJuzAnalysisReport: exports.getJuzAnalysisReport,
     getPerformersReport: exports.getPerformersReport,
     getSupervisionDetailedReport: exports.getSupervisionDetailedReport,
+    getConsistencyReport: exports.getConsistencyReport,
 };

@@ -159,6 +159,9 @@ export default function QuranReportsPage() {
             <Link href="/dashboard/admin/quran/reports/supervision">
               <Button variant="outline">Supervision (detailed)</Button>
             </Link>
+            <Link href="/dashboard/admin/quran/reports/consistency">
+              <Button variant="outline">Consistency & attendance</Button>
+            </Link>
             <Link href="/dashboard/admin/quran/students">
               <Button variant="outline">Student report (pick student)</Button>
             </Link>

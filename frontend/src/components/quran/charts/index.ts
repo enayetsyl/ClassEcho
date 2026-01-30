@@ -36,3 +36,12 @@ export type { LeaderboardTableProps } from "./LeaderboardTable";
 
 export { SupervisionComparisonArea } from "./SupervisionComparisonArea";
 export type { SupervisionComparisonAreaProps } from "./SupervisionComparisonArea";
+
+export { ConsistencyCalendarHeatmap } from "./ConsistencyCalendarHeatmap";
+export type { ConsistencyCalendarHeatmapProps } from "./ConsistencyCalendarHeatmap";
+
+export { StreakLeaderboard } from "./StreakLeaderboard";
+export type { StreakLeaderboardProps } from "./StreakLeaderboard";
+
+export { AttendanceProgressRing } from "./AttendanceProgressRing";
+export type { AttendanceProgressRingProps } from "./AttendanceProgressRing";

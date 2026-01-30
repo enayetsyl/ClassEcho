@@ -50,6 +50,14 @@ function getReportFiltersExtended(req) {
         result.minTests = parseInt(query.minTests, 10);
     return result;
 }
+function getConsistencyFilters(req) {
+    const base = getReportFilters(req);
+    const query = req.query;
+    const result = Object.assign({}, base);
+    if (query.minEntries)
+        result.minEntries = parseInt(query.minEntries, 10) || 4;
+    return result;
+}
 const getOverallReport = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const filters = getReportFilters(req);
     const data = yield quran_reports_service_1.QuranReportsServices.getOverallReport(filters);
@@ -163,6 +171,11 @@ const getSupervisionDetailed = (0, catch_async_1.default)((req, res) => __awaite
     const data = yield quran_reports_service_1.QuranReportsServices.getSupervisionDetailedReport(filters);
     (0, send_response_1.default)(res, { statusCode: 200, success: true, message: 'Supervision detailed report retrieved successfully', data });
 }));
+const getConsistencyReport = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const filters = getConsistencyFilters(req);
+    const data = yield quran_reports_service_1.QuranReportsServices.getConsistencyReport(filters);
+    (0, send_response_1.default)(res, { statusCode: 200, success: true, message: 'Consistency report retrieved successfully', data });
+}));
 exports.QuranReportsControllers = {
     getOverallReport,
     getWeeklySummary,
@@ -179,4 +192,5 @@ exports.QuranReportsControllers = {
     getJuzAnalysis,
     getPerformers,
     getSupervisionDetailed,
+    getConsistencyReport,
 };

@@ -31,6 +31,17 @@ export interface IQuranStudent {
   /** Timestamps added by Mongoose */
   createdAt?: Date;
   updatedAt?: Date;
+
+  /** Computed consistency (optional; populated by cron or report) */
+  consistencyStats?: {
+    currentStreak: number;
+    longestStreak: number;
+    lastEntryDate?: Date;
+    totalExpectedEntries: number;
+    totalActualEntries: number;
+    attendanceRate: number;
+    testRegularityScore: number;
+  };
 }
 
 export type TCreateQuranStudent = Omit<IQuranStudent, '_id' | 'createdAt' | 'updatedAt'>;

@@ -20,6 +20,7 @@ import {
   getJuzAnalysisValidation,
   getPerformersValidation,
   getSupervisionDetailedValidation,
+  getConsistencyReportValidation,
 } from './quran-reports.validation';
 import { QuranReportsControllers } from './quran-reports.controller';
 
@@ -138,6 +139,14 @@ router.get(
   requireRole(reportRoles),
   validateRequest(getSupervisionDetailedValidation),
   QuranReportsControllers.getSupervisionDetailed,
+);
+
+router.get(
+  '/consistency',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getConsistencyReportValidation),
+  QuranReportsControllers.getConsistencyReport,
 );
 
 export const QuranReportsRoutes = router;

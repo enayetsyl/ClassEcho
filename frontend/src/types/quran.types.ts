@@ -275,6 +275,65 @@ export interface IQuranReportFiltersExtended extends IQuranReportFilters {
   minTests?: number;
 }
 
+/** Filters for consistency report (7.1) */
+export interface IQuranConsistencyFilters extends IQuranReportFilters {
+  minEntries?: number;
+}
+
+/** Consistency report (7.1) */
+export interface IConsistencyReport {
+  filters: {
+    dateRange: { start: string; end: string };
+    class?: string;
+    studentId?: string;
+    minEntries?: number;
+  };
+  summary: {
+    totalStudents: number;
+    avgAttendanceRate: number;
+    avgTestRegularityScore: number;
+    studentsWithPerfectAttendance: number;
+    studentsAtRisk: number;
+  };
+  students: Array<{
+    student: {
+      _id: string;
+      studentId: number;
+      nameEn: string;
+      nameBn?: string;
+      class: string;
+    };
+    metrics: {
+      currentStreak: number;
+      longestStreak: number;
+      attendanceRate: number;
+      testRegularityScore: number;
+      missedWeeks: number;
+      consecutiveMissedWeeks: number;
+      lastEntryDate: string | null;
+      daysSinceLastEntry: number | null;
+    };
+    weeklyDetail: Array<{
+      weekStart: string;
+      hasEntry: boolean;
+      testsGiven: number;
+      testsMissed: number;
+    }>;
+    status: "excellent" | "good" | "warning" | "critical";
+  }>;
+  calendarData: Array<{
+    date: string;
+    entriesCount: number;
+    status: "full" | "partial" | "missing";
+  }>;
+  streakLeaderboard: Array<{
+    rank: number;
+    student: Pick<IQuranStudent, "_id" | "studentId" | "nameEn" | "nameBn" | "class">;
+    currentStreak: number;
+    longestStreak: number;
+  }>;
+}
+
 // ----- Reference (Surah / Juz) -----
 export interface ISurahInfo {
   number: number;
