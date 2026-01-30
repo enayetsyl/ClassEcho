@@ -155,10 +155,11 @@ export default function AddQuranEntryPage() {
     defaultValues,
   });
   const { mutate, isPending } = useCreateQuranEntryMutation();
-  const { data: studentsData } = useGetQuranStudentsQuery({
-    limit: 300,
-    active: "true",
-  });
+  const { data: studentsData, isFetching: studentsLoading } =
+    useGetQuranStudentsQuery({
+      limit: 300,
+      active: "true",
+    });
   const students = studentsData?.data ?? [];
 
   const onSubmit = (values: FormValues) => {
@@ -209,10 +210,17 @@ export default function AddQuranEntryPage() {
                       <Select
                         value={field.value}
                         onValueChange={field.onChange}
+                        disabled={studentsLoading}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select student" />
+                            <SelectValue
+                              placeholder={
+                                studentsLoading
+                                  ? "Loading students..."
+                                  : "Select student"
+                              }
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>

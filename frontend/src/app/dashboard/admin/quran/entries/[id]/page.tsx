@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useGetQuranEntryQuery,
   useUpdateQuranEntryMutation,
@@ -228,8 +229,32 @@ export default function EditQuranEntryPage() {
   if (isLoading) {
     return (
       <ProtectedRoute>
-        <div className="p-4 flex justify-center items-center min-h-[200px] text-muted-foreground">
-          Loading...
+        <div className="p-4 max-w-2xl mx-auto">
+          <Card>
+            <CardHeader className="flex flex-row items-center gap-2">
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-7 w-40" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-lg border p-4 space-y-3">
+                  <Skeleton className="h-5 w-24" />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                </div>
+              ))}
+              <div className="flex gap-2 pt-4">
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-20" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </ProtectedRoute>
     );

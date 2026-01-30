@@ -160,9 +160,28 @@ export default function QuranClassBreakdownPage() {
             )}
 
             {isLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-[280px] w-full" />
-                <Skeleton className="h-48 w-full" />
+              <div className="space-y-6">
+                <Card className="mb-6">
+                  <CardHeader>
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-64 mt-1" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-[300px] w-full" />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <Skeleton className="h-5 w-40" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             ) : breakdown && breakdown.length > 0 ? (
               <>

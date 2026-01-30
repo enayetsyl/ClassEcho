@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { PaginationControl } from "@/components/ui/shared/Pagination";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedRoute } from "@/route/ProtectedRoute";
 import type { IQuranStudentFilters } from "@/types/quran.types";
 
@@ -156,9 +157,50 @@ export default function QuranStudentListPage() {
         {/* Table */}
         <div className="overflow-x-auto rounded-md border">
           {isFetching ? (
-            <div className="flex items-center justify-center py-12 text-muted-foreground">
-              Loading...
-            </div>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20">ID</TableHead>
+                    <TableHead>Name (EN)</TableHead>
+                    <TableHead>Name (BN)</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead className="w-24">Supervision</TableHead>
+                    <TableHead className="w-24">Active</TableHead>
+                    <TableHead className="text-right w-40">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: LIMIT }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <Skeleton className="h-5 w-10" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-16" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-12" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-12" />
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Skeleton className="h-8 w-14 inline-block" />
+                        <Skeleton className="h-8 w-12 inline-block ml-2" />
+                        <Skeleton className="h-8 w-20 inline-block ml-2" />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
           ) : students.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <p>No students found.</p>

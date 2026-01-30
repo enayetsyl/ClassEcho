@@ -164,9 +164,44 @@ export default function QuranStudentReportPage() {
 
               {isLoading ? (
                 <div className="space-y-6">
-                  <Skeleton className="h-24 w-full" />
-                  <Skeleton className="h-32 w-full" />
-                  <Skeleton className="h-[280px] w-full" />
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <Skeleton className="h-6 w-48" />
+                      <Skeleton className="h-4 w-32 mt-2" />
+                    </CardHeader>
+                  </Card>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Card key={i}>
+                        <CardHeader className="pb-2">
+                          <Skeleton className="h-4 w-16 mb-2" />
+                          <Skeleton className="h-8 w-12" />
+                        </CardHeader>
+                      </Card>
+                    ))}
+                  </div>
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <Skeleton className="h-5 w-40" />
+                      <Skeleton className="h-4 w-56 mt-1" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-[300px] w-full" />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <Skeleton className="h-5 w-28" />
+                      <Skeleton className="h-4 w-48 mt-1" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <Skeleton key={i} className="h-10 w-full" />
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               ) : isError ? (
                 <p className="text-destructive py-4">

@@ -208,11 +208,36 @@ export default function QuranReportsPage() {
             )}
 
             {isLoading ? (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-24" />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Card key={i}>
+                      <CardContent className="pt-6">
+                        <Skeleton className="h-8 w-16 mb-2" />
+                        <Skeleton className="h-4 w-24" />
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mb-6">
+                  <Card>
+                    <CardHeader>
+                      <Skeleton className="h-5 w-24" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-[200px] w-full" />
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <Skeleton className="h-5 w-32" />
+                    </CardHeader>
+                    <CardContent>
+                      <Skeleton className="h-[200px] w-full" />
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
             ) : report ? (
               <>
                 {report.dateRange && (

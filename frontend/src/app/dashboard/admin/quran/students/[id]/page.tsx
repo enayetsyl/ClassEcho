@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useGetQuranStudentQuery,
   useUpdateQuranStudentMutation,
@@ -109,8 +110,25 @@ export default function EditQuranStudentPage() {
   if (isLoading) {
     return (
       <ProtectedRoute>
-        <div className="p-4 flex justify-center items-center min-h-[200px] text-muted-foreground">
-          Loading...
+        <div className="p-4 max-w-xl mx-auto">
+          <Card>
+            <CardHeader className="flex flex-row items-center gap-2">
+              <Skeleton className="h-9 w-16" />
+              <Skeleton className="h-7 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+              <div className="flex gap-2 pt-4">
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-20" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </ProtectedRoute>
     );
