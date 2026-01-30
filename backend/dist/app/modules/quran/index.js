@@ -20,3 +20,5 @@ __exportStar(require("./student/quran-student.type"), exports);
 __exportStar(require("./entry/quran-entry.model"), exports);
 __exportStar(require("./entry/quran-entry.type"), exports);
 __exportStar(require("./reports/quran-reports.type"), exports);
+__exportStar(require("./reference/surah-data"), exports);
+__exportStar(require("./reference/juz-data"), exports);

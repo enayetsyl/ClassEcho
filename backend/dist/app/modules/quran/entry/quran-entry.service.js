@@ -20,11 +20,16 @@ const quran_student_model_1 = require("../student/quran-student.model");
 const app_error_1 = __importDefault(require("../../../errors/app-error"));
 const http_status_1 = __importDefault(require("http-status"));
 const pagination_1 = require("../../../utils/pagination");
+const defaultContent = {
+    type: 'custom',
+    customDescription: '',
+};
 const defaultTest = {
     given: false,
     tanbih: 0,
     fath: 0,
     note: '',
+    content: defaultContent,
 };
 const defaultTajweedNotes = {
     harf: '',
@@ -32,8 +37,15 @@ const defaultTajweedNotes = {
     madd: '',
     other: '',
 };
+function mergeContent(partial) {
+    return Object.assign(Object.assign({}, defaultContent), partial);
+}
 function mergeTest(partial) {
-    return Object.assign(Object.assign({}, defaultTest), partial);
+    const base = Object.assign(Object.assign({}, defaultTest), partial);
+    if ((partial === null || partial === void 0 ? void 0 : partial.content) !== undefined) {
+        base.content = mergeContent(partial.content);
+    }
+    return base;
 }
 function mergeTajweed(partial) {
     return Object.assign(Object.assign({}, defaultTajweedNotes), partial);

@@ -2,6 +2,24 @@
 
 import { Types } from 'mongoose';
 
+/** Structured content for a test (Surah range, Juz, or custom) */
+export interface IQuranContent {
+  /** Content type */
+  type: 'surah' | 'juz' | 'custom';
+
+  /** For Surah-based content */
+  surahNumber?: number;
+  surahName?: string;
+  ayahStart?: number;
+  ayahEnd?: number;
+
+  /** For Juz-based content */
+  juzNumber?: number;
+
+  /** For custom/partial content */
+  customDescription?: string;
+}
+
 /** Single test (New / Recent / Older) structure */
 export interface IQuranTest {
   /** Was the test given? */
@@ -12,6 +30,8 @@ export interface IQuranTest {
   fath: number;
   /** Note for this test */
   note?: string;
+  /** Structured content (Surah/Juz/custom) */
+  content?: IQuranContent;
 }
 
 /** Tajweed / pronunciation notes */

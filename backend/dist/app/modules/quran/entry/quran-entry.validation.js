@@ -7,11 +7,23 @@ const mongoIdSchema = zod_1.z
     .string()
     .length(24, 'Invalid ID')
     .regex(/^[a-f0-9]{24}$/i, 'Invalid ID format');
+const contentSchema = zod_1.z
+    .object({
+    type: zod_1.z.enum(['surah', 'juz', 'custom']).default('custom'),
+    surahNumber: zod_1.z.number().int().min(1).max(114).optional(),
+    surahName: zod_1.z.string().max(100).optional(),
+    ayahStart: zod_1.z.number().int().min(1).optional(),
+    ayahEnd: zod_1.z.number().int().min(1).optional(),
+    juzNumber: zod_1.z.number().int().min(1).max(30).optional(),
+    customDescription: zod_1.z.string().max(200).optional(),
+})
+    .optional();
 const testSchema = zod_1.z.object({
     given: zod_1.z.boolean(),
     tanbih: zod_1.z.number().int().min(0).default(0),
     fath: zod_1.z.number().int().min(0).default(0),
     note: zod_1.z.string().max(500).optional(),
+    content: contentSchema,
 });
 const tajweedNotesSchema = zod_1.z.object({
     harf: zod_1.z.string().max(500).optional(),

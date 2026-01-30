@@ -3,12 +3,30 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.QuranEntry = void 0;
 const mongoose_1 = require("mongoose");
+const defaultContent = {
+    type: 'custom',
+    customDescription: '',
+};
 const defaultTest = {
     given: false,
     tanbih: 0,
     fath: 0,
     note: '',
+    content: defaultContent,
 };
+const QuranContentSchema = new mongoose_1.Schema({
+    type: {
+        type: String,
+        enum: ['surah', 'juz', 'custom'],
+        default: 'custom',
+    },
+    surahNumber: { type: Number, min: 1, max: 114 },
+    surahName: { type: String },
+    ayahStart: { type: Number, min: 1 },
+    ayahEnd: { type: Number, min: 1 },
+    juzNumber: { type: Number, min: 1, max: 30 },
+    customDescription: { type: String, maxlength: 200 },
+}, { _id: false });
 const defaultTajweedNotes = {
     harf: '',
     ghunna: '',
@@ -20,6 +38,10 @@ const QuranTestSchema = new mongoose_1.Schema({
     tanbih: { type: Number, required: true, default: 0, min: 0 },
     fath: { type: Number, required: true, default: 0, min: 0 },
     note: { type: String, default: '', trim: true },
+    content: {
+        type: QuranContentSchema,
+        default: () => (Object.assign({}, defaultContent)),
+    },
 }, { _id: false });
 const TajweedNotesSchema = new mongoose_1.Schema({
     harf: { type: String, default: '', trim: true },
@@ -111,6 +133,15 @@ const QuranEntrySchema = new mongoose_1.Schema({
 });
 // Compound index for listing entries by student and date
 QuranEntrySchema.index({ student: 1, reportDate: -1 });
+// Content-based indexes for analytics
+QuranEntrySchema.index({ 'newTest.content.surahNumber': 1 });
+QuranEntrySchema.index({ 'recentTest.content.surahNumber': 1 });
+QuranEntrySchema.index({ 'olderTest.content.surahNumber': 1 });
+QuranEntrySchema.index({ 'newTest.content.juzNumber': 1 });
+QuranEntrySchema.index({ 'recentTest.content.juzNumber': 1 });
+QuranEntrySchema.index({ 'olderTest.content.juzNumber': 1 });
+QuranEntrySchema.index({ reportDate: -1, student: 1 });
+QuranEntrySchema.index({ 'newTest.content.surahNumber': 1, reportDate: -1 });
 /** Compute and set testsGiven, testsMissed, totalTanbih, totalFath, totalMistakes from test data */
 function computeEntryFields(doc) {
     var _a, _b;

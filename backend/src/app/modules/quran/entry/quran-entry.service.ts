@@ -6,6 +6,7 @@ import { QuranStudent } from '../student/quran-student.model';
 import {
   IQuranEntry,
   IQuranTest,
+  IQuranContent,
   ITajweedNotes,
   TCreateQuranEntry,
   TUpdateQuranEntry,
@@ -15,11 +16,17 @@ import httpStatus from 'http-status';
 import { TMeta, TPaginationOptions } from '../../../types/utils';
 import { paginationHelper } from '../../../utils/pagination';
 
+const defaultContent: IQuranContent = {
+  type: 'custom',
+  customDescription: '',
+};
+
 const defaultTest: IQuranTest = {
   given: false,
   tanbih: 0,
   fath: 0,
   note: '',
+  content: defaultContent,
 };
 
 const defaultTajweedNotes: ITajweedNotes = {
@@ -29,8 +36,16 @@ const defaultTajweedNotes: ITajweedNotes = {
   other: '',
 };
 
+function mergeContent(partial?: Partial<IQuranContent>): IQuranContent {
+  return { ...defaultContent, ...partial };
+}
+
 function mergeTest(partial?: Partial<IQuranTest>): IQuranTest {
-  return { ...defaultTest, ...partial };
+  const base = { ...defaultTest, ...partial };
+  if (partial?.content !== undefined) {
+    base.content = mergeContent(partial.content);
+  }
+  return base;
 }
 
 function mergeTajweed(partial?: Partial<ITajweedNotes>): ITajweedNotes {

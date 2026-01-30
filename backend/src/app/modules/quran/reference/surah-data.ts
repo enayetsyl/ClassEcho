@@ -1,0 +1,157 @@
+// src/app/modules/quran/reference/surah-data.ts
+// Static reference data for 114 Surahs (from standard Quran metadata).
+
+export interface ISurahInfo {
+  number: number;
+  nameArabic: string;
+  nameEnglish: string;
+  nameBengali: string;
+  totalAyahs: number;
+  juzStart: number;
+}
+
+/** Juz start positions (surah, ayah) for computing juzStart per surah */
+const JUZ_STARTS: Array<[number, number]> = [
+  [1, 1], [2, 142], [2, 253], [3, 93], [4, 24], [4, 148], [5, 82], [6, 111],
+  [7, 88], [8, 41], [9, 93], [11, 6], [12, 53], [15, 1], [17, 1], [18, 75],
+  [21, 1], [23, 1], [25, 21], [27, 56], [29, 46], [33, 31], [36, 28], [39, 32],
+  [41, 47], [46, 1], [51, 31], [58, 1], [67, 1], [78, 1],
+];
+
+function getJuzStart(surahNumber: number): number {
+  for (let j = JUZ_STARTS.length - 1; j >= 0; j--) {
+    const [s, a] = JUZ_STARTS[j];
+    if (surahNumber > s || (surahNumber === s && 1 >= a)) return j + 1;
+  }
+  return 1;
+}
+
+const SURAH_RAW: Array<{ number: number; nameArabic: string; nameEnglish: string; totalAyahs: number }> = [
+  { number: 1, nameArabic: 'الفاتحة', nameEnglish: 'Al-Fatihah', totalAyahs: 7 },
+  { number: 2, nameArabic: 'البقرة', nameEnglish: 'Al-Baqarah', totalAyahs: 286 },
+  { number: 3, nameArabic: 'آل عمران', nameEnglish: 'Aal-E-Imran', totalAyahs: 200 },
+  { number: 4, nameArabic: 'النساء', nameEnglish: 'An-Nisa', totalAyahs: 176 },
+  { number: 5, nameArabic: 'المائدة', nameEnglish: 'Al-Maidah', totalAyahs: 120 },
+  { number: 6, nameArabic: 'الأنعام', nameEnglish: 'Al-Anam', totalAyahs: 165 },
+  { number: 7, nameArabic: 'الأعراف', nameEnglish: 'Al-Araf', totalAyahs: 206 },
+  { number: 8, nameArabic: 'الأنفال', nameEnglish: 'Al-Anfal', totalAyahs: 75 },
+  { number: 9, nameArabic: 'التوبة', nameEnglish: 'At-Tawbah', totalAyahs: 129 },
+  { number: 10, nameArabic: 'يونس', nameEnglish: 'Yunus', totalAyahs: 109 },
+  { number: 11, nameArabic: 'هود', nameEnglish: 'Hud', totalAyahs: 123 },
+  { number: 12, nameArabic: 'يوسف', nameEnglish: 'Yusuf', totalAyahs: 111 },
+  { number: 13, nameArabic: 'الرعد', nameEnglish: 'Ar-Rad', totalAyahs: 43 },
+  { number: 14, nameArabic: 'إبراهيم', nameEnglish: 'Ibrahim', totalAyahs: 52 },
+  { number: 15, nameArabic: 'الحجر', nameEnglish: 'Al-Hijr', totalAyahs: 99 },
+  { number: 16, nameArabic: 'النحل', nameEnglish: 'An-Nahl', totalAyahs: 128 },
+  { number: 17, nameArabic: 'الإسراء', nameEnglish: 'Al-Isra', totalAyahs: 111 },
+  { number: 18, nameArabic: 'الكهف', nameEnglish: 'Al-Kahf', totalAyahs: 110 },
+  { number: 19, nameArabic: 'مريم', nameEnglish: 'Maryam', totalAyahs: 98 },
+  { number: 20, nameArabic: 'طه', nameEnglish: 'Taha', totalAyahs: 135 },
+  { number: 21, nameArabic: 'الأنبياء', nameEnglish: 'Al-Anbiya', totalAyahs: 112 },
+  { number: 22, nameArabic: 'الحج', nameEnglish: 'Al-Hajj', totalAyahs: 78 },
+  { number: 23, nameArabic: 'المؤمنون', nameEnglish: 'Al-Muminun', totalAyahs: 118 },
+  { number: 24, nameArabic: 'النور', nameEnglish: 'An-Nur', totalAyahs: 64 },
+  { number: 25, nameArabic: 'الفرقان', nameEnglish: 'Al-Furqan', totalAyahs: 77 },
+  { number: 26, nameArabic: 'الشعراء', nameEnglish: 'Ash-Shuara', totalAyahs: 227 },
+  { number: 27, nameArabic: 'النمل', nameEnglish: 'An-Naml', totalAyahs: 93 },
+  { number: 28, nameArabic: 'القصص', nameEnglish: 'Al-Qasas', totalAyahs: 88 },
+  { number: 29, nameArabic: 'العنكبوت', nameEnglish: 'Al-Ankabut', totalAyahs: 69 },
+  { number: 30, nameArabic: 'الروم', nameEnglish: 'Ar-Rum', totalAyahs: 60 },
+  { number: 31, nameArabic: 'لقمان', nameEnglish: 'Luqman', totalAyahs: 34 },
+  { number: 32, nameArabic: 'السجدة', nameEnglish: 'As-Sajdah', totalAyahs: 30 },
+  { number: 33, nameArabic: 'الأحزاب', nameEnglish: 'Al-Ahzab', totalAyahs: 73 },
+  { number: 34, nameArabic: 'سبأ', nameEnglish: 'Saba', totalAyahs: 54 },
+  { number: 35, nameArabic: 'فاطر', nameEnglish: 'Fatir', totalAyahs: 45 },
+  { number: 36, nameArabic: 'يس', nameEnglish: 'Yasin', totalAyahs: 83 },
+  { number: 37, nameArabic: 'الصافات', nameEnglish: 'As-Saffat', totalAyahs: 182 },
+  { number: 38, nameArabic: 'ص', nameEnglish: 'Sad', totalAyahs: 88 },
+  { number: 39, nameArabic: 'الزمر', nameEnglish: 'Az-Zumar', totalAyahs: 75 },
+  { number: 40, nameArabic: 'غافر', nameEnglish: 'Ghafir', totalAyahs: 85 },
+  { number: 41, nameArabic: 'فصلت', nameEnglish: 'Fussilat', totalAyahs: 54 },
+  { number: 42, nameArabic: 'الشورى', nameEnglish: 'Ash-Shura', totalAyahs: 53 },
+  { number: 43, nameArabic: 'الزخرف', nameEnglish: 'Az-Zukhruf', totalAyahs: 89 },
+  { number: 44, nameArabic: 'الدخان', nameEnglish: 'Ad-Dukhan', totalAyahs: 59 },
+  { number: 45, nameArabic: 'الجاثية', nameEnglish: 'Al-Jathiyah', totalAyahs: 37 },
+  { number: 46, nameArabic: 'الأحقاف', nameEnglish: 'Al-Ahqaf', totalAyahs: 35 },
+  { number: 47, nameArabic: 'محمد', nameEnglish: 'Muhammad', totalAyahs: 38 },
+  { number: 48, nameArabic: 'الفتح', nameEnglish: 'Al-Fath', totalAyahs: 29 },
+  { number: 49, nameArabic: 'الحجرات', nameEnglish: 'Al-Hujurat', totalAyahs: 18 },
+  { number: 50, nameArabic: 'ق', nameEnglish: 'Qaf', totalAyahs: 45 },
+  { number: 51, nameArabic: 'الذاريات', nameEnglish: 'Adh-Dhariyat', totalAyahs: 60 },
+  { number: 52, nameArabic: 'الطور', nameEnglish: 'At-Tur', totalAyahs: 49 },
+  { number: 53, nameArabic: 'النجم', nameEnglish: 'An-Najm', totalAyahs: 62 },
+  { number: 54, nameArabic: 'القمر', nameEnglish: 'Al-Qamar', totalAyahs: 55 },
+  { number: 55, nameArabic: 'الرحمن', nameEnglish: 'Ar-Rahman', totalAyahs: 78 },
+  { number: 56, nameArabic: 'الواقعة', nameEnglish: 'Al-Waqiah', totalAyahs: 96 },
+  { number: 57, nameArabic: 'الحديد', nameEnglish: 'Al-Hadid', totalAyahs: 29 },
+  { number: 58, nameArabic: 'المجادلة', nameEnglish: 'Al-Mujadila', totalAyahs: 22 },
+  { number: 59, nameArabic: 'الحشر', nameEnglish: 'Al-Hashr', totalAyahs: 24 },
+  { number: 60, nameArabic: 'الممتحنة', nameEnglish: 'Al-Mumtahanah', totalAyahs: 13 },
+  { number: 61, nameArabic: 'الصف', nameEnglish: 'As-Saff', totalAyahs: 14 },
+  { number: 62, nameArabic: 'الجمعة', nameEnglish: 'Al-Jumuah', totalAyahs: 11 },
+  { number: 63, nameArabic: 'المنافقون', nameEnglish: 'Al-Munafiqun', totalAyahs: 11 },
+  { number: 64, nameArabic: 'التغابن', nameEnglish: 'At-Taghabun', totalAyahs: 18 },
+  { number: 65, nameArabic: 'الطلاق', nameEnglish: 'At-Talaq', totalAyahs: 12 },
+  { number: 66, nameArabic: 'التحريم', nameEnglish: 'At-Tahrim', totalAyahs: 12 },
+  { number: 67, nameArabic: 'الملك', nameEnglish: 'Al-Mulk', totalAyahs: 30 },
+  { number: 68, nameArabic: 'القلم', nameEnglish: 'Al-Qalam', totalAyahs: 52 },
+  { number: 69, nameArabic: 'الحاقة', nameEnglish: 'Al-Haqqah', totalAyahs: 52 },
+  { number: 70, nameArabic: 'المعارج', nameEnglish: 'Al-Maarij', totalAyahs: 44 },
+  { number: 71, nameArabic: 'نوح', nameEnglish: 'Nuh', totalAyahs: 28 },
+  { number: 72, nameArabic: 'الجن', nameEnglish: 'Al-Jinn', totalAyahs: 28 },
+  { number: 73, nameArabic: 'المزمل', nameEnglish: 'Al-Muzzammil', totalAyahs: 20 },
+  { number: 74, nameArabic: 'المدثر', nameEnglish: 'Al-Muddaththir', totalAyahs: 56 },
+  { number: 75, nameArabic: 'القيامة', nameEnglish: 'Al-Qiyamah', totalAyahs: 40 },
+  { number: 76, nameArabic: 'الإنسان', nameEnglish: 'Al-Insan', totalAyahs: 31 },
+  { number: 77, nameArabic: 'المرسلات', nameEnglish: 'Al-Mursalat', totalAyahs: 50 },
+  { number: 78, nameArabic: 'النبأ', nameEnglish: 'An-Naba', totalAyahs: 40 },
+  { number: 79, nameArabic: 'النازعات', nameEnglish: 'An-Naziat', totalAyahs: 46 },
+  { number: 80, nameArabic: 'عبس', nameEnglish: 'Abasa', totalAyahs: 42 },
+  { number: 81, nameArabic: 'التكوير', nameEnglish: 'At-Takwir', totalAyahs: 29 },
+  { number: 82, nameArabic: 'الانفطار', nameEnglish: 'Al-Infitar', totalAyahs: 19 },
+  { number: 83, nameArabic: 'المطففين', nameEnglish: 'Al-Mutaffifin', totalAyahs: 36 },
+  { number: 84, nameArabic: 'الانشقاق', nameEnglish: 'Al-Inshiqaq', totalAyahs: 25 },
+  { number: 85, nameArabic: 'البروج', nameEnglish: 'Al-Buruj', totalAyahs: 22 },
+  { number: 86, nameArabic: 'الطارق', nameEnglish: 'At-Tariq', totalAyahs: 17 },
+  { number: 87, nameArabic: 'الأعلى', nameEnglish: 'Al-Ala', totalAyahs: 19 },
+  { number: 88, nameArabic: 'الغاشية', nameEnglish: 'Al-Ghashiyah', totalAyahs: 26 },
+  { number: 89, nameArabic: 'الفجر', nameEnglish: 'Al-Fajr', totalAyahs: 30 },
+  { number: 90, nameArabic: 'البلد', nameEnglish: 'Al-Balad', totalAyahs: 20 },
+  { number: 91, nameArabic: 'الشمس', nameEnglish: 'Ash-Shams', totalAyahs: 15 },
+  { number: 92, nameArabic: 'الليل', nameEnglish: 'Al-Layl', totalAyahs: 21 },
+  { number: 93, nameArabic: 'الضحى', nameEnglish: 'Ad-Duha', totalAyahs: 11 },
+  { number: 94, nameArabic: 'الشرح', nameEnglish: 'Ash-Sharh', totalAyahs: 8 },
+  { number: 95, nameArabic: 'التين', nameEnglish: 'At-Tin', totalAyahs: 8 },
+  { number: 96, nameArabic: 'العلق', nameEnglish: 'Al-Alaq', totalAyahs: 19 },
+  { number: 97, nameArabic: 'القدر', nameEnglish: 'Al-Qadr', totalAyahs: 5 },
+  { number: 98, nameArabic: 'البينة', nameEnglish: 'Al-Bayyinah', totalAyahs: 8 },
+  { number: 99, nameArabic: 'الزلزلة', nameEnglish: 'Az-Zalzalah', totalAyahs: 8 },
+  { number: 100, nameArabic: 'العاديات', nameEnglish: 'Al-Adiyat', totalAyahs: 11 },
+  { number: 101, nameArabic: 'القارعة', nameEnglish: 'Al-Qariah', totalAyahs: 11 },
+  { number: 102, nameArabic: 'التكاثر', nameEnglish: 'At-Takathur', totalAyahs: 8 },
+  { number: 103, nameArabic: 'العصر', nameEnglish: 'Al-Asr', totalAyahs: 3 },
+  { number: 104, nameArabic: 'الهمزة', nameEnglish: 'Al-Humazah', totalAyahs: 9 },
+  { number: 105, nameArabic: 'الفيل', nameEnglish: 'Al-Fil', totalAyahs: 5 },
+  { number: 106, nameArabic: 'قريش', nameEnglish: 'Quraysh', totalAyahs: 4 },
+  { number: 107, nameArabic: 'الماعون', nameEnglish: 'Al-Maun', totalAyahs: 7 },
+  { number: 108, nameArabic: 'الكوثر', nameEnglish: 'Al-Kawthar', totalAyahs: 3 },
+  { number: 109, nameArabic: 'الكافرون', nameEnglish: 'Al-Kafirun', totalAyahs: 6 },
+  { number: 110, nameArabic: 'النصر', nameEnglish: 'An-Nasr', totalAyahs: 3 },
+  { number: 111, nameArabic: 'المسد', nameEnglish: 'Al-Masad', totalAyahs: 5 },
+  { number: 112, nameArabic: 'الإخلاص', nameEnglish: 'Al-Ikhlas', totalAyahs: 4 },
+  { number: 113, nameArabic: 'الفلق', nameEnglish: 'Al-Falaq', totalAyahs: 5 },
+  { number: 114, nameArabic: 'الناس', nameEnglish: 'An-Nas', totalAyahs: 6 },
+];
+
+export const SURAH_DATA: ISurahInfo[] = SURAH_RAW.map((s) => ({
+  number: s.number,
+  nameArabic: s.nameArabic,
+  nameEnglish: s.nameEnglish,
+  nameBengali: s.nameEnglish, // Can be replaced with Bengali names later
+  totalAyahs: s.totalAyahs,
+  juzStart: getJuzStart(s.number),
+}));
+
+export function getSurahByNumber(number: number): ISurahInfo | undefined {
+  return SURAH_DATA.find((s) => s.number === number);
+}

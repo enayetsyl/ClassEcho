@@ -9,7 +9,8 @@
     "format": "prettier --write src/**/*.{ts,js,json}",
     "format:check": "prettier --check .",
     "lint": "eslint . --ext .js,.ts",
-    "lint:fix": "eslint . --ext .js,.ts --fix"
+    "lint:fix": "eslint . --ext .js,.ts --fix",
+    "migrate:quran-content": "ts-node scripts/migrate-quran-entry-content.ts"
   },
   "keywords": [],
   "author": "",
