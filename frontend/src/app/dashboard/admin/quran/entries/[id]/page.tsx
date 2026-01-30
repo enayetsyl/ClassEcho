@@ -24,6 +24,7 @@ import {
   useUpdateQuranEntryMutation,
 } from "@/hooks/use-quran-entries";
 import { ProtectedRoute } from "@/route/ProtectedRoute";
+import { getApiErrorMessage } from "@/lib/api-error";
 import type { IQuranEntry, IQuranStudent } from "@/types/quran.types";
 
 const testSchema = z.object({
@@ -151,7 +152,7 @@ export default function EditQuranEntryPage() {
   const router = useRouter();
   const id = params?.id as string | undefined;
 
-  const { data: entry, isLoading, isError } = useGetQuranEntryQuery(id);
+  const { data: entry, isLoading, isError, error } = useGetQuranEntryQuery(id);
   const { mutate, isPending } = useUpdateQuranEntryMutation();
 
   const form = useForm<FormValues>({
@@ -240,7 +241,9 @@ export default function EditQuranEntryPage() {
         <div className="p-4 max-w-xl mx-auto">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-muted-foreground">Entry not found.</p>
+              <p className="text-muted-foreground">
+                {error ? getApiErrorMessage(error) : "Entry not found."}
+              </p>
               <Link
                 href="/dashboard/admin/quran/entries"
                 className="inline-block mt-2"

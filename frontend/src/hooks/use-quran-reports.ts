@@ -9,6 +9,7 @@ import {
   IQuranUstadSummaryItem,
 } from "@/types/quran.types";
 import * as quranReportsService from "@/services/quran-reports.service";
+import { isValidMongoId } from "@/lib/validation";
 
 export const useQuranOverallReportQuery = (params?: IQuranReportFilters) =>
   useQuery<IQuranOverallReport, Error>({
@@ -36,7 +37,8 @@ export const useQuranStudentReportQuery = (
     queryKey: ["quran-report-student", studentId, params],
     queryFn: () =>
       quranReportsService.getQuranStudentReport(studentId!, params),
-    enabled: Boolean(studentId),
+    enabled: Boolean(studentId && isValidMongoId(studentId)),
+    retry: false,
   });
 
 export const useQuranSupervisionComparisonQuery = (

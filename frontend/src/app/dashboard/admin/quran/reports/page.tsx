@@ -26,6 +26,8 @@ import {
   QuranMistakeDistributionChart,
   QuranMistakesByTestTypeChart,
 } from "@/components/quran/charts";
+import { isValidDateRange } from "@/lib/validation";
+import { getApiErrorMessage } from "@/lib/api-error";
 
 function formatDateRange(start: string, end: string): string {
   try {
@@ -53,17 +55,39 @@ export default function QuranReportsPage() {
     "all" | "true" | "false"
   >("all");
 
-  const filters: IQuranReportFilters = useMemo(
-    () => ({
-      ...(startDate && { startDate }),
-      ...(endDate && { endDate }),
-      ...(classFilter.trim() && { class: classFilter.trim() }),
-      ...(supervisionFilter !== "all" && { supervision: supervisionFilter }),
-    }),
-    [startDate, endDate, classFilter, supervisionFilter],
+  const dateRangeValidation = useMemo(
+    () =>
+      startDate && endDate
+        ? isValidDateRange(startDate, endDate)
+        : { valid: true },
+    [startDate, endDate],
   );
 
-  const { data: report, isLoading } = useQuranOverallReportQuery(filters);
+  const filters: IQuranReportFilters = useMemo(() => {
+    const base: IQuranReportFilters = {
+      ...(classFilter.trim() && { class: classFilter.trim() }),
+      ...(supervisionFilter !== "all" && { supervision: supervisionFilter }),
+    };
+    if (!dateRangeValidation.valid) return base;
+    return {
+      ...base,
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate }),
+    };
+  }, [
+    startDate,
+    endDate,
+    classFilter,
+    supervisionFilter,
+    dateRangeValidation.valid,
+  ]);
+
+  const {
+    data: report,
+    isLoading,
+    isError,
+    error,
+  } = useQuranOverallReportQuery(filters);
 
   const clearFilters = () => {
     setStartDate("");
@@ -170,6 +194,18 @@ export default function QuranReportsPage() {
                 Clear filters
               </Button>
             </div>
+
+            {!dateRangeValidation.valid && dateRangeValidation.message && (
+              <p className="text-destructive text-sm mb-4">
+                {dateRangeValidation.message}
+              </p>
+            )}
+
+            {isError && (
+              <p className="text-destructive text-sm mb-4">
+                {error ? getApiErrorMessage(error) : "Failed to load report."}
+              </p>
+            )}
 
             {isLoading ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -2,6 +2,11 @@
 
 import { z } from 'zod';
 
+const mongoIdSchema = z
+  .string()
+  .length(24, 'Invalid ID')
+  .regex(/^[a-f0-9]{24}$/i, 'Invalid ID format');
+
 const testSchema = z.object({
   given: z.boolean(),
   tanbih: z.number().int().min(0).default(0),
@@ -18,7 +23,7 @@ const tajweedNotesSchema = z.object({
 
 export const createQuranEntryValidation = z.object({
   body: z.object({
-    studentId: z.string().length(24, 'Invalid student ID'),
+    studentId: mongoIdSchema,
     reportDate: z.string().refine((d) => !isNaN(Date.parse(d)), 'Invalid date'),
     newTest: testSchema.optional(),
     recentTest: testSchema.optional(),
@@ -32,7 +37,7 @@ export const createQuranEntryValidation = z.object({
 
 export const updateQuranEntryValidation = z.object({
   params: z.object({
-    id: z.string().length(24, 'Invalid entry ID'),
+    id: mongoIdSchema,
   }),
   body: z.object({
     newTest: testSchema.optional(),
@@ -47,13 +52,13 @@ export const updateQuranEntryValidation = z.object({
 
 export const quranEntryIdParam = z.object({
   params: z.object({
-    id: z.string().length(24, 'Invalid entry ID'),
+    id: mongoIdSchema,
   }),
 });
 
 export const quranEntryStudentIdParam = z.object({
   params: z.object({
-    studentId: z.string().length(24, 'Invalid student ID'),
+    studentId: mongoIdSchema,
   }),
 });
 
@@ -61,7 +66,7 @@ export const listQuranEntriesValidation = z.object({
   query: z.object({
     page: z.string().optional(),
     limit: z.string().optional(),
-    studentId: z.string().length(24).optional(),
+    studentId: mongoIdSchema.optional(),
     class: z.string().optional(),
     supervision: z.enum(['true', 'false']).optional(),
     startDate: z
@@ -79,7 +84,7 @@ export const listQuranEntriesValidation = z.object({
 });
 
 const createEntryBodySchema = z.object({
-  studentId: z.string().length(24),
+  studentId: mongoIdSchema,
   reportDate: z.string().refine((d) => !isNaN(Date.parse(d)), 'Invalid date'),
   newTest: testSchema.optional(),
   recentTest: testSchema.optional(),

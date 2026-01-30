@@ -26,6 +26,8 @@ import {
 import { ProtectedRoute } from "@/route/ProtectedRoute";
 import type { IQuranReportFilters } from "@/types/quran.types";
 import { QuranWeeklyTrendChart } from "@/components/quran/charts";
+import { isValidMongoId, isValidDateRange } from "@/lib/validation";
+import { getApiErrorMessage } from "@/lib/api-error";
 
 function formatDate(iso: string): string {
   try {
@@ -46,21 +48,31 @@ export default function QuranStudentReportPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const filters: Pick<IQuranReportFilters, "startDate" | "endDate"> = useMemo(
-    () => ({
-      ...(startDate && { startDate }),
-      ...(endDate && { endDate }),
-    }),
+  const dateRangeValidation = useMemo(
+    () =>
+      startDate && endDate
+        ? isValidDateRange(startDate, endDate)
+        : { valid: true },
     [startDate, endDate],
   );
 
+  const filters: Pick<IQuranReportFilters, "startDate" | "endDate"> =
+    useMemo(() => {
+      if (!dateRangeValidation.valid) return {};
+      return {
+        ...(startDate && { startDate }),
+        ...(endDate && { endDate }),
+      };
+    }, [startDate, endDate, dateRangeValidation.valid]);
+
+  const validStudentId = studentId && isValidMongoId(studentId);
   const {
     data: report,
     isLoading,
     isError,
     error,
   } = useQuranStudentReportQuery(
-    studentId,
+    validStudentId ? studentId : undefined,
     Object.keys(filters).length > 0 ? filters : undefined,
   );
 
@@ -93,10 +105,12 @@ export default function QuranStudentReportPage() {
           </Link>
         </div>
 
-        {!studentId ? (
+        {!studentId || !validStudentId ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
-              Invalid student. Go back to{" "}
+              {studentId && !validStudentId
+                ? "Invalid student ID. Use a valid 24-character ID from the students list."
+                : "Invalid student. Go back to"}{" "}
               <Link
                 href="/dashboard/admin/quran/students"
                 className="text-primary underline"
@@ -142,6 +156,12 @@ export default function QuranStudentReportPage() {
                 </Button>
               </div>
 
+              {!dateRangeValidation.valid && dateRangeValidation.message && (
+                <p className="text-destructive text-sm mb-4">
+                  {dateRangeValidation.message}
+                </p>
+              )}
+
               {isLoading ? (
                 <div className="space-y-6">
                   <Skeleton className="h-24 w-full" />
@@ -150,7 +170,9 @@ export default function QuranStudentReportPage() {
                 </div>
               ) : isError ? (
                 <p className="text-destructive py-4">
-                  {error?.message ?? "Failed to load student report."}
+                  {error
+                    ? getApiErrorMessage(error)
+                    : "Failed to load student report."}
                 </p>
               ) : report ? (
                 <>

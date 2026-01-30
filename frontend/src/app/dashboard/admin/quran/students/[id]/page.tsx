@@ -24,6 +24,7 @@ import {
   useUpdateQuranStudentMutation,
 } from "@/hooks/use-quran-students";
 import { ProtectedRoute } from "@/route/ProtectedRoute";
+import { getApiErrorMessage } from "@/lib/api-error";
 
 const formSchema = z.object({
   studentId: z.coerce
@@ -48,7 +49,12 @@ export default function EditQuranStudentPage() {
   const router = useRouter();
   const id = params?.id as string | undefined;
 
-  const { data: student, isLoading, isError } = useGetQuranStudentQuery(id);
+  const {
+    data: student,
+    isLoading,
+    isError,
+    error,
+  } = useGetQuranStudentQuery(id);
   const { mutate, isPending } = useUpdateQuranStudentMutation();
 
   const form = useForm<FormValues>({
@@ -116,7 +122,9 @@ export default function EditQuranStudentPage() {
         <div className="p-4 max-w-xl mx-auto">
           <Card>
             <CardContent className="pt-6">
-              <p className="text-muted-foreground">Student not found.</p>
+              <p className="text-muted-foreground">
+                {error ? getApiErrorMessage(error) : "Student not found."}
+              </p>
               <Link
                 href="/dashboard/admin/quran/students"
                 className="inline-block mt-2"

@@ -2,6 +2,11 @@
 
 import { z } from 'zod';
 
+const mongoIdSchema = z
+  .string()
+  .length(24, 'Invalid student ID')
+  .regex(/^[a-f0-9]{24}$/i, 'Invalid student ID format');
+
 export const createQuranStudentValidation = z.object({
   body: z.object({
     studentId: z.number().int().positive('Student ID must be a positive integer'),
@@ -17,7 +22,7 @@ export const createQuranStudentValidation = z.object({
 
 export const updateQuranStudentValidation = z.object({
   params: z.object({
-    id: z.string().length(24, 'Invalid student ID'),
+    id: mongoIdSchema,
   }),
   body: z.object({
     studentId: z.number().int().positive().optional(),
@@ -33,7 +38,7 @@ export const updateQuranStudentValidation = z.object({
 
 export const quranStudentIdParam = z.object({
   params: z.object({
-    id: z.string().length(24, 'Invalid student ID'),
+    id: mongoIdSchema,
   }),
 });
 
