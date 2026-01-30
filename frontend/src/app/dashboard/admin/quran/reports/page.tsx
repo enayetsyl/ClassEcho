@@ -23,21 +23,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedRoute } from "@/route/ProtectedRoute";
 import type { IQuranReportFilters } from "@/types/quran.types";
 import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-
-const PIE_COLORS = ["#3B82F6", "#10B981"];
-const BAR_COLORS = ["#3B82F6", "#10B981", "#F59E0B"];
+  QuranMistakeDistributionChart,
+  QuranMistakesByTestTypeChart,
+} from "@/components/quran/charts";
 
 function formatDateRange(start: string, end: string): string {
   try {
@@ -84,35 +72,22 @@ export default function QuranReportsPage() {
     setSupervisionFilter("all");
   };
 
-  const pieData =
-    report?.summary &&
-    (report.summary.totalTanbih > 0 || report.summary.totalFath > 0)
-      ? [
-          { name: "Tanbih", value: report.summary.totalTanbih },
-          { name: "Fath", value: report.summary.totalFath },
-        ].filter((d) => d.value > 0)
-      : [];
-
   const barData = report?.byTestType
     ? [
         {
           name: "New",
           tanbih: report.byTestType.new.tanbih,
           fath: report.byTestType.new.fath,
-          total: report.byTestType.new.tanbih + report.byTestType.new.fath,
         },
         {
           name: "Recent",
           tanbih: report.byTestType.recent.tanbih,
           fath: report.byTestType.recent.fath,
-          total:
-            report.byTestType.recent.tanbih + report.byTestType.recent.fath,
         },
         {
           name: "Older",
           tanbih: report.byTestType.older.tanbih,
           fath: report.byTestType.older.fath,
-          total: report.byTestType.older.tanbih + report.byTestType.older.fath,
         },
       ]
     : [];
@@ -327,39 +302,12 @@ export default function QuranReportsPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {pieData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={240}>
-                          <PieChart>
-                            <Pie
-                              data={pieData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={60}
-                              outerRadius={90}
-                              paddingAngle={2}
-                              dataKey="value"
-                              nameKey="name"
-                              label={({ name, percent }) =>
-                                `${name} ${(percent * 100).toFixed(0)}%`
-                              }
-                            >
-                              {pieData.map((_, i) => (
-                                <Cell
-                                  key={i}
-                                  fill={PIE_COLORS[i % PIE_COLORS.length]}
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip
-                              formatter={(value: number) => [value, "Mistakes"]}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <p className="text-sm text-muted-foreground py-8 text-center">
-                          No mistake data in this period
-                        </p>
-                      )}
+                      <QuranMistakeDistributionChart
+                        totalTanbih={report.summary.totalTanbih}
+                        totalFath={report.summary.totalFath}
+                        height={240}
+                        emptyMessage="No mistake data in this period"
+                      />
                     </CardContent>
                   </Card>
                   <Card>
@@ -369,41 +317,11 @@ export default function QuranReportsPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      {barData.some((d) => d.total > 0) ? (
-                        <ResponsiveContainer width="100%" height={240}>
-                          <BarChart
-                            data={barData}
-                            margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
-                          >
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              className="stroke-muted"
-                            />
-                            <XAxis dataKey="name" className="text-xs" />
-                            <YAxis className="text-xs" />
-                            <Tooltip />
-                            <Legend />
-                            <Bar
-                              dataKey="tanbih"
-                              name="Tanbih"
-                              fill={BAR_COLORS[0]}
-                              stackId="a"
-                              radius={[0, 0, 0, 0]}
-                            />
-                            <Bar
-                              dataKey="fath"
-                              name="Fath"
-                              fill={BAR_COLORS[1]}
-                              stackId="a"
-                              radius={[0, 0, 0, 0]}
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <p className="text-sm text-muted-foreground py-8 text-center">
-                          No test data in this period
-                        </p>
-                      )}
+                      <QuranMistakesByTestTypeChart
+                        data={barData}
+                        height={240}
+                        emptyMessage="No test data in this period"
+                      />
                     </CardContent>
                   </Card>
                 </div>
