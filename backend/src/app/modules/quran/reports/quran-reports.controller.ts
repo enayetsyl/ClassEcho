@@ -5,7 +5,7 @@ import catchAsync from '../../../utils/catch-async';
 import sendResponse from '../../../utils/send-response';
 import { pickFields } from '../../../utils/pick';
 import { QuranReportsServices } from './quran-reports.service';
-import { TQuranReportFilters, TQuranReportFiltersExtended, TQuranConsistencyFilters, TQuranProgressFilters, TQuranComparativeFilters, TQuranAlertsFilters } from './quran-reports.type';
+import { TQuranReportFilters, TQuranReportFiltersExtended, TQuranConsistencyFilters, TQuranProgressFilters, TQuranComparativeFilters, TQuranAlertsFilters, TQuranClassAnalyticsFilters } from './quran-reports.type';
 
 function getReportFilters(req: Request): TQuranReportFilters {
   const query = req.query as Record<string, string | undefined>;
@@ -214,6 +214,25 @@ const getAlertsReport = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, { statusCode: 200, success: true, message: 'Alerts report retrieved successfully', data });
 });
 
+function getClassAnalyticsFilters(req: Request): TQuranClassAnalyticsFilters {
+  const query = req.query as Record<string, string | undefined>;
+  const result: TQuranClassAnalyticsFilters = {};
+  if (query.startDate) result.startDate = query.startDate;
+  if (query.endDate) result.endDate = query.endDate;
+  if (query.classes) {
+    result.classes = query.classes.split(',').map((c) => c.trim()).filter(Boolean);
+  }
+  if (query.compareWithPrevious === 'true') result.compareWithPrevious = true;
+  if (query.compareWithPrevious === 'false') result.compareWithPrevious = false;
+  return result;
+}
+
+const getClassAnalyticsReport = catchAsync(async (req: Request, res: Response) => {
+  const filters = getClassAnalyticsFilters(req);
+  const data = await QuranReportsServices.getClassAnalyticsReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Class analytics report retrieved successfully', data });
+});
+
 export const QuranReportsControllers = {
   getOverallReport,
   getWeeklySummary,
@@ -234,4 +253,5 @@ export const QuranReportsControllers = {
   getProgressReport,
   getComparativeReport,
   getAlertsReport,
+  getClassAnalyticsReport,
 };

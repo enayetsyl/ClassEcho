@@ -25,6 +25,8 @@ import {
   IComparativeReport,
   IQuranAlertsFilters,
   IAlertsReport,
+  IQuranClassAnalyticsFilters,
+  IClassAnalyticsReport,
 } from "@/types/quran.types";
 
 const BASE = "quran/reports";
@@ -240,5 +242,20 @@ export const getAlertsReport = async (
     message: string;
     data: IAlertsReport;
   }>(`${BASE}/alerts`, { params });
+  return res.data.data;
+};
+
+export const getClassAnalyticsReport = async (
+  params?: IQuranClassAnalyticsFilters,
+): Promise<IClassAnalyticsReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IClassAnalyticsReport;
+  }>(`${BASE}/class-analytics`, {
+    params: params?.classes?.length
+      ? { ...params, classes: params.classes.join(",") }
+      : params,
+  });
   return res.data.data;
 };

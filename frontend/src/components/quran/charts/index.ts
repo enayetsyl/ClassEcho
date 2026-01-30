@@ -78,3 +78,15 @@ export type { DistributionHistogramProps } from "./DistributionHistogram";
 
 export { RiskScoreGauge } from "./RiskScoreGauge";
 export type { RiskScoreGaugeProps, RiskLevel } from "./RiskScoreGauge";
+
+export { ClassHealthDashboard } from "./ClassHealthDashboard";
+export type { ClassHealthDashboardProps } from "./ClassHealthDashboard";
+
+export { ClassComparisonBar } from "./ClassComparisonBar";
+export type { ClassComparisonBarProps } from "./ClassComparisonBar";
+
+export { ClassDistributionStacked } from "./ClassDistributionStacked";
+export type { ClassDistributionStackedProps } from "./ClassDistributionStacked";
+
+export { YearOverYearComparison } from "./YearOverYearComparison";
+export type { YearOverYearComparisonProps } from "./YearOverYearComparison";

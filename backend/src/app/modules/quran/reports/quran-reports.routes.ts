@@ -24,6 +24,7 @@ import {
   getProgressReportValidation,
   getComparativeReportValidation,
   getAlertsReportValidation,
+  getClassAnalyticsValidation,
 } from './quran-reports.validation';
 import { QuranReportsControllers } from './quran-reports.controller';
 
@@ -174,6 +175,14 @@ router.get(
   requireRole(reportRoles),
   validateRequest(getAlertsReportValidation),
   QuranReportsControllers.getAlertsReport,
+);
+
+router.get(
+  '/class-analytics',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getClassAnalyticsValidation),
+  QuranReportsControllers.getClassAnalyticsReport,
 );
 
 export const QuranReportsRoutes = router;

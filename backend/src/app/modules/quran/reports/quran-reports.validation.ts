@@ -185,3 +185,30 @@ const alertsReportQuery = z
 export const getAlertsReportValidation = z.object({
   query: alertsReportQuery,
 });
+
+const classAnalyticsQuery = z
+  .object({
+    startDate: z
+      .string()
+      .optional()
+      .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid startDate' }),
+    endDate: z
+      .string()
+      .optional()
+      .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid endDate' }),
+    classes: z.string().optional(), // comma-separated e.g. "1-5,2-6"
+    compareWithPrevious: z.enum(['true', 'false']).optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.startDate || !data.endDate) return true;
+      const start = Date.parse(data.startDate);
+      const end = Date.parse(data.endDate);
+      return !isNaN(start) && !isNaN(end) && start <= end;
+    },
+    { message: 'startDate must be before or equal to endDate', path: ['startDate'] },
+  );
+
+export const getClassAnalyticsValidation = z.object({
+  query: classAnalyticsQuery,
+});

@@ -25,6 +25,8 @@ import {
   IComparativeReport,
   IQuranAlertsFilters,
   IAlertsReport,
+  IQuranClassAnalyticsFilters,
+  IClassAnalyticsReport,
 } from "@/types/quran.types";
 import * as quranReportsService from "@/services/quran-reports.service";
 import { isValidMongoId } from "@/lib/validation";
@@ -165,4 +167,10 @@ export const useAlertsReportQuery = (params?: IQuranAlertsFilters) =>
   useQuery<IAlertsReport, Error>({
     queryKey: ["quran-report-alerts", params],
     queryFn: () => quranReportsService.getAlertsReport(params),
+  });
+
+export const useClassAnalyticsQuery = (params?: IQuranClassAnalyticsFilters) =>
+  useQuery<IClassAnalyticsReport, Error>({
+    queryKey: ["quran-report-class-analytics", params],
+    queryFn: () => quranReportsService.getClassAnalyticsReport(params),
   });

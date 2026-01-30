@@ -742,3 +742,96 @@ export interface IAlertsReport {
     outcome: 'successful' | 'ongoing' | 'unsuccessful';
   }>;
 }
+
+/** Filters for class analytics report (7.6) */
+export type TQuranClassAnalyticsFilters = {
+  startDate?: string;
+  endDate?: string;
+  classes?: string[];  // e.g. ['1-5', '2-6']
+  compareWithPrevious?: boolean;
+};
+
+/** Class analytics report (7.6) */
+export interface IClassAnalyticsReport {
+  filters: {
+    dateRange: { start: string; end: string };
+    classes: string[];
+  };
+
+  classHealth: Array<{
+    class: string;
+    healthScore: number;
+    healthGrade: 'A' | 'B' | 'C' | 'D' | 'F';
+    metrics: {
+      studentCount: number;
+      activeStudents: number;
+      avgAttendance: number;
+      avgMasteryScore: number;
+      avgMistakes: number;
+      testCompletionRate: number;
+      improvingStudents: number;
+      decliningStudents: number;
+    };
+    comparison?: {
+      healthScoreChange: number;
+      attendanceChange: number;
+      masteryChange: number;
+      mistakesChange: number;
+    };
+    topPerformers: Array<{ student: IQuranStudent; score: number }>;
+    needsAttention: Array<{ student: IQuranStudent; riskScore: number }>;
+  }>;
+
+  comparison: {
+    bestClass: { class: string; score: number };
+    mostImproved: { class: string; improvement: number };
+    needsAttention: { class: string; reason: string };
+  };
+
+  distributions: {
+    byMastery: Array<{
+      class: string;
+      A: number;
+      B: number;
+      C: number;
+      D: number;
+      F: number;
+    }>;
+    byRisk: Array<{
+      class: string;
+      low: number;
+      medium: number;
+      high: number;
+      critical: number;
+    }>;
+  };
+
+  timeline: Array<{
+    period: string;
+    classes: Array<{
+      class: string;
+      avgMistakes: number;
+      avgMastery: number;
+      attendance: number;
+    }>;
+  }>;
+
+  yearOverYear?: {
+    currentYear: {
+      avgMastery: number;
+      avgMistakes: number;
+      completionRate: number;
+    };
+    previousYear: {
+      avgMastery: number;
+      avgMistakes: number;
+      completionRate: number;
+    };
+    change: {
+      masteryChange: number;
+      mistakesChange: number;
+      completionChange: number;
+      insight: string;
+    };
+  };
+}

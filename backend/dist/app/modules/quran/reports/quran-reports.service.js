@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QuranReportsServices = exports.getAlertsReport = exports.getComparativeReport = exports.getConsistencyReport = exports.getProgressReport = exports.getSupervisionDetailedReport = exports.getPerformersReport = exports.getJuzAnalysisReport = exports.getSurahAnalysisReport = exports.getStudentContentReport = exports.getStudentTrendReport = exports.getTimeAnalysisReport = exports.getTestTypeAnalysisReport = exports.getUstadSummary = exports.getSupervisionComparison = exports.getStudentReport = exports.getClassBreakdown = exports.getWeeklySupervisionComparison = exports.getWeeklySummary = exports.getOverallReport = void 0;
+exports.QuranReportsServices = exports.getClassAnalyticsReport = exports.getAlertsReport = exports.getComparativeReport = exports.getConsistencyReport = exports.getProgressReport = exports.getSupervisionDetailedReport = exports.getPerformersReport = exports.getJuzAnalysisReport = exports.getSurahAnalysisReport = exports.getStudentContentReport = exports.getStudentTrendReport = exports.getTimeAnalysisReport = exports.getTestTypeAnalysisReport = exports.getUstadSummary = exports.getSupervisionComparison = exports.getStudentReport = exports.getClassBreakdown = exports.getWeeklySupervisionComparison = exports.getWeeklySummary = exports.getOverallReport = void 0;
 const mongoose_1 = require("mongoose");
 const quran_entry_model_1 = require("../entry/quran-entry.model");
 const quran_student_model_1 = require("../student/quran-student.model");
@@ -2630,6 +2630,358 @@ const getAlertsReport = (filters) => __awaiter(void 0, void 0, void 0, function*
     };
 });
 exports.getAlertsReport = getAlertsReport;
+// ---------- 7.6 Class/Batch Analytics ----------
+/** Class health score 0-100 (plan 7.6.2) */
+function calculateClassHealthScore(metrics) {
+    const WEIGHTS = {
+        attendance: 0.2,
+        mastery: 0.25,
+        mistakes: 0.2,
+        completion: 0.15,
+        improvement: 0.2,
+    };
+    const attendanceScore = metrics.avgAttendance;
+    const masteryScore = metrics.avgMasteryScore;
+    const mistakesScore = Math.max(0, 100 - metrics.avgMistakes * 5);
+    const completionScore = metrics.testCompletionRate;
+    const improvementScore = Math.max(0, Math.min(100, 50 + metrics.improvementRate * 2));
+    return Math.round(attendanceScore * WEIGHTS.attendance +
+        masteryScore * WEIGHTS.mastery +
+        mistakesScore * WEIGHTS.mistakes +
+        completionScore * WEIGHTS.completion +
+        improvementScore * WEIGHTS.improvement);
+}
+/** Class analytics report (7.6) */
+const getClassAnalyticsReport = (filters) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d;
+    const dateRange = getDateRange(filters);
+    const startStr = dateRange.start.toISOString().slice(0, 10);
+    const endStr = dateRange.end.toISOString().slice(0, 10);
+    const classesFilter = ((_a = filters.classes) === null || _a === void 0 ? void 0 : _a.length) ? filters.classes : undefined;
+    const compareWithPrevious = filters.compareWithPrevious === true;
+    const periodMs = dateRange.end.getTime() - dateRange.start.getTime();
+    const previousEnd = new Date(dateRange.start.getTime() - 1);
+    const previousStart = new Date(previousEnd.getTime() - periodMs);
+    const matchDate = compareWithPrevious
+        ? { reportDate: { $gte: previousStart, $lte: dateRange.end } }
+        : { reportDate: { $gte: dateRange.start, $lte: dateRange.end } };
+    const pipeline = [
+        { $match: matchDate },
+        {
+            $lookup: {
+                from: 'quranstudents',
+                localField: 'student',
+                foreignField: '_id',
+                as: 'studentDoc',
+            },
+        },
+        { $unwind: '$studentDoc' },
+        { $match: { 'studentDoc.active': true } },
+        ...((classesFilter === null || classesFilter === void 0 ? void 0 : classesFilter.length)
+            ? [{ $match: { 'studentDoc.class': { $in: classesFilter } } }]
+            : []),
+        {
+            $group: {
+                _id: '$student',
+                studentDoc: { $first: '$studentDoc' },
+                entries: {
+                    $push: {
+                        reportDate: '$reportDate',
+                        totalTanbih: '$totalTanbih',
+                        totalFath: '$totalFath',
+                        totalMistakes: '$totalMistakes',
+                        testsGiven: '$testsGiven',
+                    },
+                },
+            },
+        },
+    ];
+    const grouped = yield quran_entry_model_1.QuranEntry.aggregate(pipeline);
+    const allWeeks = getAllWeeksInRange(dateRange.start, dateRange.end);
+    const byClass = new Map();
+    for (const row of grouped) {
+        const entries = row.entries.filter((e) => e.reportDate >= dateRange.start && e.reportDate <= dateRange.end);
+        if (entries.length === 0)
+            continue;
+        const student = row.studentDoc;
+        const cls = student.class;
+        if (!byClass.has(cls))
+            byClass.set(cls, []);
+        const weeksWithEntry = new Set(entries.map((e) => getWeekStart(new Date(e.reportDate)).toISOString().slice(0, 10)));
+        const attendance = allWeeks.length > 0 ? (weeksWithEntry.size / allWeeks.length) * 100 : 0;
+        const masteryScore = calculateMasteryScore(entries);
+        const avgMistakes = entries.reduce((s, e) => s + e.totalMistakes, 0) / entries.length;
+        const testsPossible = entries.length * 3;
+        const testsGiven = entries.reduce((s, e) => { var _a; return s + ((_a = e.testsGiven) !== null && _a !== void 0 ? _a : 0); }, 0);
+        const testCompletionRate = testsPossible > 0 ? (testsGiven / testsPossible) * 100 : 0;
+        const improvementVelocity = calculateImprovementVelocity(entries);
+        const grade = masteryGradeFromScore(masteryScore);
+        const riskScore = 100 - Math.min(100, masteryScore);
+        const riskLevel = riskScore < 25 ? 'low' : riskScore < 50 ? 'medium' : riskScore < 75 ? 'high' : 'critical';
+        byClass.get(cls).push({
+            student,
+            entries,
+            attendance,
+            masteryScore,
+            avgMistakes,
+            testCompletionRate,
+            improvementVelocity,
+            grade,
+            riskLevel,
+        });
+    }
+    const classHealth = [];
+    const byMastery = [];
+    const byRisk = [];
+    let previousByClass = null;
+    if (compareWithPrevious) {
+        const prevWeeks = getAllWeeksInRange(previousStart, previousEnd);
+        previousByClass = new Map();
+        for (const [cls, students] of byClass.entries()) {
+            let prevAttendance = 0;
+            let prevMastery = 0;
+            let prevMistakes = 0;
+            let prevCompletion = 0;
+            let prevImproving = 0;
+            let prevDeclining = 0;
+            let n = 0;
+            for (const row of grouped) {
+                if (row.studentDoc.class !== cls)
+                    continue;
+                const prevEntries = row.entries.filter((e) => e.reportDate >= previousStart && e.reportDate <= previousEnd);
+                if (prevEntries.length === 0)
+                    continue;
+                n += 1;
+                const weeksWithEntryPrev = new Set(prevEntries.map((e) => getWeekStart(new Date(e.reportDate)).toISOString().slice(0, 10)));
+                prevAttendance += prevWeeks.length > 0 ? (weeksWithEntryPrev.size / prevWeeks.length) * 100 : 0;
+                prevMastery += calculateMasteryScore(prevEntries);
+                prevMistakes += prevEntries.reduce((s, e) => s + e.totalMistakes, 0) / prevEntries.length;
+                const tg = prevEntries.reduce((s, e) => { var _a; return s + ((_a = e.testsGiven) !== null && _a !== void 0 ? _a : 0); }, 0);
+                prevCompletion += prevEntries.length * 3 > 0 ? (tg / (prevEntries.length * 3)) * 100 : 0;
+                const vel = calculateImprovementVelocity(prevEntries);
+                if (vel > 0)
+                    prevImproving += 1;
+                else if (vel < 0)
+                    prevDeclining += 1;
+            }
+            if (n === 0)
+                continue;
+            const improvementRate = ((prevImproving - prevDeclining) / n) * 50;
+            const prevHealth = calculateClassHealthScore({
+                avgAttendance: prevAttendance / n,
+                avgMasteryScore: prevMastery / n,
+                avgMistakes: prevMistakes / n,
+                testCompletionRate: prevCompletion / n,
+                improvementRate,
+            });
+            previousByClass.set(cls, {
+                avgAttendance: prevAttendance / n,
+                avgMasteryScore: prevMastery / n,
+                avgMistakes: prevMistakes / n,
+                testCompletionRate: prevCompletion / n,
+                improvementRate,
+                healthScore: prevHealth,
+            });
+        }
+    }
+    for (const [cls, students] of byClass.entries()) {
+        const studentCount = students.length;
+        const avgAttendance = students.reduce((s, x) => s + x.attendance, 0) / studentCount;
+        const avgMasteryScore = students.reduce((s, x) => s + x.masteryScore, 0) / studentCount;
+        const avgMistakes = students.reduce((s, x) => s + x.avgMistakes, 0) / studentCount;
+        const testCompletionRate = students.reduce((s, x) => s + x.testCompletionRate, 0) / studentCount;
+        const improvingStudents = students.filter((x) => x.improvementVelocity > 0).length;
+        const decliningStudents = students.filter((x) => x.improvementVelocity < 0).length;
+        const improvementRate = studentCount > 0 ? ((improvingStudents - decliningStudents) / studentCount) * 50 : 0;
+        const healthScore = calculateClassHealthScore({
+            avgAttendance,
+            avgMasteryScore,
+            avgMistakes,
+            testCompletionRate,
+            improvementRate,
+        });
+        const healthGrade = masteryGradeFromScore(healthScore);
+        const sortedByMastery = [...students].sort((a, b) => b.masteryScore - a.masteryScore);
+        const topPerformers = sortedByMastery
+            .slice(0, 5)
+            .map((s) => {
+            var _a;
+            return ({
+                student: {
+                    _id: String(s.student._id),
+                    studentId: s.student.studentId,
+                    nameEn: s.student.nameEn,
+                    nameBn: s.student.nameBn,
+                    class: s.student.class,
+                    supervision: s.student.supervision,
+                    active: (_a = s.student.active) !== null && _a !== void 0 ? _a : true,
+                },
+                score: s.masteryScore,
+            });
+        });
+        const needsAttentionList = sortedByMastery
+            .slice(-5)
+            .reverse()
+            .map((s) => {
+            var _a;
+            return ({
+                student: {
+                    _id: String(s.student._id),
+                    studentId: s.student.studentId,
+                    nameEn: s.student.nameEn,
+                    nameBn: s.student.nameBn,
+                    class: s.student.class,
+                    supervision: s.student.supervision,
+                    active: (_a = s.student.active) !== null && _a !== void 0 ? _a : true,
+                },
+                riskScore: Math.round(100 - s.masteryScore),
+            });
+        });
+        const prev = previousByClass === null || previousByClass === void 0 ? void 0 : previousByClass.get(cls);
+        let comparison;
+        if (prev) {
+            comparison = {
+                healthScoreChange: healthScore - prev.healthScore,
+                attendanceChange: avgAttendance - prev.avgAttendance,
+                masteryChange: avgMasteryScore - prev.avgMasteryScore,
+                mistakesChange: avgMistakes - prev.avgMistakes,
+            };
+        }
+        classHealth.push({
+            class: cls,
+            healthScore,
+            healthGrade,
+            metrics: {
+                studentCount,
+                activeStudents: studentCount,
+                avgAttendance: Number(avgAttendance.toFixed(1)),
+                avgMasteryScore: Number(avgMasteryScore.toFixed(1)),
+                avgMistakes: Number(avgMistakes.toFixed(2)),
+                testCompletionRate: Number(testCompletionRate.toFixed(2)),
+                improvingStudents,
+                decliningStudents,
+            },
+            comparison,
+            topPerformers,
+            needsAttention: needsAttentionList,
+        });
+        const gradeCounts = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+        students.forEach((s) => { gradeCounts[s.grade] += 1; });
+        byMastery.push(Object.assign({ class: cls }, gradeCounts));
+        const riskCounts = { low: 0, medium: 0, high: 0, critical: 0 };
+        students.forEach((s) => { riskCounts[s.riskLevel] += 1; });
+        byRisk.push(Object.assign({ class: cls }, riskCounts));
+    }
+    classHealth.sort((a, b) => b.healthScore - a.healthScore);
+    const bestClass = classHealth.length > 0
+        ? { class: classHealth[0].class, score: classHealth[0].healthScore }
+        : { class: '', score: 0 };
+    const mostImprovedItem = classHealth.length > 0 && classHealth.some((c) => c.comparison)
+        ? classHealth.reduce((best, c) => { var _a, _b, _c, _d; return ((_b = (_a = c.comparison) === null || _a === void 0 ? void 0 : _a.healthScoreChange) !== null && _b !== void 0 ? _b : 0) > ((_d = (_c = best.comparison) === null || _c === void 0 ? void 0 : _c.healthScoreChange) !== null && _d !== void 0 ? _d : 0) ? c : best; }, classHealth[0])
+        : null;
+    const needsAttentionClass = classHealth.length > 0
+        ? classHealth.reduce((worst, c) => (c.healthScore < worst.healthScore ? c : worst), classHealth[classHealth.length - 1])
+        : null;
+    const comparison = {
+        bestClass,
+        mostImproved: {
+            class: (_b = mostImprovedItem === null || mostImprovedItem === void 0 ? void 0 : mostImprovedItem.class) !== null && _b !== void 0 ? _b : '',
+            improvement: (_d = (_c = mostImprovedItem === null || mostImprovedItem === void 0 ? void 0 : mostImprovedItem.comparison) === null || _c === void 0 ? void 0 : _c.healthScoreChange) !== null && _d !== void 0 ? _d : 0,
+        },
+        needsAttention: needsAttentionClass
+            ? { class: needsAttentionClass.class, reason: needsAttentionClass.healthScore < 50 ? 'Low health score' : 'Declining metrics' }
+            : { class: '', reason: '' },
+    };
+    const timelinePipeline = [
+        { $match: { reportDate: { $gte: dateRange.start, $lte: dateRange.end } } },
+        {
+            $lookup: {
+                from: 'quranstudents',
+                localField: 'student',
+                foreignField: '_id',
+                as: 'studentDoc',
+            },
+        },
+        { $unwind: '$studentDoc' },
+        { $match: { 'studentDoc.active': true } },
+        ...((classesFilter === null || classesFilter === void 0 ? void 0 : classesFilter.length) ? [{ $match: { 'studentDoc.class': { $in: classesFilter } } }] : []),
+        {
+            $group: {
+                _id: {
+                    period: { $dateToString: { format: '%Y-%U', date: '$reportDate' } },
+                    class: '$studentDoc.class',
+                },
+                avgMistakes: { $avg: '$totalMistakes' },
+                entriesCount: { $sum: 1 },
+                testsGiven: { $sum: '$testsGiven' },
+            },
+        },
+        { $sort: { '_id.period': 1 } },
+    ];
+    const timelineRaw = yield quran_entry_model_1.QuranEntry.aggregate(timelinePipeline);
+    const timelineByPeriod = new Map();
+    for (const row of timelineRaw) {
+        const period = row._id.period;
+        if (!timelineByPeriod.has(period))
+            timelineByPeriod.set(period, []);
+        const attendance = row.entriesCount > 0 ? (row.testsGiven / (row.entriesCount * 3)) * 100 : 0;
+        timelineByPeriod.get(period).push({
+            class: row._id.class,
+            avgMistakes: Number(row.avgMistakes.toFixed(2)),
+            avgMastery: 0,
+            attendance,
+        });
+    }
+    const timeline = Array.from(timelineByPeriod.entries()).map(([period, classes]) => ({
+        period,
+        classes,
+    }));
+    let yearOverYear;
+    if (compareWithPrevious && classHealth.length > 0) {
+        const currentTotals = {
+            avgMastery: classHealth.reduce((s, c) => s + c.metrics.avgMasteryScore, 0) / classHealth.length,
+            avgMistakes: classHealth.reduce((s, c) => s + c.metrics.avgMistakes, 0) / classHealth.length,
+            completionRate: classHealth.reduce((s, c) => s + c.metrics.testCompletionRate, 0) / classHealth.length,
+        };
+        const prevTotals = previousByClass
+            ? (() => {
+                const arr = Array.from(previousByClass.values());
+                return arr.length > 0
+                    ? {
+                        avgMastery: arr.reduce((s, c) => s + c.avgMasteryScore, 0) / arr.length,
+                        avgMistakes: arr.reduce((s, c) => s + c.avgMistakes, 0) / arr.length,
+                        completionRate: arr.reduce((s, c) => s + c.testCompletionRate, 0) / arr.length,
+                    }
+                    : currentTotals;
+            })()
+            : currentTotals;
+        const masteryChange = currentTotals.avgMastery - prevTotals.avgMastery;
+        const mistakesChange = prevTotals.avgMistakes - currentTotals.avgMistakes;
+        const completionChange = currentTotals.completionRate - prevTotals.completionRate;
+        const insight = masteryChange > 0 && mistakesChange > 0
+            ? 'Overall improvement in mastery and fewer mistakes vs previous period.'
+            : masteryChange < 0 && mistakesChange < 0
+                ? 'Overall decline; consider targeted interventions.'
+                : 'Mixed trends across metrics.';
+        yearOverYear = {
+            currentYear: currentTotals,
+            previousYear: prevTotals,
+            change: {
+                masteryChange: Number(masteryChange.toFixed(2)),
+                mistakesChange: Number(mistakesChange.toFixed(2)),
+                completionChange: Number(completionChange.toFixed(2)),
+                insight,
+            },
+        };
+    }
+    const classesList = classesFilter !== null && classesFilter !== void 0 ? classesFilter : Array.from(byClass.keys());
+    return Object.assign({ filters: {
+            dateRange: { start: startStr, end: endStr },
+            classes: classesList,
+        }, classHealth,
+        comparison, distributions: { byMastery, byRisk }, timeline }, (yearOverYear && { yearOverYear }));
+});
+exports.getClassAnalyticsReport = getClassAnalyticsReport;
 exports.QuranReportsServices = {
     getOverallReport: exports.getOverallReport,
     getWeeklySummary: exports.getWeeklySummary,
@@ -2650,4 +3002,5 @@ exports.QuranReportsServices = {
     getProgressReport: exports.getProgressReport,
     getComparativeReport: exports.getComparativeReport,
     getAlertsReport: exports.getAlertsReport,
+    getClassAnalyticsReport: exports.getClassAnalyticsReport,
 };
