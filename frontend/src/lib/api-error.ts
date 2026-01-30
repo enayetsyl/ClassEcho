@@ -5,10 +5,11 @@ import { AxiosError } from "axios";
  * Extract a user-friendly message from API or unknown errors.
  */
 export function getApiErrorMessage(error: unknown): string {
-  if (error instanceof AxiosError<IGenericErrorResponse>) {
-    const msg = error.response?.data?.message;
+  if (error instanceof AxiosError) {
+    const data = error.response?.data as IGenericErrorResponse | undefined;
+    const msg = data?.message;
     if (typeof msg === "string" && msg.length > 0) return msg;
-    const first = error.response?.data?.errorSources?.[0]?.message;
+    const first = data?.errorSources?.[0]?.message;
     if (typeof first === "string") return first;
     if (error.response?.status === 404) return "Resource not found.";
     if (error.response?.status && error.response.status >= 500)

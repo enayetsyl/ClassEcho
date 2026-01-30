@@ -30,8 +30,8 @@ const formSchema = z.object({
   nameEn: z.string().min(1, "English name is required"),
   nameBn: z.string().optional(),
   class: z.string().min(1, "Class is required"),
-  supervision: z.boolean().default(false),
-  active: z.boolean().default(true),
+  supervision: z.boolean(),
+  active: z.boolean(),
   notes: z.string().optional(),
   photo: z
     .union([z.string().url("Must be a valid URL"), z.literal("")])
