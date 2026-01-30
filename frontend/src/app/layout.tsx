@@ -28,12 +28,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
       >
-         <AuthProvider>
+        <AuthProvider>
           <NavBar />
           <main className="bg-body-bg">{children}</main>
-        <Toaster/>
+          <Toaster />
         </AuthProvider>
       </body>
     </html>
