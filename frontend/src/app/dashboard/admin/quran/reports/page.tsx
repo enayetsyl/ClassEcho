@@ -162,6 +162,9 @@ export default function QuranReportsPage() {
             <Link href="/dashboard/admin/quran/reports/consistency">
               <Button variant="outline">Consistency & attendance</Button>
             </Link>
+            <Link href="/dashboard/admin/quran/reports/progress">
+              <Button variant="outline">Progress & mastery</Button>
+            </Link>
             <Link href="/dashboard/admin/quran/students">
               <Button variant="outline">Student report (pick student)</Button>
             </Link>

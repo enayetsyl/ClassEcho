@@ -19,6 +19,8 @@ import {
   IPerformersReport,
   ISupervisionDetailedReport,
   IConsistencyReport,
+  IQuranProgressFilters,
+  IProgressReport,
 } from "@/types/quran.types";
 
 const BASE = "quran/reports";
@@ -201,5 +203,16 @@ export const getConsistencyReport = async (
     message: string;
     data: IConsistencyReport;
   }>(`${BASE}/consistency`, { params });
+  return res.data.data;
+};
+
+export const getProgressReport = async (
+  params?: IQuranProgressFilters,
+): Promise<IProgressReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IProgressReport;
+  }>(`${BASE}/progress`, { params });
   return res.data.data;
 };

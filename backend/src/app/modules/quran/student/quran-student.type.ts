@@ -42,6 +42,20 @@ export interface IQuranStudent {
     attendanceRate: number;
     testRegularityScore: number;
   };
+
+  /** Computed progress (optional; populated by cron or report) */
+  progressStats?: {
+    totalSurahsCompleted: number;
+    totalJuzCompleted: number;
+    surahsInProgress: number[];
+    masteryScore: number;
+    improvementVelocity: number;
+    lastMilestone?: {
+      type: string;
+      value: string;
+      date?: Date;
+    };
+  };
 }
 
 export type TCreateQuranStudent = Omit<IQuranStudent, '_id' | 'createdAt' | 'updatedAt'>;

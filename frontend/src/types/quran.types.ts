@@ -334,6 +334,77 @@ export interface IConsistencyReport {
   }>;
 }
 
+/** Filters for progress report (7.2) */
+export interface IQuranProgressFilters extends IQuranReportFilters {}
+
+/** Progress report (7.2) */
+export interface IProgressReport {
+  filters: {
+    dateRange: { start: string; end: string };
+    class?: string;
+    studentId?: string;
+  };
+  summary: {
+    totalStudents: number;
+    avgMasteryScore: number;
+    avgImprovementVelocity: number;
+    studentsImproving: number;
+    studentsDeclining: number;
+    studentsStable: number;
+  };
+  students: Array<{
+    student: {
+      _id: string;
+      studentId: number;
+      nameEn: string;
+      nameBn?: string;
+      class: string;
+    };
+    progress: {
+      masteryScore: number;
+      masteryGrade: "A" | "B" | "C" | "D" | "F";
+      improvementVelocity: number;
+      trend: "improving" | "declining" | "stable";
+      memorization: {
+        surahsCompleted: number[];
+        surahsInProgress: number[];
+        juzCompleted: number[];
+        estimatedCompletion: string;
+        progressPercentage: number;
+      };
+      monthlyScores: Array<{
+        month: string;
+        masteryScore: number;
+        avgMistakes: number;
+      }>;
+      milestones: Array<{
+        type:
+          | "surah_completed"
+          | "juz_completed"
+          | "streak_achieved"
+          | "mastery_level";
+        description: string;
+        date: string;
+        value: string;
+      }>;
+    };
+  }>;
+  improvementLeaderboard: Array<{
+    rank: number;
+    student: Pick<IQuranStudent, "_id" | "studentId" | "nameEn" | "nameBn" | "class">;
+    improvementVelocity: number;
+    previousAvgMistakes: number;
+    currentAvgMistakes: number;
+  }>;
+  masteryDistribution: {
+    A: number;
+    B: number;
+    C: number;
+    D: number;
+    F: number;
+  };
+}
+
 // ----- Reference (Surah / Juz) -----
 export interface ISurahInfo {
   number: number;

@@ -92,6 +92,13 @@ export interface IQuranEntry {
   /** Computed: totalTanbih + totalFath */
   totalMistakes: number;
 
+  /** Content completion tracking (optional) */
+  contentCompletion?: {
+    surahCompleted: boolean;
+    juzCompleted: boolean;
+    ayahsCovered: number;
+  };
+
   /** Timestamps added by Mongoose */
   createdAt?: Date;
   updatedAt?: Date;

@@ -45,3 +45,18 @@ export type { StreakLeaderboardProps } from "./StreakLeaderboard";
 
 export { AttendanceProgressRing } from "./AttendanceProgressRing";
 export type { AttendanceProgressRingProps } from "./AttendanceProgressRing";
+
+export { MasteryGauge } from "./MasteryGauge";
+export type { MasteryGaugeProps } from "./MasteryGauge";
+
+export { MilestoneTracker } from "./MilestoneTracker";
+export type { MilestoneTrackerProps, MilestoneItem } from "./MilestoneTracker";
+
+export { MasteryDistributionChart } from "./MasteryDistributionChart";
+export type { MasteryDistributionChartProps } from "./MasteryDistributionChart";
+
+export { ImprovementLeaderboard } from "./ImprovementLeaderboard";
+export type {
+  ImprovementLeaderboardProps,
+  ImprovementLeaderboardItem,
+} from "./ImprovementLeaderboard";

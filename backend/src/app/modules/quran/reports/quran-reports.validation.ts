@@ -135,3 +135,7 @@ const consistencyReportQuery = reportFiltersBase
 export const getConsistencyReportValidation = z.object({
   query: consistencyReportQuery,
 });
+
+export const getProgressReportValidation = z.object({
+  query: reportFiltersQuery,
+});

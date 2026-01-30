@@ -59,6 +59,19 @@ const QuranStudentSchema = new Schema<IQuranStudentDocument>(
       attendanceRate: { type: Number, default: 0 },
       testRegularityScore: { type: Number, default: 0 },
     },
+    // Computed progress (optional; can be updated via cron or on entry save)
+    progressStats: {
+      totalSurahsCompleted: { type: Number, default: 0 },
+      totalJuzCompleted: { type: Number, default: 0 },
+      surahsInProgress: [{ type: Number }],
+      masteryScore: { type: Number, default: 0 },
+      improvementVelocity: { type: Number, default: 0 },
+      lastMilestone: {
+        type: { type: String },
+        value: { type: String },
+        date: { type: Date },
+      },
+    },
   },
   {
     timestamps: true,

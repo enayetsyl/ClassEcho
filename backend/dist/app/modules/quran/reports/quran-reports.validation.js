@@ -1,7 +1,7 @@
 "use strict";
 // src/app/modules/quran/reports/quran-reports.validation.ts
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getConsistencyReportValidation = exports.getStudentContentValidation = exports.getStudentTrendValidation = exports.getSupervisionDetailedValidation = exports.getPerformersValidation = exports.getJuzAnalysisValidation = exports.getSurahAnalysisValidation = exports.getTimeAnalysisValidation = exports.getTestTypeAnalysisValidation = exports.getQuranUstadSummaryValidation = exports.getQuranSupervisionReportValidation = exports.getQuranWeeklySupervisionValidation = exports.getQuranStudentReportValidation = exports.getQuranClassBreakdownValidation = exports.getQuranWeeklySummaryValidation = exports.getQuranOverallReportValidation = void 0;
+exports.getProgressReportValidation = exports.getConsistencyReportValidation = exports.getStudentContentValidation = exports.getStudentTrendValidation = exports.getSupervisionDetailedValidation = exports.getPerformersValidation = exports.getJuzAnalysisValidation = exports.getSurahAnalysisValidation = exports.getTimeAnalysisValidation = exports.getTestTypeAnalysisValidation = exports.getQuranUstadSummaryValidation = exports.getQuranSupervisionReportValidation = exports.getQuranWeeklySupervisionValidation = exports.getQuranStudentReportValidation = exports.getQuranClassBreakdownValidation = exports.getQuranWeeklySummaryValidation = exports.getQuranOverallReportValidation = void 0;
 const zod_1 = require("zod");
 const mongoIdSchema = zod_1.z
     .string()
@@ -113,4 +113,7 @@ const consistencyReportQuery = reportFiltersBase
 }, { message: 'startDate must be before or equal to endDate', path: ['startDate'] });
 exports.getConsistencyReportValidation = zod_1.z.object({
     query: consistencyReportQuery,
+});
+exports.getProgressReportValidation = zod_1.z.object({
+    query: reportFiltersQuery,
 });

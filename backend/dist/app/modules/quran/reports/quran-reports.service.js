@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QuranReportsServices = exports.getConsistencyReport = exports.getSupervisionDetailedReport = exports.getPerformersReport = exports.getJuzAnalysisReport = exports.getSurahAnalysisReport = exports.getStudentContentReport = exports.getStudentTrendReport = exports.getTimeAnalysisReport = exports.getTestTypeAnalysisReport = exports.getUstadSummary = exports.getSupervisionComparison = exports.getStudentReport = exports.getClassBreakdown = exports.getWeeklySupervisionComparison = exports.getWeeklySummary = exports.getOverallReport = void 0;
+exports.QuranReportsServices = exports.getConsistencyReport = exports.getProgressReport = exports.getSupervisionDetailedReport = exports.getPerformersReport = exports.getJuzAnalysisReport = exports.getSurahAnalysisReport = exports.getStudentContentReport = exports.getStudentTrendReport = exports.getTimeAnalysisReport = exports.getTestTypeAnalysisReport = exports.getUstadSummary = exports.getSupervisionComparison = exports.getStudentReport = exports.getClassBreakdown = exports.getWeeklySupervisionComparison = exports.getWeeklySummary = exports.getOverallReport = void 0;
 const mongoose_1 = require("mongoose");
 const quran_entry_model_1 = require("../entry/quran-entry.model");
 const quran_student_model_1 = require("../student/quran-student.model");
@@ -225,6 +225,57 @@ function calculateStreaks(entries, startDate, endDate) {
     }
     longestStreak = Math.max(longestStreak, tempStreak);
     return { currentStreak, longestStreak, consecutiveMissedWeeks: consecutiveMissed };
+}
+/** Mastery score 0-100 from entries (plan 7.2.3) */
+function calculateMasteryScore(entries) {
+    if (entries.length === 0)
+        return 0;
+    const TANBIH_WEIGHT = 0.4;
+    const FATH_WEIGHT = 0.6;
+    const COMPLETION_WEIGHT = 0.2;
+    const maxMistakesPerTest = 20;
+    const sorted = [...entries].sort((a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime());
+    let totalScore = 0;
+    let totalWeight = 0;
+    sorted.forEach((entry, index) => {
+        const recencyWeight = 1 + (index / sorted.length) * 0.5;
+        const testsGiven = entry.testsGiven || 1;
+        const tanbihScore = Math.max(0, 100 - (entry.totalTanbih / testsGiven) * (100 / maxMistakesPerTest));
+        const fathScore = Math.max(0, 100 - (entry.totalFath / testsGiven) * (100 / maxMistakesPerTest));
+        const completionBonus = (entry.testsGiven / 3) * 100;
+        const entryScore = tanbihScore * TANBIH_WEIGHT +
+            fathScore * FATH_WEIGHT +
+            completionBonus * COMPLETION_WEIGHT;
+        totalScore += entryScore * recencyWeight;
+        totalWeight += recencyWeight;
+    });
+    return Math.round(totalScore / totalWeight);
+}
+/** Improvement velocity (% change per month; negative = fewer mistakes = improving) */
+function calculateImprovementVelocity(entries) {
+    if (entries.length < 4)
+        return 0;
+    const sorted = [...entries].sort((a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime());
+    const midpoint = Math.floor(sorted.length / 2);
+    const firstHalf = sorted.slice(0, midpoint);
+    const secondHalf = sorted.slice(midpoint);
+    const firstHalfAvg = firstHalf.reduce((sum, e) => sum + e.totalMistakes, 0) / firstHalf.length;
+    const secondHalfAvg = secondHalf.reduce((sum, e) => sum + e.totalMistakes, 0) / secondHalf.length;
+    if (firstHalfAvg === 0)
+        return 0;
+    const velocity = ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * -100;
+    return Math.round(velocity * 10) / 10;
+}
+function masteryGradeFromScore(score) {
+    if (score >= 90)
+        return 'A';
+    if (score >= 80)
+        return 'B';
+    if (score >= 70)
+        return 'C';
+    if (score >= 60)
+        return 'D';
+    return 'F';
 }
 const getWeeklySummary = (filters) => __awaiter(void 0, void 0, void 0, function* () {
     const dateRange = getDateRange(filters);
@@ -1666,6 +1717,160 @@ const getSupervisionDetailedReport = (filters) => __awaiter(void 0, void 0, void
     };
 });
 exports.getSupervisionDetailedReport = getSupervisionDetailedReport;
+/** Progress report (7.2): mastery, improvement velocity, milestones, distribution */
+const getProgressReport = (filters) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const dateRange = getDateRange(filters);
+    const startStr = dateRange.start.toISOString().slice(0, 10);
+    const endStr = dateRange.end.toISOString().slice(0, 10);
+    const studentMatch = { 'studentDoc.active': true };
+    if (filters.class)
+        studentMatch['studentDoc.class'] = filters.class;
+    if (filters.studentId)
+        studentMatch['student'] = new mongoose_1.Types.ObjectId(filters.studentId);
+    const pipeline = [
+        { $match: { reportDate: { $gte: dateRange.start, $lte: dateRange.end } } },
+        {
+            $lookup: {
+                from: 'quranstudents',
+                localField: 'student',
+                foreignField: '_id',
+                as: 'studentDoc',
+            },
+        },
+        { $unwind: '$studentDoc' },
+        { $match: studentMatch },
+        {
+            $group: {
+                _id: '$student',
+                studentDoc: { $first: '$studentDoc' },
+                entries: {
+                    $push: {
+                        reportDate: '$reportDate',
+                        totalTanbih: '$totalTanbih',
+                        totalFath: '$totalFath',
+                        totalMistakes: '$totalMistakes',
+                        testsGiven: '$testsGiven',
+                    },
+                },
+            },
+        },
+        { $match: { $expr: { $gte: [{ $size: '$entries' }, 2] } } },
+    ];
+    const grouped = yield quran_entry_model_1.QuranEntry.aggregate(pipeline);
+    const students = [];
+    const improvementLeaderboardData = [];
+    const gradeCounts = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+    for (const row of grouped) {
+        const entries = row.entries;
+        const student = row.studentDoc;
+        const masteryScore = calculateMasteryScore(entries);
+        const grade = masteryGradeFromScore(masteryScore);
+        gradeCounts[grade] += 1;
+        const improvementVelocity = calculateImprovementVelocity(entries);
+        const sortedByDate = [...entries].sort((a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime());
+        const midpoint = Math.floor(sortedByDate.length / 2);
+        const firstHalf = sortedByDate.slice(0, midpoint);
+        const secondHalf = sortedByDate.slice(midpoint);
+        const previousAvgMistakes = firstHalf.reduce((s, e) => s + e.totalMistakes, 0) / firstHalf.length;
+        const currentAvgMistakes = secondHalf.reduce((s, e) => s + e.totalMistakes, 0) / secondHalf.length;
+        const trend = computeTrend(firstHalf.reduce((s, e) => s + e.totalMistakes, 0) / firstHalf.length, secondHalf.reduce((s, e) => s + e.totalMistakes, 0) / secondHalf.length);
+        const byMonth = new Map();
+        for (const e of entries) {
+            const month = new Date(e.reportDate).toISOString().slice(0, 7);
+            const list = (_a = byMonth.get(month)) !== null && _a !== void 0 ? _a : [];
+            list.push(e);
+            byMonth.set(month, list);
+        }
+        const monthlyScores = Array.from(byMonth.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([month, monthEntries]) => ({
+            month,
+            masteryScore: calculateMasteryScore(monthEntries),
+            avgMistakes: Number((monthEntries.reduce((s, x) => s + x.totalMistakes, 0) / monthEntries.length).toFixed(2)),
+        }));
+        const milestones = [];
+        if (grade === 'A' || grade === 'B') {
+            const lastEntry = entries.reduce((a, e) => new Date(e.reportDate) > new Date(a.reportDate) ? e : a);
+            milestones.push({
+                type: 'mastery_level',
+                description: `Mastery grade ${grade}`,
+                date: new Date(lastEntry.reportDate).toISOString().slice(0, 10),
+                value: grade,
+            });
+        }
+        students.push({
+            student: {
+                _id: String(student._id),
+                studentId: student.studentId,
+                nameEn: student.nameEn,
+                nameBn: student.nameBn,
+                class: student.class,
+            },
+            progress: {
+                masteryScore,
+                masteryGrade: grade,
+                improvementVelocity,
+                trend,
+                memorization: {
+                    surahsCompleted: [],
+                    surahsInProgress: [],
+                    juzCompleted: [],
+                    estimatedCompletion: '',
+                    progressPercentage: 0,
+                },
+                monthlyScores,
+                milestones,
+            },
+        });
+        improvementLeaderboardData.push({
+            student: {
+                _id: String(student._id),
+                studentId: student.studentId,
+                nameEn: student.nameEn,
+                nameBn: student.nameBn,
+                class: student.class,
+            },
+            improvementVelocity,
+            previousAvgMistakes,
+            currentAvgMistakes,
+        });
+    }
+    const improvementLeaderboard = [...improvementLeaderboardData]
+        .sort((a, b) => b.improvementVelocity - a.improvementVelocity)
+        .slice(0, 20)
+        .map((item, i) => ({
+        rank: i + 1,
+        student: item.student,
+        improvementVelocity: item.improvementVelocity,
+        previousAvgMistakes: Number(item.previousAvgMistakes.toFixed(2)),
+        currentAvgMistakes: Number(item.currentAvgMistakes.toFixed(2)),
+    }));
+    const studentsImproving = students.filter((s) => s.progress.trend === 'improving').length;
+    const studentsDeclining = students.filter((s) => s.progress.trend === 'declining').length;
+    const studentsStable = students.filter((s) => s.progress.trend === 'stable').length;
+    const summary = {
+        totalStudents: students.length,
+        avgMasteryScore: students.length > 0
+            ? Number((students.reduce((s, x) => s + x.progress.masteryScore, 0) / students.length).toFixed(1))
+            : 0,
+        avgImprovementVelocity: students.length > 0
+            ? Number((students.reduce((s, x) => s + x.progress.improvementVelocity, 0) /
+                students.length).toFixed(1))
+            : 0,
+        studentsImproving,
+        studentsDeclining,
+        studentsStable,
+    };
+    return {
+        filters: Object.assign(Object.assign({ dateRange: { start: startStr, end: endStr } }, (filters.class && { class: filters.class })), (filters.studentId && { studentId: filters.studentId })),
+        summary,
+        students,
+        improvementLeaderboard,
+        masteryDistribution: gradeCounts,
+    };
+});
+exports.getProgressReport = getProgressReport;
 /** Consistency report (7.1): attendance, streaks, calendar, leaderboard */
 const getConsistencyReport = (filters) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
@@ -1832,4 +2037,5 @@ exports.QuranReportsServices = {
     getPerformersReport: exports.getPerformersReport,
     getSupervisionDetailedReport: exports.getSupervisionDetailedReport,
     getConsistencyReport: exports.getConsistencyReport,
+    getProgressReport: exports.getProgressReport,
 };

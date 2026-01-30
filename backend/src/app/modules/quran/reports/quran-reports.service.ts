@@ -29,6 +29,8 @@ import {
   IPerformerRow,
   TQuranConsistencyFilters,
   IConsistencyReport,
+  TQuranProgressFilters,
+  IProgressReport,
 } from './quran-reports.type';
 import { getSurahByNumber } from '../reference/surah-data';
 import { IQuranStudent } from '../student/quran-student.type';
@@ -248,6 +250,75 @@ function calculateStreaks(
   }
   longestStreak = Math.max(longestStreak, tempStreak);
   return { currentStreak, longestStreak, consecutiveMissedWeeks: consecutiveMissed };
+}
+
+/** Entry-like shape for progress calculations */
+interface IEntryForProgress {
+  reportDate: Date;
+  totalTanbih: number;
+  totalFath: number;
+  totalMistakes: number;
+  testsGiven: number;
+}
+
+/** Mastery score 0-100 from entries (plan 7.2.3) */
+function calculateMasteryScore(entries: IEntryForProgress[]): number {
+  if (entries.length === 0) return 0;
+  const TANBIH_WEIGHT = 0.4;
+  const FATH_WEIGHT = 0.6;
+  const COMPLETION_WEIGHT = 0.2;
+  const maxMistakesPerTest = 20;
+  const sorted = [...entries].sort(
+    (a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime(),
+  );
+  let totalScore = 0;
+  let totalWeight = 0;
+  sorted.forEach((entry, index) => {
+    const recencyWeight = 1 + (index / sorted.length) * 0.5;
+    const testsGiven = entry.testsGiven || 1;
+    const tanbihScore = Math.max(
+      0,
+      100 - (entry.totalTanbih / testsGiven) * (100 / maxMistakesPerTest),
+    );
+    const fathScore = Math.max(
+      0,
+      100 - (entry.totalFath / testsGiven) * (100 / maxMistakesPerTest),
+    );
+    const completionBonus = (entry.testsGiven / 3) * 100;
+    const entryScore =
+      tanbihScore * TANBIH_WEIGHT +
+      fathScore * FATH_WEIGHT +
+      completionBonus * COMPLETION_WEIGHT;
+    totalScore += entryScore * recencyWeight;
+    totalWeight += recencyWeight;
+  });
+  return Math.round(totalScore / totalWeight);
+}
+
+/** Improvement velocity (% change per month; negative = fewer mistakes = improving) */
+function calculateImprovementVelocity(entries: IEntryForProgress[]): number {
+  if (entries.length < 4) return 0;
+  const sorted = [...entries].sort(
+    (a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime(),
+  );
+  const midpoint = Math.floor(sorted.length / 2);
+  const firstHalf = sorted.slice(0, midpoint);
+  const secondHalf = sorted.slice(midpoint);
+  const firstHalfAvg =
+    firstHalf.reduce((sum, e) => sum + e.totalMistakes, 0) / firstHalf.length;
+  const secondHalfAvg =
+    secondHalf.reduce((sum, e) => sum + e.totalMistakes, 0) / secondHalf.length;
+  if (firstHalfAvg === 0) return 0;
+  const velocity = ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * -100;
+  return Math.round(velocity * 10) / 10;
+}
+
+function masteryGradeFromScore(score: number): 'A' | 'B' | 'C' | 'D' | 'F' {
+  if (score >= 90) return 'A';
+  if (score >= 80) return 'B';
+  if (score >= 70) return 'C';
+  if (score >= 60) return 'D';
+  return 'F';
 }
 
 export const getWeeklySummary = async (
@@ -1824,6 +1895,218 @@ export const getSupervisionDetailedReport = async (
   };
 };
 
+/** Progress report (7.2): mastery, improvement velocity, milestones, distribution */
+export const getProgressReport = async (
+  filters: TQuranProgressFilters,
+): Promise<IProgressReport> => {
+  const dateRange = getDateRange(filters);
+  const startStr = dateRange.start.toISOString().slice(0, 10);
+  const endStr = dateRange.end.toISOString().slice(0, 10);
+
+  const studentMatch: Record<string, unknown> = { 'studentDoc.active': true };
+  if (filters.class) (studentMatch as Record<string, unknown>)['studentDoc.class'] = filters.class;
+  if (filters.studentId) (studentMatch as Record<string, unknown>)['student'] = new Types.ObjectId(filters.studentId);
+
+  const pipeline: PipelineStage[] = [
+    { $match: { reportDate: { $gte: dateRange.start, $lte: dateRange.end } } },
+    {
+      $lookup: {
+        from: 'quranstudents',
+        localField: 'student',
+        foreignField: '_id',
+        as: 'studentDoc',
+      },
+    },
+    { $unwind: '$studentDoc' },
+    { $match: studentMatch },
+    {
+      $group: {
+        _id: '$student',
+        studentDoc: { $first: '$studentDoc' },
+        entries: {
+          $push: {
+            reportDate: '$reportDate',
+            totalTanbih: '$totalTanbih',
+            totalFath: '$totalFath',
+            totalMistakes: '$totalMistakes',
+            testsGiven: '$testsGiven',
+          },
+        },
+      },
+    },
+    { $match: { $expr: { $gte: [{ $size: '$entries' }, 2] } } },
+  ];
+
+  const grouped = await QuranEntry.aggregate<{
+    _id: Types.ObjectId;
+    studentDoc: IQuranStudent & { _id: Types.ObjectId };
+    entries: Array<{
+      reportDate: Date;
+      totalTanbih: number;
+      totalFath: number;
+      totalMistakes: number;
+      testsGiven: number;
+    }>;
+  }>(pipeline);
+
+  const students: IProgressReport['students'] = [];
+  const improvementLeaderboardData: Array<{
+    student: IProgressReport['students'][0]['student'];
+    improvementVelocity: number;
+    previousAvgMistakes: number;
+    currentAvgMistakes: number;
+  }> = [];
+  const gradeCounts = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+
+  for (const row of grouped) {
+    const entries = row.entries as IEntryForProgress[];
+    const student = row.studentDoc;
+    const masteryScore = calculateMasteryScore(entries);
+    const grade = masteryGradeFromScore(masteryScore);
+    gradeCounts[grade] += 1;
+    const improvementVelocity = calculateImprovementVelocity(entries);
+    const sortedByDate = [...entries].sort(
+      (a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime(),
+    );
+    const midpoint = Math.floor(sortedByDate.length / 2);
+    const firstHalf = sortedByDate.slice(0, midpoint);
+    const secondHalf = sortedByDate.slice(midpoint);
+    const previousAvgMistakes =
+      firstHalf.reduce((s, e) => s + e.totalMistakes, 0) / firstHalf.length;
+    const currentAvgMistakes =
+      secondHalf.reduce((s, e) => s + e.totalMistakes, 0) / secondHalf.length;
+    const trend = computeTrend(
+      firstHalf.reduce((s, e) => s + e.totalMistakes, 0) / firstHalf.length,
+      secondHalf.reduce((s, e) => s + e.totalMistakes, 0) / secondHalf.length,
+    );
+
+    const byMonth = new Map<
+      string,
+      IEntryForProgress[]
+    >();
+    for (const e of entries) {
+      const month = new Date(e.reportDate).toISOString().slice(0, 7);
+      const list = byMonth.get(month) ?? [];
+      list.push(e);
+      byMonth.set(month, list);
+    }
+    const monthlyScores: IProgressReport['students'][0]['progress']['monthlyScores'] = Array.from(
+      byMonth.entries(),
+    )
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, monthEntries]) => ({
+        month,
+        masteryScore: calculateMasteryScore(monthEntries),
+        avgMistakes: Number(
+          (
+            monthEntries.reduce((s, x) => s + x.totalMistakes, 0) / monthEntries.length
+          ).toFixed(2),
+        ),
+      }));
+
+    const milestones: IProgressReport['students'][0]['progress']['milestones'] = [];
+    if (grade === 'A' || grade === 'B') {
+      const lastEntry = entries.reduce((a, e) =>
+        new Date(e.reportDate) > new Date(a.reportDate) ? e : a,
+      );
+      milestones.push({
+        type: 'mastery_level',
+        description: `Mastery grade ${grade}`,
+        date: new Date(lastEntry.reportDate).toISOString().slice(0, 10),
+        value: grade,
+      });
+    }
+
+    students.push({
+      student: {
+        _id: String(student._id),
+        studentId: student.studentId,
+        nameEn: student.nameEn,
+        nameBn: student.nameBn,
+        class: student.class,
+      },
+      progress: {
+        masteryScore,
+        masteryGrade: grade,
+        improvementVelocity,
+        trend,
+        memorization: {
+          surahsCompleted: [],
+          surahsInProgress: [],
+          juzCompleted: [],
+          estimatedCompletion: '',
+          progressPercentage: 0,
+        },
+        monthlyScores,
+        milestones,
+      },
+    });
+    improvementLeaderboardData.push({
+      student: {
+        _id: String(student._id),
+        studentId: student.studentId,
+        nameEn: student.nameEn,
+        nameBn: student.nameBn,
+        class: student.class,
+      },
+      improvementVelocity,
+      previousAvgMistakes,
+      currentAvgMistakes,
+    });
+  }
+
+  const improvementLeaderboard: IProgressReport['improvementLeaderboard'] = [...improvementLeaderboardData]
+    .sort((a, b) => b.improvementVelocity - a.improvementVelocity)
+    .slice(0, 20)
+    .map((item, i) => ({
+      rank: i + 1,
+      student: item.student,
+      improvementVelocity: item.improvementVelocity,
+      previousAvgMistakes: Number(item.previousAvgMistakes.toFixed(2)),
+      currentAvgMistakes: Number(item.currentAvgMistakes.toFixed(2)),
+    }));
+
+  const studentsImproving = students.filter((s) => s.progress.trend === 'improving').length;
+  const studentsDeclining = students.filter((s) => s.progress.trend === 'declining').length;
+  const studentsStable = students.filter((s) => s.progress.trend === 'stable').length;
+
+  const summary: IProgressReport['summary'] = {
+    totalStudents: students.length,
+    avgMasteryScore:
+      students.length > 0
+        ? Number(
+            (
+              students.reduce((s, x) => s + x.progress.masteryScore, 0) / students.length
+            ).toFixed(1),
+          )
+        : 0,
+    avgImprovementVelocity:
+      students.length > 0
+        ? Number(
+            (
+              students.reduce((s, x) => s + x.progress.improvementVelocity, 0) /
+              students.length
+            ).toFixed(1),
+          )
+        : 0,
+    studentsImproving,
+    studentsDeclining,
+    studentsStable,
+  };
+
+  return {
+    filters: {
+      dateRange: { start: startStr, end: endStr },
+      ...(filters.class && { class: filters.class }),
+      ...(filters.studentId && { studentId: filters.studentId }),
+    },
+    summary,
+    students,
+    improvementLeaderboard,
+    masteryDistribution: gradeCounts,
+  };
+};
+
 /** Consistency report (7.1): attendance, streaks, calendar, leaderboard */
 export const getConsistencyReport = async (
   filters: TQuranConsistencyFilters,
@@ -2013,4 +2296,5 @@ export const QuranReportsServices = {
   getPerformersReport,
   getSupervisionDetailedReport,
   getConsistencyReport,
+  getProgressReport,
 };

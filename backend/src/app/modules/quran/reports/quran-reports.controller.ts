@@ -5,7 +5,7 @@ import catchAsync from '../../../utils/catch-async';
 import sendResponse from '../../../utils/send-response';
 import { pickFields } from '../../../utils/pick';
 import { QuranReportsServices } from './quran-reports.service';
-import { TQuranReportFilters, TQuranReportFiltersExtended, TQuranConsistencyFilters } from './quran-reports.type';
+import { TQuranReportFilters, TQuranReportFiltersExtended, TQuranConsistencyFilters, TQuranProgressFilters } from './quran-reports.type';
 
 function getReportFilters(req: Request): TQuranReportFilters {
   const query = req.query as Record<string, string | undefined>;
@@ -173,6 +173,12 @@ const getConsistencyReport = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, { statusCode: 200, success: true, message: 'Consistency report retrieved successfully', data });
 });
 
+const getProgressReport = catchAsync(async (req: Request, res: Response) => {
+  const filters = getReportFilters(req) as TQuranProgressFilters;
+  const data = await QuranReportsServices.getProgressReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Progress report retrieved successfully', data });
+});
+
 export const QuranReportsControllers = {
   getOverallReport,
   getWeeklySummary,
@@ -190,4 +196,5 @@ export const QuranReportsControllers = {
   getPerformers,
   getSupervisionDetailed,
   getConsistencyReport,
+  getProgressReport,
 };

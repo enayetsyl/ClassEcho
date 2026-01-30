@@ -128,6 +128,11 @@ const QuranEntrySchema = new mongoose_1.Schema({
         default: 0,
         min: 0,
     },
+    contentCompletion: {
+        surahCompleted: { type: Boolean, default: false },
+        juzCompleted: { type: Boolean, default: false },
+        ayahsCovered: { type: Number, default: 0 },
+    },
 }, {
     timestamps: true,
 });

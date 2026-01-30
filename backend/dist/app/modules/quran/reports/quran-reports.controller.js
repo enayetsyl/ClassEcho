@@ -176,6 +176,11 @@ const getConsistencyReport = (0, catch_async_1.default)((req, res) => __awaiter(
     const data = yield quran_reports_service_1.QuranReportsServices.getConsistencyReport(filters);
     (0, send_response_1.default)(res, { statusCode: 200, success: true, message: 'Consistency report retrieved successfully', data });
 }));
+const getProgressReport = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const filters = getReportFilters(req);
+    const data = yield quran_reports_service_1.QuranReportsServices.getProgressReport(filters);
+    (0, send_response_1.default)(res, { statusCode: 200, success: true, message: 'Progress report retrieved successfully', data });
+}));
 exports.QuranReportsControllers = {
     getOverallReport,
     getWeeklySummary,
@@ -193,4 +198,5 @@ exports.QuranReportsControllers = {
     getPerformers,
     getSupervisionDetailed,
     getConsistencyReport,
+    getProgressReport,
 };
