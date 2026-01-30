@@ -58,6 +58,8 @@ export interface ITeacherPerformanceScore {
   totalVideos: number;
   publishedVideos: number;
   averageRating: number;
+  /** Present when computed from user data; stripped in API response for backward compatibility */
+  isActive?: boolean;
   criteriaScores: {
     subjectKnowledge: number;
     engagementWithStudents: number;
@@ -249,4 +251,3 @@ export interface IPendingVideosReport {
     exceedingSLA: number; // > 3 days
   };
 }
-

@@ -19,20 +19,21 @@ const app_error_1 = __importDefault(require("../../../errors/app-error"));
 const http_status_1 = __importDefault(require("http-status"));
 const pagination_1 = require("../../../utils/pagination");
 const mapStudent = (doc) => {
-    var _a, _b, _c, _d;
-    const id = (_d = (_a = doc.id) !== null && _a !== void 0 ? _a : (_c = (_b = doc._id) === null || _b === void 0 ? void 0 : _b.toString) === null || _c === void 0 ? void 0 : _c.call(_b)) !== null && _d !== void 0 ? _d : doc._id;
+    var _a, _b, _c;
+    const d = doc;
+    const id = (_a = d.id) !== null && _a !== void 0 ? _a : (d._id != null ? String(d._id) : undefined);
     return {
         _id: id != null ? String(id) : '',
-        studentId: doc.studentId,
-        nameEn: doc.nameEn,
-        nameBn: doc.nameBn,
-        class: doc.class,
-        supervision: doc.supervision,
-        active: doc.active,
-        notes: doc.notes,
-        photo: doc.photo,
-        createdAt: doc.createdAt,
-        updatedAt: doc.updatedAt,
+        studentId: Number(d.studentId) || 0,
+        nameEn: String((_b = d.nameEn) !== null && _b !== void 0 ? _b : ''),
+        nameBn: d.nameBn != null ? String(d.nameBn) : undefined,
+        class: String((_c = d.class) !== null && _c !== void 0 ? _c : ''),
+        supervision: Boolean(d.supervision),
+        active: Boolean(d.active),
+        notes: d.notes,
+        photo: d.photo,
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
     };
 };
 const createStudent = (data) => __awaiter(void 0, void 0, void 0, function* () {

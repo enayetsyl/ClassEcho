@@ -3,6 +3,7 @@
 import express from 'express';
 import validateRequest from '../../../middlewares/validate-request';
 import { requireAuth, requireRole } from '../../../middlewares/auth-middleware';
+import { UserRole } from '../../user/user.type';
 import {
   getQuranOverallReportValidation,
   getQuranWeeklySummaryValidation,
@@ -14,7 +15,7 @@ import {
 } from './quran-reports.validation';
 import { QuranReportsControllers } from './quran-reports.controller';
 
-const reportRoles = ['Admin', 'SeniorAdmin', 'Management'];
+const reportRoles: UserRole[] = ['Admin', 'SeniorAdmin', 'Management'];
 
 const router = express.Router();
 
@@ -53,7 +54,7 @@ router.get(
 router.get(
   '/student/:studentId',
   requireAuth,
-  requireRole([...reportRoles, 'Teacher']),
+  requireRole([...reportRoles, 'Teacher' as UserRole]),
   validateRequest(getQuranStudentReportValidation),
   QuranReportsControllers.getStudentReport,
 );

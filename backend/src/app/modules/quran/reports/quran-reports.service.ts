@@ -1,6 +1,6 @@
 // src/app/modules/quran/reports/quran-reports.service.ts
 
-import { Types } from 'mongoose';
+import { Types, PipelineStage } from 'mongoose';
 import { QuranEntry } from '../entry/quran-entry.model';
 import { QuranStudent } from '../student/quran-student.model';
 import { IQuranEntryDocument } from '../entry/quran-entry.model';
@@ -206,7 +206,7 @@ export const getWeeklySummary = async (
     { $sort: { '_id.year': 1, '_id.week': 1 } },
   ];
 
-  const byWeekRows = await QuranEntry.aggregate(pipeline);
+  const byWeekRows = await QuranEntry.aggregate(pipeline as unknown as PipelineStage[]);
 
   const weeks: IQuranWeeklySummary[] = byWeekRows.map((row: Record<string, unknown>) => {
     const d = new Date(row.reportDate as Date);
@@ -284,7 +284,7 @@ export const getWeeklySupervisionComparison = async (
     { $sort: { '_id.class': 1, '_id.year': 1, '_id.week': 1 } },
   ];
 
-  const rows = await QuranEntry.aggregate(pipeline);
+  const rows = await QuranEntry.aggregate(pipeline as unknown as PipelineStage[]);
 
   type WeekAcc = {
     weekStart: Date;
@@ -441,16 +441,18 @@ export const getClassBreakdown = async (
     { $sort: { class: 1 } },
   ];
 
-  const result = await QuranEntry.aggregate(pipeline);
-  return result.map((r: Record<string, unknown>) => ({
-    class: r.class,
-    studentCount: r.studentCount,
-    entryCount: r.entryCount,
-    avgTanbih: Number((r.avgTanbih ?? 0).toFixed(2)),
-    avgFath: Number((r.avgFath ?? 0).toFixed(2)),
-    avgTotalMistakes: Number((r.avgTotalMistakes ?? 0).toFixed(2)),
-    testCompletionRate: Number((r.testCompletionRate ?? 0).toFixed(2)),
-  }));
+  const result = await QuranEntry.aggregate(pipeline as unknown as PipelineStage[]);
+  return result.map(
+    (r: Record<string, unknown>): IQuranClassBreakdown => ({
+      class: String(r.class ?? ''),
+      studentCount: Number(r.studentCount ?? 0),
+      entryCount: Number(r.entryCount ?? 0),
+      avgTanbih: Number((Number(r.avgTanbih) || 0).toFixed(2)),
+      avgFath: Number((Number(r.avgFath) || 0).toFixed(2)),
+      avgTotalMistakes: Number((Number(r.avgTotalMistakes) || 0).toFixed(2)),
+      testCompletionRate: Number((Number(r.testCompletionRate) || 0).toFixed(2)),
+    }),
+  );
 };
 
 export const getStudentReport = async (
@@ -622,7 +624,7 @@ export const getSupervisionComparison = async (
     },
   ];
 
-  const result = await QuranEntry.aggregate(pipeline);
+  const result = await QuranEntry.aggregate(pipeline as unknown as PipelineStage[]);
   const supervised = result.find((r: { _id: boolean }) => r._id === true);
   const nonSupervised = result.find((r: { _id: boolean }) => r._id === false);
 
@@ -730,7 +732,7 @@ export const getUstadSummary = async (
     { $sort: { entryCount: -1 } },
   ];
 
-  const result = await QuranEntry.aggregate(pipeline);
+  const result = await QuranEntry.aggregate(pipeline as unknown as PipelineStage[]);
   return result.map((r: Record<string, unknown>) => ({
     ustadName: r.ustadName as string,
     entryCount: r.entryCount as number,

@@ -15,22 +15,20 @@ export type TQuranStudentQueryFilters = {
 };
 
 const mapStudent = (doc: IQuranStudentDocument | Record<string, unknown>): IQuranStudent => {
-  const id =
-    (doc as IQuranStudentDocument).id ??
-    (doc as { _id?: { toString(): string } })._id?.toString?.() ??
-    (doc as { _id?: string })._id;
+  const d = doc as IQuranStudentDocument & Record<string, unknown>;
+  const id = d.id ?? (d._id != null ? String(d._id) : undefined);
   return {
     _id: id != null ? String(id) : '',
-    studentId: (doc as IQuranStudentDocument).studentId,
-    nameEn: doc.nameEn,
-    nameBn: doc.nameBn,
-    class: doc.class,
-    supervision: doc.supervision,
-    active: doc.active,
-    notes: (doc as IQuranStudentDocument).notes,
-    photo: (doc as IQuranStudentDocument).photo,
-    createdAt: (doc as IQuranStudentDocument).createdAt,
-    updatedAt: (doc as IQuranStudentDocument).updatedAt,
+    studentId: Number(d.studentId) || 0,
+    nameEn: String(d.nameEn ?? ''),
+    nameBn: d.nameBn != null ? String(d.nameBn) : undefined,
+    class: String(d.class ?? ''),
+    supervision: Boolean(d.supervision),
+    active: Boolean(d.active),
+    notes: d.notes,
+    photo: d.photo,
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
   };
 };
 

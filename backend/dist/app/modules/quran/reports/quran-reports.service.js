@@ -403,15 +403,15 @@ const getClassBreakdown = (filters) => __awaiter(void 0, void 0, void 0, functio
     ];
     const result = yield quran_entry_model_1.QuranEntry.aggregate(pipeline);
     return result.map((r) => {
-        var _a, _b, _c, _d;
+        var _a, _b, _c;
         return ({
-            class: r.class,
-            studentCount: r.studentCount,
-            entryCount: r.entryCount,
-            avgTanbih: Number(((_a = r.avgTanbih) !== null && _a !== void 0 ? _a : 0).toFixed(2)),
-            avgFath: Number(((_b = r.avgFath) !== null && _b !== void 0 ? _b : 0).toFixed(2)),
-            avgTotalMistakes: Number(((_c = r.avgTotalMistakes) !== null && _c !== void 0 ? _c : 0).toFixed(2)),
-            testCompletionRate: Number(((_d = r.testCompletionRate) !== null && _d !== void 0 ? _d : 0).toFixed(2)),
+            class: String((_a = r.class) !== null && _a !== void 0 ? _a : ''),
+            studentCount: Number((_b = r.studentCount) !== null && _b !== void 0 ? _b : 0),
+            entryCount: Number((_c = r.entryCount) !== null && _c !== void 0 ? _c : 0),
+            avgTanbih: Number((Number(r.avgTanbih) || 0).toFixed(2)),
+            avgFath: Number((Number(r.avgFath) || 0).toFixed(2)),
+            avgTotalMistakes: Number((Number(r.avgTotalMistakes) || 0).toFixed(2)),
+            testCompletionRate: Number((Number(r.testCompletionRate) || 0).toFixed(2)),
         });
     });
 });
