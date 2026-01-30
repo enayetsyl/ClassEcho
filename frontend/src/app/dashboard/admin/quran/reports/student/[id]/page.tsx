@@ -100,9 +100,17 @@ export default function QuranStudentReportPage() {
               Per-student revision summary, weekly trend, and common issues
             </p>
           </div>
-          <Link href="/dashboard/admin/quran/reports">
-            <Button variant="outline">← Overall report</Button>
-          </Link>
+          <div className="flex gap-2 flex-wrap">
+            <Link href={`/dashboard/admin/quran/reports/student/${studentId}/trend`}>
+              <Button variant="outline">Trend</Button>
+            </Link>
+            <Link href={`/dashboard/admin/quran/reports/student/${studentId}/content`}>
+              <Button variant="outline">Content analysis</Button>
+            </Link>
+            <Link href="/dashboard/admin/quran/reports">
+              <Button variant="outline">← Reports</Button>
+            </Link>
+          </div>
         </div>
 
         {!studentId || !validStudentId ? (

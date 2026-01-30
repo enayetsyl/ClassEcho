@@ -142,6 +142,21 @@ export default function QuranReportsPage() {
             <Link href="/dashboard/admin/quran/reports/class">
               <Button variant="outline">Class breakdown</Button>
             </Link>
+            <Link href="/dashboard/admin/quran/reports/test-type">
+              <Button variant="outline">Test type analysis</Button>
+            </Link>
+            <Link href="/dashboard/admin/quran/reports/time">
+              <Button variant="outline">Time analysis</Button>
+            </Link>
+            <Link href="/dashboard/admin/quran/reports/content">
+              <Button variant="outline">Content (Surah/Juz)</Button>
+            </Link>
+            <Link href="/dashboard/admin/quran/reports/performers">
+              <Button variant="outline">Performers</Button>
+            </Link>
+            <Link href="/dashboard/admin/quran/reports/supervision">
+              <Button variant="outline">Supervision (detailed)</Button>
+            </Link>
             <Link href="/dashboard/admin/quran/students">
               <Button variant="outline">Student report (pick student)</Button>
             </Link>
