@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 export default function TeacherPerformancePage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [expandedTeachers, setExpandedTeachers] = useState<Set<string>>(new Set());
 
   const params = {
     ...(dateFrom && { dateFrom }),
@@ -50,6 +51,16 @@ export default function TeacherPerformancePage() {
     if (trend === "improving") return "↑";
     if (trend === "declining") return "↓";
     return "→";
+  };
+
+  const toggleTeacherExpansion = (teacherId: string) => {
+    const newExpanded = new Set(expandedTeachers);
+    if (newExpanded.has(teacherId)) {
+      newExpanded.delete(teacherId);
+    } else {
+      newExpanded.add(teacherId);
+    }
+    setExpandedTeachers(newExpanded);
   };
 
   return (
@@ -176,33 +187,137 @@ export default function TeacherPerformancePage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12"></TableHead>
                         <TableHead>Teacher</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Avg Rating</TableHead>
+                        <TableHead>Trend</TableHead>
                         <TableHead>Videos</TableHead>
                         <TableHead>Published</TableHead>
                         <TableHead>Comment Rate</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {report.activeTeachers.map((teacher) => (
-                        <TableRow key={teacher.teacherId}>
-                          <TableCell className="font-medium">
-                            {teacher.teacherName}
-                          </TableCell>
-                          <TableCell>{teacher.teacherEmail}</TableCell>
-                          <TableCell>
-                            <Badge className={getRatingColor(teacher.averageRating)}>
-                              {teacher.averageRating.toFixed(2)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{teacher.totalVideos}</TableCell>
-                          <TableCell>{teacher.publishedVideos}</TableCell>
-                          <TableCell>
-                            {teacher.commentRate.toFixed(1)}%
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {report.activeTeachers.map((teacher) => {
+                        const isExpanded = expandedTeachers.has(teacher.teacherId);
+                        const hasBreakdown =
+                          (teacher.activityBySubject && teacher.activityBySubject.length > 0) ||
+                          (teacher.activityByClass && teacher.activityByClass.length > 0);
+
+                        return (
+                          <React.Fragment key={teacher.teacherId}>
+                            <TableRow>
+                              <TableCell>
+                                {hasBreakdown && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleTeacherExpansion(teacher.teacherId)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    {isExpanded ? "−" : "+"}
+                                  </Button>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {teacher.teacherName}
+                              </TableCell>
+                              <TableCell>{teacher.teacherEmail}</TableCell>
+                              <TableCell>
+                                <Badge className={getRatingColor(teacher.averageRating)}>
+                                  {teacher.averageRating.toFixed(2)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={getTrendColor(teacher.trend)}>
+                                  {getTrendIcon(teacher.trend)} {teacher.trend}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{teacher.totalVideos}</TableCell>
+                              <TableCell>{teacher.publishedVideos}</TableCell>
+                              <TableCell>
+                                {teacher.commentRate.toFixed(1)}%
+                              </TableCell>
+                            </TableRow>
+                            {isExpanded && hasBreakdown && (
+                              <TableRow>
+                                <TableCell colSpan={8} className="bg-muted/30 p-4">
+                                  <div className="space-y-4">
+                                    {teacher.activityBySubject &&
+                                      teacher.activityBySubject.length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold mb-2">Activity by Subject</h4>
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>Subject</TableHead>
+                                                <TableHead>Total Videos</TableHead>
+                                                <TableHead>Published</TableHead>
+                                                <TableHead>Avg Rating</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {teacher.activityBySubject.map((subject) => (
+                                                <TableRow key={subject.subjectId}>
+                                                  <TableCell>{subject.subjectName}</TableCell>
+                                                  <TableCell>{subject.totalVideos}</TableCell>
+                                                  <TableCell>{subject.publishedVideos}</TableCell>
+                                                  <TableCell>
+                                                    <Badge
+                                                      className={getRatingColor(
+                                                        subject.averageRating
+                                                      )}
+                                                    >
+                                                      {subject.averageRating.toFixed(2)}
+                                                    </Badge>
+                                                  </TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                        </div>
+                                      )}
+                                    {teacher.activityByClass &&
+                                      teacher.activityByClass.length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold mb-2">Activity by Class</h4>
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>Class</TableHead>
+                                                <TableHead>Total Videos</TableHead>
+                                                <TableHead>Published</TableHead>
+                                                <TableHead>Avg Rating</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {teacher.activityByClass.map((classItem) => (
+                                                <TableRow key={classItem.classId}>
+                                                  <TableCell>{classItem.className}</TableCell>
+                                                  <TableCell>{classItem.totalVideos}</TableCell>
+                                                  <TableCell>{classItem.publishedVideos}</TableCell>
+                                                  <TableCell>
+                                                    <Badge
+                                                      className={getRatingColor(
+                                                        classItem.averageRating
+                                                      )}
+                                                    >
+                                                      {classItem.averageRating.toFixed(2)}
+                                                    </Badge>
+                                                  </TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                        </div>
+                                      )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -216,6 +331,7 @@ export default function TeacherPerformancePage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12"></TableHead>
                         <TableHead>Teacher</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Avg Rating</TableHead>
@@ -226,29 +342,126 @@ export default function TeacherPerformancePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {report.deactivatedTeachers.map((teacher) => (
-                        <TableRow key={teacher.teacherId} className="opacity-60">
-                          <TableCell className="font-medium">
-                            {teacher.teacherName}
-                          </TableCell>
-                          <TableCell>{teacher.teacherEmail}</TableCell>
-                          <TableCell>
-                            <Badge className={getRatingColor(teacher.averageRating)}>
-                              {teacher.averageRating.toFixed(2)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getTrendColor(teacher.trend)}>
-                              {getTrendIcon(teacher.trend)} {teacher.trend}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{teacher.totalVideos}</TableCell>
-                          <TableCell>{teacher.publishedVideos}</TableCell>
-                          <TableCell>
-                            {teacher.commentRate.toFixed(1)}%
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {report.deactivatedTeachers.map((teacher) => {
+                        const isExpanded = expandedTeachers.has(teacher.teacherId);
+                        const hasBreakdown =
+                          (teacher.activityBySubject && teacher.activityBySubject.length > 0) ||
+                          (teacher.activityByClass && teacher.activityByClass.length > 0);
+
+                        return (
+                          <React.Fragment key={teacher.teacherId}>
+                            <TableRow className="opacity-60">
+                              <TableCell>
+                                {hasBreakdown && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleTeacherExpansion(teacher.teacherId)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    {isExpanded ? "−" : "+"}
+                                  </Button>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {teacher.teacherName}
+                              </TableCell>
+                              <TableCell>{teacher.teacherEmail}</TableCell>
+                              <TableCell>
+                                <Badge className={getRatingColor(teacher.averageRating)}>
+                                  {teacher.averageRating.toFixed(2)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={getTrendColor(teacher.trend)}>
+                                  {getTrendIcon(teacher.trend)} {teacher.trend}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{teacher.totalVideos}</TableCell>
+                              <TableCell>{teacher.publishedVideos}</TableCell>
+                              <TableCell>
+                                {teacher.commentRate.toFixed(1)}%
+                              </TableCell>
+                            </TableRow>
+                            {isExpanded && hasBreakdown && (
+                              <TableRow>
+                                <TableCell colSpan={8} className="bg-muted/30 p-4">
+                                  <div className="space-y-4">
+                                    {teacher.activityBySubject &&
+                                      teacher.activityBySubject.length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold mb-2">Activity by Subject</h4>
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>Subject</TableHead>
+                                                <TableHead>Total Videos</TableHead>
+                                                <TableHead>Published</TableHead>
+                                                <TableHead>Avg Rating</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {teacher.activityBySubject.map((subject) => (
+                                                <TableRow key={subject.subjectId}>
+                                                  <TableCell>{subject.subjectName}</TableCell>
+                                                  <TableCell>{subject.totalVideos}</TableCell>
+                                                  <TableCell>{subject.publishedVideos}</TableCell>
+                                                  <TableCell>
+                                                    <Badge
+                                                      className={getRatingColor(
+                                                        subject.averageRating
+                                                      )}
+                                                    >
+                                                      {subject.averageRating.toFixed(2)}
+                                                    </Badge>
+                                                  </TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                        </div>
+                                      )}
+                                    {teacher.activityByClass &&
+                                      teacher.activityByClass.length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold mb-2">Activity by Class</h4>
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>Class</TableHead>
+                                                <TableHead>Total Videos</TableHead>
+                                                <TableHead>Published</TableHead>
+                                                <TableHead>Avg Rating</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {teacher.activityByClass.map((classItem) => (
+                                                <TableRow key={classItem.classId}>
+                                                  <TableCell>{classItem.className}</TableCell>
+                                                  <TableCell>{classItem.totalVideos}</TableCell>
+                                                  <TableCell>{classItem.publishedVideos}</TableCell>
+                                                  <TableCell>
+                                                    <Badge
+                                                      className={getRatingColor(
+                                                        classItem.averageRating
+                                                      )}
+                                                    >
+                                                      {classItem.averageRating.toFixed(2)}
+                                                    </Badge>
+                                                  </TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                        </div>
+                                      )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -262,6 +475,7 @@ export default function TeacherPerformancePage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12"></TableHead>
                         <TableHead>Teacher</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Avg Rating</TableHead>
@@ -272,29 +486,126 @@ export default function TeacherPerformancePage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {report.teachers.map((teacher) => (
-                        <TableRow key={teacher.teacherId}>
-                          <TableCell className="font-medium">
-                            {teacher.teacherName}
-                          </TableCell>
-                          <TableCell>{teacher.teacherEmail}</TableCell>
-                          <TableCell>
-                            <Badge className={getRatingColor(teacher.averageRating)}>
-                              {teacher.averageRating.toFixed(2)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getTrendColor(teacher.trend)}>
-                              {getTrendIcon(teacher.trend)} {teacher.trend}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{teacher.totalVideos}</TableCell>
-                          <TableCell>{teacher.publishedVideos}</TableCell>
-                          <TableCell>
-                            {teacher.commentRate.toFixed(1)}%
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {report.teachers.map((teacher) => {
+                        const isExpanded = expandedTeachers.has(teacher.teacherId);
+                        const hasBreakdown =
+                          (teacher.activityBySubject && teacher.activityBySubject.length > 0) ||
+                          (teacher.activityByClass && teacher.activityByClass.length > 0);
+
+                        return (
+                          <React.Fragment key={teacher.teacherId}>
+                            <TableRow>
+                              <TableCell>
+                                {hasBreakdown && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleTeacherExpansion(teacher.teacherId)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    {isExpanded ? "−" : "+"}
+                                  </Button>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {teacher.teacherName}
+                              </TableCell>
+                              <TableCell>{teacher.teacherEmail}</TableCell>
+                              <TableCell>
+                                <Badge className={getRatingColor(teacher.averageRating)}>
+                                  {teacher.averageRating.toFixed(2)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={getTrendColor(teacher.trend)}>
+                                  {getTrendIcon(teacher.trend)} {teacher.trend}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{teacher.totalVideos}</TableCell>
+                              <TableCell>{teacher.publishedVideos}</TableCell>
+                              <TableCell>
+                                {teacher.commentRate.toFixed(1)}%
+                              </TableCell>
+                            </TableRow>
+                            {isExpanded && hasBreakdown && (
+                              <TableRow>
+                                <TableCell colSpan={8} className="bg-muted/30 p-4">
+                                  <div className="space-y-4">
+                                    {teacher.activityBySubject &&
+                                      teacher.activityBySubject.length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold mb-2">Activity by Subject</h4>
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>Subject</TableHead>
+                                                <TableHead>Total Videos</TableHead>
+                                                <TableHead>Published</TableHead>
+                                                <TableHead>Avg Rating</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {teacher.activityBySubject.map((subject) => (
+                                                <TableRow key={subject.subjectId}>
+                                                  <TableCell>{subject.subjectName}</TableCell>
+                                                  <TableCell>{subject.totalVideos}</TableCell>
+                                                  <TableCell>{subject.publishedVideos}</TableCell>
+                                                  <TableCell>
+                                                    <Badge
+                                                      className={getRatingColor(
+                                                        subject.averageRating
+                                                      )}
+                                                    >
+                                                      {subject.averageRating.toFixed(2)}
+                                                    </Badge>
+                                                  </TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                        </div>
+                                      )}
+                                    {teacher.activityByClass &&
+                                      teacher.activityByClass.length > 0 && (
+                                        <div>
+                                          <h4 className="font-semibold mb-2">Activity by Class</h4>
+                                          <Table>
+                                            <TableHeader>
+                                              <TableRow>
+                                                <TableHead>Class</TableHead>
+                                                <TableHead>Total Videos</TableHead>
+                                                <TableHead>Published</TableHead>
+                                                <TableHead>Avg Rating</TableHead>
+                                              </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                              {teacher.activityByClass.map((classItem) => (
+                                                <TableRow key={classItem.classId}>
+                                                  <TableCell>{classItem.className}</TableCell>
+                                                  <TableCell>{classItem.totalVideos}</TableCell>
+                                                  <TableCell>{classItem.publishedVideos}</TableCell>
+                                                  <TableCell>
+                                                    <Badge
+                                                      className={getRatingColor(
+                                                        classItem.averageRating
+                                                      )}
+                                                    >
+                                                      {classItem.averageRating.toFixed(2)}
+                                                    </Badge>
+                                                  </TableCell>
+                                                </TableRow>
+                                              ))}
+                                            </TableBody>
+                                          </Table>
+                                        </div>
+                                      )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>

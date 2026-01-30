@@ -22,6 +22,8 @@ import {
   ITimeTrend,
   IPendingVideosReport,
   IPendingVideo,
+  ITeacherActivityBySubject,
+  ITeacherActivityByClass,
 } from './reports.type';
 
 // Helper to build date filter
@@ -317,7 +319,89 @@ export const getTeacherPerformance = async (
     { $unwind: { path: '$teacherInfo', preserveNullAndEmptyArrays: true } },
   ]);
 
-  // Calculate trends for all teachers
+  // Helper function to get activity breakdown by subject
+  const getActivityBySubject = async (
+    teacherId: any,
+    dateFilter: any,
+  ): Promise<ITeacherActivityBySubject[]> => {
+    const subjectStats = await Video.aggregate([
+      {
+        $match: {
+          ...dateFilter,
+          teacher: teacherId,
+        },
+      },
+      {
+        $group: {
+          _id: '$subject',
+          totalVideos: { $sum: 1 },
+          publishedVideos: { $sum: { $cond: [{ $eq: ['$status', 'published'] }, 1, 0] } },
+          ratings: { $push: '$review.subjectKnowledge.rating' },
+        },
+      },
+      { $lookup: { from: 'subjects', localField: '_id', foreignField: '_id', as: 'subjectInfo' } },
+      { $unwind: { path: '$subjectInfo', preserveNullAndEmptyArrays: true } },
+    ]);
+
+    return subjectStats.map((stat) => {
+      const validRatings = stat.ratings.filter((r: any) => r != null);
+      const avgRating =
+        validRatings.length > 0
+          ? validRatings.reduce((a: number, b: number) => a + b, 0) / validRatings.length
+          : 0;
+
+      return {
+        subjectId: stat._id.toString(),
+        subjectName: stat.subjectInfo?.name || 'Unknown',
+        totalVideos: stat.totalVideos,
+        publishedVideos: stat.publishedVideos,
+        averageRating: Math.round(avgRating * 100) / 100,
+      };
+    });
+  };
+
+  // Helper function to get activity breakdown by class
+  const getActivityByClass = async (
+    teacherId: any,
+    dateFilter: any,
+  ): Promise<ITeacherActivityByClass[]> => {
+    const classStats = await Video.aggregate([
+      {
+        $match: {
+          ...dateFilter,
+          teacher: teacherId,
+        },
+      },
+      {
+        $group: {
+          _id: '$class',
+          totalVideos: { $sum: 1 },
+          publishedVideos: { $sum: { $cond: [{ $eq: ['$status', 'published'] }, 1, 0] } },
+          ratings: { $push: '$review.subjectKnowledge.rating' },
+        },
+      },
+      { $lookup: { from: 'classes', localField: '_id', foreignField: '_id', as: 'classInfo' } },
+      { $unwind: { path: '$classInfo', preserveNullAndEmptyArrays: true } },
+    ]);
+
+    return classStats.map((stat) => {
+      const validRatings = stat.ratings.filter((r: any) => r != null);
+      const avgRating =
+        validRatings.length > 0
+          ? validRatings.reduce((a: number, b: number) => a + b, 0) / validRatings.length
+          : 0;
+
+      return {
+        classId: stat._id.toString(),
+        className: stat.classInfo?.name || 'Unknown',
+        totalVideos: stat.totalVideos,
+        publishedVideos: stat.publishedVideos,
+        averageRating: Math.round(avgRating * 100) / 100,
+      };
+    });
+  };
+
+  // Calculate trends and activity breakdowns for all teachers
   const teachersWithTrends = await Promise.all(
     teacherStats.map(async (stat) => {
       const isActive = stat.teacherInfo?.active !== false; // Default to true if not found
@@ -351,8 +435,12 @@ export const getTeacherPerformance = async (
       const averageRating =
         allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 0;
 
-      // Calculate dynamic trend
-      const trend = await calculateTrend(stat._id, dateFilter, averageRating);
+      // Calculate dynamic trend and activity breakdowns in parallel
+      const [trend, activityBySubject, activityByClass] = await Promise.all([
+        calculateTrend(stat._id, dateFilter, averageRating),
+        getActivityBySubject(stat._id, dateFilter),
+        getActivityByClass(stat._id, dateFilter),
+      ]);
 
       return {
         teacherId: stat._id.toString(),
@@ -377,6 +465,8 @@ export const getTeacherPerformance = async (
         trend,
         commentRate:
           stat.publishedVideos > 0 ? (stat.commentsCount / stat.publishedVideos) * 100 : 0,
+        activityBySubject,
+        activityByClass,
         isActive, // Store active status
       };
     }),

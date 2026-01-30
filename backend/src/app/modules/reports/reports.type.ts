@@ -35,6 +35,22 @@ export interface ITurnaroundTimeReport {
   totalCycleTime: ITurnaroundTime;
 }
 
+export interface ITeacherActivityBySubject {
+  subjectId: string;
+  subjectName: string;
+  totalVideos: number;
+  publishedVideos: number;
+  averageRating: number;
+}
+
+export interface ITeacherActivityByClass {
+  classId: string;
+  className: string;
+  totalVideos: number;
+  publishedVideos: number;
+  averageRating: number;
+}
+
 export interface ITeacherPerformanceScore {
   teacherId: string;
   teacherName: string;
@@ -54,6 +70,8 @@ export interface ITeacherPerformanceScore {
   };
   trend: 'improving' | 'declining' | 'stable';
   commentRate: number; // percentage of published videos with teacher comments
+  activityBySubject?: ITeacherActivityBySubject[];
+  activityByClass?: ITeacherActivityByClass[];
 }
 
 export interface ITeacherPerformanceReport {
