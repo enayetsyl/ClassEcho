@@ -23,4 +23,5 @@ router.get('/time-trends', auth_middleware_1.requireAuth, (0, auth_middleware_1.
 router.get('/operational-efficiency', auth_middleware_1.requireAuth, (0, auth_middleware_1.requireRole)(reportRoles), (0, validate_request_1.default)(reports_validation_1.getOperationalEfficiencyValidation), reports_controller_1.ReportsControllers.getOperationalEfficiency);
 router.get('/quality-metrics', auth_middleware_1.requireAuth, (0, auth_middleware_1.requireRole)(reportRoles), (0, validate_request_1.default)(reports_validation_1.getQualityMetricsValidation), reports_controller_1.ReportsControllers.getQualityMetrics);
 router.get('/dashboard', auth_middleware_1.requireAuth, (0, auth_middleware_1.requireRole)(reportRoles), (0, validate_request_1.default)(reports_validation_1.getManagementDashboardValidation), reports_controller_1.ReportsControllers.getManagementDashboard);
+router.get('/pending-videos', auth_middleware_1.requireAuth, (0, auth_middleware_1.requireRole)(reportRoles), (0, validate_request_1.default)(reports_validation_1.getPendingVideosValidation), reports_controller_1.ReportsControllers.getPendingVideos);
 exports.ReportsRoutes = router;

@@ -1,7 +1,7 @@
 "use strict";
 // src/app/modules/reports/reports.validation.ts
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getManagementDashboardValidation = exports.getQualityMetricsValidation = exports.getOperationalEfficiencyValidation = exports.getTimeTrendsValidation = exports.getLanguageReviewComplianceValidation = exports.getClassAnalyticsValidation = exports.getSubjectAnalyticsValidation = exports.getReviewerProductivityValidation = exports.getTeacherPerformanceValidation = exports.getTurnaroundTimeValidation = exports.getStatusDistributionValidation = void 0;
+exports.getPendingVideosValidation = exports.getManagementDashboardValidation = exports.getQualityMetricsValidation = exports.getOperationalEfficiencyValidation = exports.getTimeTrendsValidation = exports.getLanguageReviewComplianceValidation = exports.getClassAnalyticsValidation = exports.getSubjectAnalyticsValidation = exports.getReviewerProductivityValidation = exports.getTeacherPerformanceValidation = exports.getTurnaroundTimeValidation = exports.getStatusDistributionValidation = void 0;
 const zod_1 = require("zod");
 const dateRangeValidation = zod_1.z.object({
     query: zod_1.z.object({
@@ -38,3 +38,4 @@ exports.getTimeTrendsValidation = zod_1.z.object({
 exports.getOperationalEfficiencyValidation = dateRangeValidation;
 exports.getQualityMetricsValidation = dateRangeValidation;
 exports.getManagementDashboardValidation = dateRangeValidation;
+exports.getPendingVideosValidation = dateRangeValidation;

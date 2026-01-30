@@ -9,8 +9,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ReportsServices = exports.getManagementDashboard = exports.getQualityMetrics = exports.getOperationalEfficiency = exports.getTimeTrends = exports.getLanguageReviewCompliance = exports.getClassAnalytics = exports.getSubjectAnalytics = exports.getReviewerProductivity = exports.getTeacherPerformance = exports.getTurnaroundTime = exports.getStatusDistribution = void 0;
+exports.ReportsServices = exports.getPendingVideos = exports.getManagementDashboard = exports.getQualityMetrics = exports.getOperationalEfficiency = exports.getTimeTrends = exports.getLanguageReviewCompliance = exports.getClassAnalytics = exports.getSubjectAnalytics = exports.getReviewerProductivity = exports.getTeacherPerformance = exports.getTurnaroundTime = exports.getStatusDistribution = void 0;
 const video_model_1 = require("../master/video/video.model");
 const user_model_1 = require("../user/user.model");
 // Helper to build date filter
@@ -119,6 +130,125 @@ const getTurnaroundTime = (...args_1) => __awaiter(void 0, [...args_1], void 0, 
     };
 });
 exports.getTurnaroundTime = getTurnaroundTime;
+// Helper function to calculate trend based on historical comparison
+const calculateTrend = (teacherId, // Can be ObjectId or string
+currentPeriodFilter, currentAverage) => __awaiter(void 0, void 0, void 0, function* () {
+    // Determine previous period based on current filter
+    let previousPeriodFilter = {};
+    if (currentPeriodFilter.date) {
+        // If date range is provided, calculate previous period of same duration
+        const dateFrom = currentPeriodFilter.date.$gte;
+        const dateTo = currentPeriodFilter.date.$lte;
+        if (dateFrom && dateTo) {
+            const periodDuration = dateTo.getTime() - dateFrom.getTime();
+            const previousDateTo = new Date(dateFrom.getTime() - 1); // Day before current period starts
+            const previousDateFrom = new Date(previousDateTo.getTime() - periodDuration);
+            previousPeriodFilter = {
+                date: {
+                    $gte: previousDateFrom,
+                    $lte: previousDateTo,
+                },
+            };
+        }
+        else if (dateFrom) {
+            // Only start date provided - use 30 days before
+            const previousDateTo = new Date(dateFrom.getTime() - 1);
+            const previousDateFrom = new Date(previousDateTo.getTime() - 30 * 24 * 60 * 60 * 1000);
+            previousPeriodFilter = {
+                date: {
+                    $gte: previousDateFrom,
+                    $lte: previousDateTo,
+                },
+            };
+        }
+        else if (dateTo) {
+            // Only end date provided - use 30 days before
+            const previousDateTo = new Date(dateTo.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const previousDateFrom = new Date(previousDateTo.getTime() - 30 * 24 * 60 * 60 * 1000);
+            previousPeriodFilter = {
+                date: {
+                    $gte: previousDateFrom,
+                    $lte: previousDateTo,
+                },
+            };
+        }
+        else {
+            // No date filter - compare last 30 days vs previous 30 days
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+            previousPeriodFilter = {
+                date: {
+                    $gte: sixtyDaysAgo,
+                    $lte: thirtyDaysAgo,
+                },
+            };
+        }
+    }
+    else {
+        // No date filter - compare last 30 days vs previous 30 days
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+        previousPeriodFilter = {
+            date: {
+                $gte: sixtyDaysAgo,
+                $lte: thirtyDaysAgo,
+            },
+        };
+    }
+    // Get previous period ratings for this teacher
+    const previousPeriodStats = yield video_model_1.Video.aggregate([
+        {
+            $match: Object.assign(Object.assign({}, previousPeriodFilter), { teacher: teacherId, review: { $exists: true, $ne: null } }),
+        },
+        {
+            $group: {
+                _id: '$teacher',
+                ratings: {
+                    $push: {
+                        subjectKnowledge: '$review.subjectKnowledge.rating',
+                        engagementWithStudents: '$review.engagementWithStudents.rating',
+                        useOfTeachingAids: '$review.useOfTeachingAids.rating',
+                        interactionAndQuestionHandling: '$review.interactionAndQuestionHandling.rating',
+                        studentDiscipline: '$review.studentDiscipline.rating',
+                        teachersControlOverClass: '$review.teachersControlOverClass.rating',
+                        participationLevelOfStudents: '$review.participationLevelOfStudents.rating',
+                        completionOfPlannedSyllabus: '$review.completionOfPlannedSyllabus.rating',
+                    },
+                },
+            },
+        },
+    ]);
+    if (previousPeriodStats.length === 0) {
+        // No previous data available
+        return 'stable';
+    }
+    const previousRatings = [];
+    previousPeriodStats[0].ratings.forEach((rating) => {
+        Object.values(rating).forEach((value) => {
+            if (typeof value === 'number' && value > 0) {
+                previousRatings.push(value);
+            }
+        });
+    });
+    if (previousRatings.length === 0) {
+        return 'stable';
+    }
+    const previousAverage = previousRatings.reduce((a, b) => a + b, 0) / previousRatings.length;
+    // Calculate trend with threshold to avoid noise (0.1 difference)
+    const difference = currentAverage - previousAverage;
+    const threshold = 0.1;
+    if (difference > threshold) {
+        return 'improving';
+    }
+    else if (difference < -threshold) {
+        return 'declining';
+    }
+    else {
+        return 'stable';
+    }
+});
 // 3. Teacher Performance Report
 const getTeacherPerformance = (...args_1) => __awaiter(void 0, [...args_1], void 0, function* (filters = {}) {
     const dateFilter = buildDateFilter(filters);
@@ -149,8 +279,74 @@ const getTeacherPerformance = (...args_1) => __awaiter(void 0, [...args_1], void
         { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'teacherInfo' } },
         { $unwind: { path: '$teacherInfo', preserveNullAndEmptyArrays: true } },
     ]);
-    const teachers = teacherStats.map((stat) => {
-        var _a, _b;
+    // Helper function to get activity breakdown by subject
+    const getActivityBySubject = (teacherId, dateFilter) => __awaiter(void 0, void 0, void 0, function* () {
+        const subjectStats = yield video_model_1.Video.aggregate([
+            {
+                $match: Object.assign(Object.assign({}, dateFilter), { teacher: teacherId }),
+            },
+            {
+                $group: {
+                    _id: '$subject',
+                    totalVideos: { $sum: 1 },
+                    publishedVideos: { $sum: { $cond: [{ $eq: ['$status', 'published'] }, 1, 0] } },
+                    ratings: { $push: '$review.subjectKnowledge.rating' },
+                },
+            },
+            { $lookup: { from: 'subjects', localField: '_id', foreignField: '_id', as: 'subjectInfo' } },
+            { $unwind: { path: '$subjectInfo', preserveNullAndEmptyArrays: true } },
+        ]);
+        return subjectStats.map((stat) => {
+            var _a;
+            const validRatings = stat.ratings.filter((r) => r != null);
+            const avgRating = validRatings.length > 0
+                ? validRatings.reduce((a, b) => a + b, 0) / validRatings.length
+                : 0;
+            return {
+                subjectId: stat._id.toString(),
+                subjectName: ((_a = stat.subjectInfo) === null || _a === void 0 ? void 0 : _a.name) || 'Unknown',
+                totalVideos: stat.totalVideos,
+                publishedVideos: stat.publishedVideos,
+                averageRating: Math.round(avgRating * 100) / 100,
+            };
+        });
+    });
+    // Helper function to get activity breakdown by class
+    const getActivityByClass = (teacherId, dateFilter) => __awaiter(void 0, void 0, void 0, function* () {
+        const classStats = yield video_model_1.Video.aggregate([
+            {
+                $match: Object.assign(Object.assign({}, dateFilter), { teacher: teacherId }),
+            },
+            {
+                $group: {
+                    _id: '$class',
+                    totalVideos: { $sum: 1 },
+                    publishedVideos: { $sum: { $cond: [{ $eq: ['$status', 'published'] }, 1, 0] } },
+                    ratings: { $push: '$review.subjectKnowledge.rating' },
+                },
+            },
+            { $lookup: { from: 'classes', localField: '_id', foreignField: '_id', as: 'classInfo' } },
+            { $unwind: { path: '$classInfo', preserveNullAndEmptyArrays: true } },
+        ]);
+        return classStats.map((stat) => {
+            var _a;
+            const validRatings = stat.ratings.filter((r) => r != null);
+            const avgRating = validRatings.length > 0
+                ? validRatings.reduce((a, b) => a + b, 0) / validRatings.length
+                : 0;
+            return {
+                classId: stat._id.toString(),
+                className: ((_a = stat.classInfo) === null || _a === void 0 ? void 0 : _a.name) || 'Unknown',
+                totalVideos: stat.totalVideos,
+                publishedVideos: stat.publishedVideos,
+                averageRating: Math.round(avgRating * 100) / 100,
+            };
+        });
+    });
+    // Calculate trends and activity breakdowns for all teachers
+    const teachersWithTrends = yield Promise.all(teacherStats.map((stat) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a, _b, _c;
+        const isActive = ((_a = stat.teacherInfo) === null || _a === void 0 ? void 0 : _a.active) !== false; // Default to true if not found
         const allRatings = [];
         const criteriaTotals = {
             subjectKnowledge: [],
@@ -176,10 +372,16 @@ const getTeacherPerformance = (...args_1) => __awaiter(void 0, [...args_1], void
             criteriaScores[key] = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
         });
         const averageRating = allRatings.length > 0 ? allRatings.reduce((a, b) => a + b, 0) / allRatings.length : 0;
+        // Calculate dynamic trend and activity breakdowns in parallel
+        const [trend, activityBySubject, activityByClass] = yield Promise.all([
+            calculateTrend(stat._id, dateFilter, averageRating),
+            getActivityBySubject(stat._id, dateFilter),
+            getActivityByClass(stat._id, dateFilter),
+        ]);
         return {
             teacherId: stat._id.toString(),
-            teacherName: ((_a = stat.teacherInfo) === null || _a === void 0 ? void 0 : _a.name) || 'Unknown',
-            teacherEmail: ((_b = stat.teacherInfo) === null || _b === void 0 ? void 0 : _b.email) || '',
+            teacherName: ((_b = stat.teacherInfo) === null || _b === void 0 ? void 0 : _b.name) || 'Unknown',
+            teacherEmail: ((_c = stat.teacherInfo) === null || _c === void 0 ? void 0 : _c.email) || '',
             totalVideos: stat.totalVideos,
             publishedVideos: stat.publishedVideos,
             averageRating: Math.round(averageRating * 100) / 100,
@@ -193,21 +395,58 @@ const getTeacherPerformance = (...args_1) => __awaiter(void 0, [...args_1], void
                 participationLevelOfStudents: Math.round(criteriaScores.participationLevelOfStudents * 100) / 100,
                 completionOfPlannedSyllabus: Math.round(criteriaScores.completionOfPlannedSyllabus * 100) / 100,
             },
-            trend: 'stable', // Simplified - would need historical data
+            trend,
             commentRate: stat.publishedVideos > 0 ? (stat.commentsCount / stat.publishedVideos) * 100 : 0,
+            activityBySubject,
+            activityByClass,
+            isActive, // Store active status
         };
+    })));
+    const teachers = teachersWithTrends;
+    // Separate active and deactivated teachers
+    const activeTeachers = [];
+    const deactivatedTeachers = [];
+    teachers.forEach((teacher) => {
+        if (teacher.isActive) {
+            activeTeachers.push(teacher);
+        }
+        else {
+            deactivatedTeachers.push(teacher);
+        }
     });
-    const overallAverage = teachers.length > 0
-        ? teachers.reduce((sum, t) => sum + t.averageRating, 0) / teachers.length
+    const sortedActive = [...activeTeachers].sort((a, b) => b.averageRating - a.averageRating);
+    const topPerformers = sortedActive.slice(0, Math.min(5, sortedActive.length));
+    const needsImprovement = sortedActive.slice(-Math.min(5, sortedActive.length)).reverse();
+    // Calculate overall average only for active teachers
+    const activeOverallAverage = activeTeachers.length > 0
+        ? activeTeachers.reduce((sum, t) => sum + t.averageRating, 0) / activeTeachers.length
         : 0;
-    const sorted = [...teachers].sort((a, b) => b.averageRating - a.averageRating);
-    const topPerformers = sorted.slice(0, Math.min(5, sorted.length));
-    const needsImprovement = sorted.slice(-Math.min(5, sorted.length)).reverse();
+    // Remove isActive from teacher objects before returning
+    const cleanTeachers = teachers.map((_a) => {
+        var { isActive } = _a, rest = __rest(_a, ["isActive"]);
+        return rest;
+    });
+    const cleanActiveTeachers = activeTeachers.map((_a) => {
+        var { isActive } = _a, rest = __rest(_a, ["isActive"]);
+        return rest;
+    });
+    const cleanDeactivatedTeachers = deactivatedTeachers.map((_a) => {
+        var { isActive } = _a, rest = __rest(_a, ["isActive"]);
+        return rest;
+    });
     return {
-        teachers,
-        overallAverage: Math.round(overallAverage * 100) / 100,
-        topPerformers,
-        needsImprovement,
+        teachers: cleanActiveTeachers, // Keep for backward compatibility (only active)
+        activeTeachers: cleanActiveTeachers,
+        deactivatedTeachers: cleanDeactivatedTeachers,
+        overallAverage: Math.round(activeOverallAverage * 100) / 100,
+        topPerformers: topPerformers.map((_a) => {
+            var { isActive } = _a, rest = __rest(_a, ["isActive"]);
+            return rest;
+        }),
+        needsImprovement: needsImprovement.map((_a) => {
+            var { isActive } = _a, rest = __rest(_a, ["isActive"]);
+            return rest;
+        }),
     };
 });
 exports.getTeacherPerformance = getTeacherPerformance;
@@ -226,7 +465,8 @@ const getReviewerProductivity = (...args_1) => __awaiter(void 0, [...args_1], vo
                 reviews: {
                     $push: {
                         reviewedAt: '$review.reviewedAt',
-                        assignedAt: '$updatedAt', // Approximation
+                        createdAt: '$createdAt',
+                        updatedAt: '$updatedAt',
                     },
                 },
             },
@@ -245,9 +485,27 @@ const getReviewerProductivity = (...args_1) => __awaiter(void 0, [...args_1], vo
         stat.reviews.forEach((review) => {
             if (review.reviewedAt) {
                 const reviewedDate = new Date(review.reviewedAt);
-                const assignedDate = review.assignedAt ? new Date(review.assignedAt) : reviewedDate;
+                const createdAt = review.createdAt ? new Date(review.createdAt) : reviewedDate;
+                const updatedAt = review.updatedAt ? new Date(review.updatedAt) : reviewedDate;
+                // Determine assignment date:
+                // 1. If updatedAt is before reviewedAt, it might be from assignment (but could be from earlier updates)
+                // 2. Use the earlier of createdAt or updatedAt (before review) as assignment approximation
+                // 3. Videos are typically assigned soon after creation, so createdAt is a reasonable approximation
+                let assignedDate;
+                if (updatedAt < reviewedDate && updatedAt > createdAt) {
+                    // updatedAt is between creation and review - likely the assignment time
+                    assignedDate = updatedAt;
+                }
+                else {
+                    // Use createdAt as fallback (videos assigned soon after creation)
+                    // This is more reliable than updatedAt which can be after review (when published)
+                    assignedDate = createdAt;
+                }
                 const days = (reviewedDate.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
-                completionTimes.push(days);
+                // Only include positive or zero values (sanity check)
+                if (days >= 0) {
+                    completionTimes.push(days);
+                }
                 if (reviewedDate.getMonth() === currentMonth &&
                     reviewedDate.getFullYear() === currentYear) {
                     reviewsThisMonth++;
@@ -659,6 +917,79 @@ const getManagementDashboard = (...args_1) => __awaiter(void 0, [...args_1], voi
     };
 });
 exports.getManagementDashboard = getManagementDashboard;
+// 12. Pending Videos Report
+const getPendingVideos = (...args_1) => __awaiter(void 0, [...args_1], void 0, function* (filters = {}) {
+    const dateFilter = buildDateFilter(filters);
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    // Get videos pending review (assigned but not reviewed)
+    const pendingReviewVideos = yield video_model_1.Video.find(Object.assign(Object.assign({}, dateFilter), { status: 'assigned' }))
+        .populate('teacher', 'name email')
+        .populate('assignedReviewer', 'name email')
+        .populate('class', 'name')
+        .populate('section', 'name')
+        .populate('subject', 'name')
+        .lean();
+    // Get videos pending publication (reviewed but not published)
+    const pendingPublicationVideos = yield video_model_1.Video.find(Object.assign(Object.assign({}, dateFilter), { status: 'reviewed' }))
+        .populate('teacher', 'name email')
+        .populate('assignedReviewer', 'name email')
+        .populate('class', 'name')
+        .populate('section', 'name')
+        .populate('subject', 'name')
+        .lean();
+    const mapPendingVideo = (video) => {
+        var _a, _b, _c, _d, _e, _f, _g;
+        const updatedAt = new Date(video.updatedAt);
+        const daysInStatus = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24);
+        return {
+            videoId: video._id.toString(),
+            teacherName: ((_a = video.teacher) === null || _a === void 0 ? void 0 : _a.name) || 'Unknown',
+            teacherEmail: ((_b = video.teacher) === null || _b === void 0 ? void 0 : _b.email) || '',
+            className: ((_c = video.class) === null || _c === void 0 ? void 0 : _c.name) || 'Unknown',
+            sectionName: ((_d = video.section) === null || _d === void 0 ? void 0 : _d.name) || 'Unknown',
+            subjectName: ((_e = video.subject) === null || _e === void 0 ? void 0 : _e.name) || 'Unknown',
+            date: video.date,
+            youtubeUrl: video.youtubeUrl,
+            assignedReviewerName: (_f = video.assignedReviewer) === null || _f === void 0 ? void 0 : _f.name,
+            assignedReviewerEmail: (_g = video.assignedReviewer) === null || _g === void 0 ? void 0 : _g.email,
+            daysInStatus: Math.round(daysInStatus * 100) / 100,
+            status: video.status,
+            createdAt: video.createdAt,
+            updatedAt: video.updatedAt,
+        };
+    };
+    const pendingReviewMapped = pendingReviewVideos.map(mapPendingVideo);
+    const pendingPublicationMapped = pendingPublicationVideos.map(mapPendingVideo);
+    // Calculate averages and SLA violations
+    const reviewDays = pendingReviewMapped.map((v) => v.daysInStatus);
+    const publicationDays = pendingPublicationMapped.map((v) => v.daysInStatus);
+    const avgReviewDays = reviewDays.length > 0 ? reviewDays.reduce((a, b) => a + b, 0) / reviewDays.length : 0;
+    const avgPublicationDays = publicationDays.length > 0
+        ? publicationDays.reduce((a, b) => a + b, 0) / publicationDays.length
+        : 0;
+    const reviewExceedingSLA = pendingReviewMapped.filter((v) => new Date(v.updatedAt) < sevenDaysAgo).length;
+    const publicationExceedingSLA = pendingPublicationMapped.filter((v) => new Date(v.updatedAt) < threeDaysAgo).length;
+    // Sort by days in status (oldest first)
+    pendingReviewMapped.sort((a, b) => b.daysInStatus - a.daysInStatus);
+    pendingPublicationMapped.sort((a, b) => b.daysInStatus - a.daysInStatus);
+    return {
+        pendingReview: {
+            total: pendingReviewMapped.length,
+            videos: pendingReviewMapped,
+            averageDays: Math.round(avgReviewDays * 100) / 100,
+            exceedingSLA: reviewExceedingSLA,
+        },
+        pendingPublication: {
+            total: pendingPublicationMapped.length,
+            videos: pendingPublicationMapped,
+            averageDays: Math.round(avgPublicationDays * 100) / 100,
+            exceedingSLA: publicationExceedingSLA,
+        },
+    };
+});
+exports.getPendingVideos = getPendingVideos;
 exports.ReportsServices = {
     getStatusDistribution: exports.getStatusDistribution,
     getTurnaroundTime: exports.getTurnaroundTime,
@@ -671,4 +1002,5 @@ exports.ReportsServices = {
     getOperationalEfficiency: exports.getOperationalEfficiency,
     getQualityMetrics: exports.getQualityMetrics,
     getManagementDashboard: exports.getManagementDashboard,
+    getPendingVideos: exports.getPendingVideos,
 };
