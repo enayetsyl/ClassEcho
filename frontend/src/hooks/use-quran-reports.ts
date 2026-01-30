@@ -23,6 +23,8 @@ import {
   IProgressReport,
   IQuranComparativeFilters,
   IComparativeReport,
+  IQuranAlertsFilters,
+  IAlertsReport,
 } from "@/types/quran.types";
 import * as quranReportsService from "@/services/quran-reports.service";
 import { isValidMongoId } from "@/lib/validation";
@@ -157,4 +159,10 @@ export const useComparativeReportQuery = (params?: IQuranComparativeFilters) =>
   useQuery<IComparativeReport, Error>({
     queryKey: ["quran-report-comparative", params],
     queryFn: () => quranReportsService.getComparativeReport(params),
+  });
+
+export const useAlertsReportQuery = (params?: IQuranAlertsFilters) =>
+  useQuery<IAlertsReport, Error>({
+    queryKey: ["quran-report-alerts", params],
+    queryFn: () => quranReportsService.getAlertsReport(params),
   });

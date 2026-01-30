@@ -157,3 +157,31 @@ const comparativeReportQuery = reportFiltersBase
 export const getComparativeReportValidation = z.object({
   query: comparativeReportQuery,
 });
+
+const alertsReportQuery = z
+  .object({
+    class: z.string().optional(),
+    riskLevel: z.enum(['low', 'medium', 'high', 'critical', 'all']).optional(),
+    limit: z.string().optional().transform((v) => (v ? parseInt(v, 10) : undefined)),
+    startDate: z
+      .string()
+      .optional()
+      .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid startDate' }),
+    endDate: z
+      .string()
+      .optional()
+      .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid endDate' }),
+  })
+  .refine(
+    (data) => {
+      if (!data.startDate || !data.endDate) return true;
+      const start = Date.parse(data.startDate);
+      const end = Date.parse(data.endDate);
+      return !isNaN(start) && !isNaN(end) && start <= end;
+    },
+    { message: 'startDate must be before or equal to endDate', path: ['startDate'] },
+  );
+
+export const getAlertsReportValidation = z.object({
+  query: alertsReportQuery,
+});

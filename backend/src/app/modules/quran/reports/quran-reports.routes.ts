@@ -23,6 +23,7 @@ import {
   getConsistencyReportValidation,
   getProgressReportValidation,
   getComparativeReportValidation,
+  getAlertsReportValidation,
 } from './quran-reports.validation';
 import { QuranReportsControllers } from './quran-reports.controller';
 
@@ -165,6 +166,14 @@ router.get(
   requireRole(reportRoles),
   validateRequest(getComparativeReportValidation),
   QuranReportsControllers.getComparativeReport,
+);
+
+router.get(
+  '/alerts',
+  requireAuth,
+  requireRole(reportRoles),
+  validateRequest(getAlertsReportValidation),
+  QuranReportsControllers.getAlertsReport,
 );
 
 export const QuranReportsRoutes = router;

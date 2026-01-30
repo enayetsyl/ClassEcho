@@ -195,6 +195,27 @@ const getComparativeReport = (0, catch_async_1.default)((req, res) => __awaiter(
     const data = yield quran_reports_service_1.QuranReportsServices.getComparativeReport(filters);
     (0, send_response_1.default)(res, { statusCode: 200, success: true, message: 'Comparative report retrieved successfully', data });
 }));
+function getAlertsFilters(req) {
+    const query = req.query;
+    const result = {};
+    if (query.class)
+        result.class = query.class;
+    if (query.riskLevel === 'low' || query.riskLevel === 'medium' || query.riskLevel === 'high' || query.riskLevel === 'critical' || query.riskLevel === 'all') {
+        result.riskLevel = query.riskLevel;
+    }
+    if (query.limit)
+        result.limit = parseInt(query.limit, 10) || 20;
+    if (query.startDate)
+        result.startDate = query.startDate;
+    if (query.endDate)
+        result.endDate = query.endDate;
+    return result;
+}
+const getAlertsReport = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const filters = getAlertsFilters(req);
+    const data = yield quran_reports_service_1.QuranReportsServices.getAlertsReport(filters);
+    (0, send_response_1.default)(res, { statusCode: 200, success: true, message: 'Alerts report retrieved successfully', data });
+}));
 exports.QuranReportsControllers = {
     getOverallReport,
     getWeeklySummary,
@@ -214,4 +235,5 @@ exports.QuranReportsControllers = {
     getConsistencyReport,
     getProgressReport,
     getComparativeReport,
+    getAlertsReport,
 };

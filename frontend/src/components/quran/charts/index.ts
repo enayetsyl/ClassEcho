@@ -75,3 +75,6 @@ export type { UstadEffectivenessChartProps } from "./UstadEffectivenessChart";
 
 export { DistributionHistogram } from "./DistributionHistogram";
 export type { DistributionHistogramProps } from "./DistributionHistogram";
+
+export { RiskScoreGauge } from "./RiskScoreGauge";
+export type { RiskScoreGaugeProps, RiskLevel } from "./RiskScoreGauge";

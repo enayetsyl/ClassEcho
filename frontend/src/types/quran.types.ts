@@ -479,6 +479,64 @@ export interface IComparativeReport {
   };
 }
 
+/** Filters for alerts report (7.5) */
+export interface IQuranAlertsFilters {
+  class?: string;
+  riskLevel?: "low" | "medium" | "high" | "critical" | "all";
+  limit?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+/** Alerts report (7.5) */
+export interface IAlertsReport {
+  summary: {
+    totalStudents: number;
+    lowRisk: number;
+    mediumRisk: number;
+    highRisk: number;
+    criticalRisk: number;
+  };
+  alerts: Array<{
+    student: IQuranStudent;
+    riskScore: number;
+    riskLevel: "low" | "medium" | "high" | "critical";
+    factors: {
+      attendanceDecline: { value: number; description: string };
+      mistakesIncrease: { value: number; description: string };
+      streakBroken: { value: boolean; description: string };
+      recentGaps: { value: number; description: string };
+      tajweedSeverity: { value: number; description: string };
+    };
+    recommendations: Array<{
+      action: string;
+      priority: "immediate" | "soon" | "routine";
+      assignTo: "ustad" | "admin" | "parent";
+    }>;
+    history: {
+      previousRiskLevel: string;
+      riskTrend: "increasing" | "decreasing" | "stable";
+      lastAlertDate: string | null;
+    };
+  }>;
+  focusRecommendations: Array<{
+    student: IQuranStudent;
+    content: Array<{
+      type: "surah" | "juz";
+      number: number;
+      name: string;
+      reason: string;
+      priority: "high" | "medium" | "low";
+    }>;
+  }>;
+  interventions: Array<{
+    student: IQuranStudent;
+    date: string;
+    type: string;
+    outcome: "successful" | "ongoing" | "unsuccessful";
+  }>;
+}
+
 // ----- Reference (Surah / Juz) -----
 export interface ISurahInfo {
   number: number;

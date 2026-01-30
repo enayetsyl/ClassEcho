@@ -33,6 +33,8 @@ import {
   IProgressReport,
   TQuranComparativeFilters,
   IComparativeReport,
+  TQuranAlertsFilters,
+  IAlertsReport,
 } from './quran-reports.type';
 import { getSurahByNumber } from '../reference/surah-data';
 import { IQuranStudent } from '../student/quran-student.type';
@@ -2688,6 +2690,284 @@ export const getComparativeReport = async (
   };
 };
 
+// ---------- 7.5 Predictive Metrics & Alerts ----------
+
+const ALERTS_CURRENT_WEEKS = 4;
+const ALERTS_PREVIOUS_WEEKS = 4;
+
+function getAlertsDateRanges(filters: TQuranAlertsFilters): { currentStart: Date; currentEnd: Date; previousStart: Date; previousEnd: Date } {
+  const now = new Date();
+  let currentEnd: Date;
+  let currentStart: Date;
+  if (filters.startDate && filters.endDate) {
+    currentStart = new Date(filters.startDate);
+    currentEnd = new Date(filters.endDate);
+  } else {
+    currentEnd = new Date(now);
+    currentStart = new Date(now);
+    currentStart.setDate(currentStart.getDate() - ALERTS_CURRENT_WEEKS * 7);
+  }
+  const previousEnd = new Date(currentStart);
+  previousEnd.setDate(previousEnd.getDate() - 1);
+  const previousStart = new Date(previousEnd);
+  previousStart.setDate(previousStart.getDate() - ALERTS_PREVIOUS_WEEKS * 7);
+  return { currentStart, currentEnd, previousStart, previousEnd };
+}
+
+/** Risk factors for score calculation (plan 7.5.1) */
+interface IRiskFactors {
+  attendanceDecline: number;
+  mistakesIncrease: number;
+  streakBroken: boolean;
+  recentGaps: number;
+  tajweedSeverity: number;
+}
+
+function calculateRiskScore(factors: IRiskFactors): number {
+  const WEIGHTS = {
+    attendanceDecline: 0.25,
+    mistakesIncrease: 0.3,
+    streakBroken: 0.15,
+    recentGaps: 0.2,
+    tajweedSeverity: 0.1,
+  };
+  let riskScore = 0;
+  riskScore += Math.min(factors.attendanceDecline * 2, 100) * WEIGHTS.attendanceDecline;
+  riskScore += Math.min(factors.mistakesIncrease * 2, 100) * WEIGHTS.mistakesIncrease;
+  riskScore += (factors.streakBroken ? 100 : 0) * WEIGHTS.streakBroken;
+  riskScore += Math.min(factors.recentGaps * 25, 100) * WEIGHTS.recentGaps;
+  riskScore += Math.min(factors.tajweedSeverity, 100) * WEIGHTS.tajweedSeverity;
+  return Math.round(riskScore);
+}
+
+function getRiskLevel(score: number): 'low' | 'medium' | 'high' | 'critical' {
+  if (score < 25) return 'low';
+  if (score < 50) return 'medium';
+  if (score < 75) return 'high';
+  return 'critical';
+}
+
+/** Alerts report (7.5): risk scores, factors, recommendations */
+export const getAlertsReport = async (filters: TQuranAlertsFilters): Promise<IAlertsReport> => {
+  const { currentStart, currentEnd, previousStart, previousEnd } = getAlertsDateRanges(filters);
+  const limit = Math.min(filters.limit ?? 20, 100);
+  const studentMatch: Record<string, unknown> = { 'studentDoc.active': true };
+  if (filters.class) (studentMatch as Record<string, unknown>)['studentDoc.class'] = filters.class;
+
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        reportDate: { $gte: previousStart, $lte: currentEnd },
+      },
+    },
+    {
+      $lookup: {
+        from: 'quranstudents',
+        localField: 'student',
+        foreignField: '_id',
+        as: 'studentDoc',
+      },
+    },
+    { $unwind: '$studentDoc' },
+    { $match: studentMatch },
+    {
+      $group: {
+        _id: '$student',
+        studentDoc: { $first: '$studentDoc' },
+        entries: {
+          $push: {
+            reportDate: '$reportDate',
+            totalMistakes: '$totalMistakes',
+            testsGiven: '$testsGiven',
+            tajweedNotes: '$tajweedNotes',
+          },
+        },
+      },
+    },
+  ];
+
+  type EntryRow = {
+    reportDate: Date;
+    totalMistakes: number;
+    testsGiven: number;
+    tajweedNotes?: { harf?: string; ghunna?: string; madd?: string; other?: string };
+  };
+
+  const grouped = await QuranEntry.aggregate<{
+    _id: Types.ObjectId;
+    studentDoc: IQuranStudent & { _id: Types.ObjectId };
+    entries: EntryRow[];
+  }>(pipeline);
+
+  const alerts: IAlertsReport['alerts'] = [];
+  const allWeeksCurrent = getAllWeeksInRange(currentStart, currentEnd);
+  const allWeeksPrevious = getAllWeeksInRange(previousStart, previousEnd);
+
+  for (const row of grouped) {
+    const entries = row.entries as EntryRow[];
+    const student = row.studentDoc;
+    const currentEntries = entries.filter((e) => e.reportDate >= currentStart && e.reportDate <= currentEnd);
+    const previousEntries = entries.filter((e) => e.reportDate >= previousStart && e.reportDate <= previousEnd);
+
+    const weeksWithEntryCurrent = new Set(
+      currentEntries.map((e) => getWeekStart(new Date(e.reportDate)).toISOString().slice(0, 10)),
+    );
+    const weeksWithEntryPrevious = new Set(
+      previousEntries.map((e) => getWeekStart(new Date(e.reportDate)).toISOString().slice(0, 10)),
+    );
+    const attendanceCurrent =
+      allWeeksCurrent.length > 0 ? (weeksWithEntryCurrent.size / allWeeksCurrent.length) * 100 : 0;
+    const attendancePrevious =
+      allWeeksPrevious.length > 0 ? (weeksWithEntryPrevious.size / allWeeksPrevious.length) * 100 : 0;
+    const attendanceDecline = Math.max(0, attendancePrevious - attendanceCurrent);
+
+    const avgMistakesCurrent =
+      currentEntries.length > 0
+        ? currentEntries.reduce((s, e) => s + e.totalMistakes, 0) / currentEntries.length
+        : 0;
+    const avgMistakesPrevious =
+      previousEntries.length > 0
+        ? previousEntries.reduce((s, e) => s + e.totalMistakes, 0) / previousEntries.length
+        : 0;
+    const mistakesIncrease =
+      avgMistakesPrevious > 0
+        ? Math.max(0, ((avgMistakesCurrent - avgMistakesPrevious) / avgMistakesPrevious) * 100)
+        : avgMistakesCurrent > 0 ? 100 : 0;
+
+    const { currentStreak, consecutiveMissedWeeks } = calculateStreaks(
+      currentEntries.map((e) => ({ reportDate: e.reportDate })),
+      currentStart,
+      currentEnd,
+    );
+    const streakBroken = currentStreak === 0 && previousEntries.length > 0;
+    const recentGaps = consecutiveMissedWeeks;
+
+    const entriesWithTajweed = entries.filter((e) => {
+      const t = e.tajweedNotes;
+      if (!t) return false;
+      const len = (t.harf?.length ?? 0) + (t.ghunna?.length ?? 0) + (t.madd?.length ?? 0) + (t.other?.length ?? 0);
+      return len > 0;
+    });
+    const totalNoteLength = entries.reduce((s, e) => {
+      const t = e.tajweedNotes ?? {};
+      return s + (t.harf?.length ?? 0) + (t.ghunna?.length ?? 0) + (t.madd?.length ?? 0) + (t.other?.length ?? 0);
+    }, 0);
+    const avgNoteLength = entries.length > 0 ? totalNoteLength / entries.length : 0;
+    let tajweedSeverity = 0;
+    if (entriesWithTajweed.length > 0) {
+      const pctWithNotes = (entriesWithTajweed.length / entries.length) * 100;
+      if (pctWithNotes >= 50 && avgNoteLength > 40) tajweedSeverity = 100;
+      else if (pctWithNotes >= 25 || avgNoteLength > 20) tajweedSeverity = 50;
+      else tajweedSeverity = 20;
+    }
+
+    const factors: IRiskFactors = {
+      attendanceDecline,
+      mistakesIncrease,
+      streakBroken,
+      recentGaps,
+      tajweedSeverity,
+    };
+    const riskScore = calculateRiskScore(factors);
+    const riskLevel = getRiskLevel(riskScore);
+
+    const studentPojo: IQuranStudent = {
+      _id: String(student._id),
+      studentId: student.studentId,
+      nameEn: student.nameEn,
+      nameBn: student.nameBn,
+      class: student.class,
+      supervision: student.supervision,
+      active: student.active ?? true,
+    };
+
+    const attendanceDesc =
+      attendanceDecline > 0
+        ? `Attendance dropped ${attendanceDecline.toFixed(0)}% (current ${attendanceCurrent.toFixed(0)}% vs previous ${attendancePrevious.toFixed(0)}%)`
+        : 'Attendance stable or improved';
+    const mistakesDesc =
+      mistakesIncrease > 0
+        ? `Mistakes increased by ${mistakesIncrease.toFixed(0)}% (current avg ${avgMistakesCurrent.toFixed(1)} vs previous ${avgMistakesPrevious.toFixed(1)})`
+        : 'Mistakes stable or decreased';
+    const streakDesc = streakBroken ? 'Streak broken (no entry in recent weeks)' : 'Streak maintained';
+    const gapsDesc =
+      recentGaps > 0 ? `Missed ${recentGaps} consecutive week(s)` : 'No recent gaps';
+    const tajweedDesc =
+      tajweedSeverity >= 80 ? 'Major pronunciation issues noted' : tajweedSeverity >= 50 ? 'Moderate tajweed issues' : tajweedSeverity >= 20 ? 'Minor tajweed notes' : 'No significant tajweed issues';
+
+    const recommendations: IAlertsReport['alerts'][0]['recommendations'] = [];
+    if (riskLevel === 'critical') {
+      if (attendanceDecline > 30) recommendations.push({ action: 'Contact parent, schedule 1:1 session', priority: 'immediate', assignTo: 'ustad' });
+      if (mistakesIncrease > 50) recommendations.push({ action: 'Review weak surahs with student', priority: 'immediate', assignTo: 'ustad' });
+      if (recentGaps >= 2) recommendations.push({ action: 'Follow up on missed weeks', priority: 'immediate', assignTo: 'admin' });
+      if (tajweedSeverity >= 50) recommendations.push({ action: 'Review with senior ustad', priority: 'soon', assignTo: 'ustad' });
+    } else if (riskLevel === 'high') {
+      if (attendanceDecline > 20) recommendations.push({ action: 'Check in with student', priority: 'soon', assignTo: 'ustad' });
+      if (mistakesIncrease > 30) recommendations.push({ action: 'Assign revision focus', priority: 'soon', assignTo: 'ustad' });
+      recommendations.push({ action: 'Monitor next 2 weeks', priority: 'routine', assignTo: 'ustad' });
+    }
+    if (recommendations.length === 0 && riskLevel !== 'low') {
+      recommendations.push({ action: 'Routine follow-up', priority: 'routine', assignTo: 'ustad' });
+    }
+
+    alerts.push({
+      student: studentPojo,
+      riskScore,
+      riskLevel,
+      factors: {
+        attendanceDecline: { value: attendanceDecline, description: attendanceDesc },
+        mistakesIncrease: { value: mistakesIncrease, description: mistakesDesc },
+        streakBroken: { value: streakBroken, description: streakDesc },
+        recentGaps: { value: recentGaps, description: gapsDesc },
+        tajweedSeverity: { value: tajweedSeverity, description: tajweedDesc },
+      },
+      recommendations,
+      history: {
+        previousRiskLevel: 'unknown',
+        riskTrend: 'stable',
+        lastAlertDate: null,
+      },
+    });
+  }
+
+  const summary = {
+    totalStudents: grouped.length,
+    lowRisk: alerts.filter((a) => a.riskLevel === 'low').length,
+    mediumRisk: alerts.filter((a) => a.riskLevel === 'medium').length,
+    highRisk: alerts.filter((a) => a.riskLevel === 'high').length,
+    criticalRisk: alerts.filter((a) => a.riskLevel === 'critical').length,
+  };
+
+  let filtered = alerts;
+  if (filters.riskLevel && filters.riskLevel !== 'all') {
+    filtered = alerts.filter((a) => a.riskLevel === filters.riskLevel);
+  }
+  filtered.sort((a, b) => b.riskScore - a.riskScore);
+  const limited = filtered.slice(0, limit);
+
+  const focusRecommendations: IAlertsReport['focusRecommendations'] = limited
+    .filter((a) => a.riskLevel === 'high' || a.riskLevel === 'critical')
+    .map((a) => ({
+      student: a.student,
+      content: [
+        {
+          type: 'surah' as const,
+          number: 0,
+          name: 'General revision',
+          reason: `High risk score (${a.riskScore}). Review recent material and weak areas.`,
+          priority: a.riskLevel === 'critical' ? ('high' as const) : ('medium' as const),
+        },
+      ],
+    }));
+
+  return {
+    summary,
+    alerts: limited,
+    focusRecommendations,
+    interventions: [],
+  };
+};
+
 export const QuranReportsServices = {
   getOverallReport,
   getWeeklySummary,
@@ -2707,4 +2987,5 @@ export const QuranReportsServices = {
   getConsistencyReport,
   getProgressReport,
   getComparativeReport,
+  getAlertsReport,
 };

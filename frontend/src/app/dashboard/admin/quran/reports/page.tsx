@@ -168,6 +168,9 @@ export default function QuranReportsPage() {
             <Link href="/dashboard/admin/quran/reports/comparative">
               <Button variant="outline">Comparative metrics</Button>
             </Link>
+            <Link href="/dashboard/admin/quran/reports/alerts">
+              <Button variant="outline">Risk alerts</Button>
+            </Link>
             <Link href="/dashboard/admin/quran/students">
               <Button variant="outline">Student report (pick student)</Button>
             </Link>

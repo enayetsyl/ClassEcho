@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QuranReportsServices = exports.getComparativeReport = exports.getConsistencyReport = exports.getProgressReport = exports.getSupervisionDetailedReport = exports.getPerformersReport = exports.getJuzAnalysisReport = exports.getSurahAnalysisReport = exports.getStudentContentReport = exports.getStudentTrendReport = exports.getTimeAnalysisReport = exports.getTestTypeAnalysisReport = exports.getUstadSummary = exports.getSupervisionComparison = exports.getStudentReport = exports.getClassBreakdown = exports.getWeeklySupervisionComparison = exports.getWeeklySummary = exports.getOverallReport = void 0;
+exports.QuranReportsServices = exports.getAlertsReport = exports.getComparativeReport = exports.getConsistencyReport = exports.getProgressReport = exports.getSupervisionDetailedReport = exports.getPerformersReport = exports.getJuzAnalysisReport = exports.getSurahAnalysisReport = exports.getStudentContentReport = exports.getStudentTrendReport = exports.getTimeAnalysisReport = exports.getTestTypeAnalysisReport = exports.getUstadSummary = exports.getSupervisionComparison = exports.getStudentReport = exports.getClassBreakdown = exports.getWeeklySupervisionComparison = exports.getWeeklySummary = exports.getOverallReport = void 0;
 const mongoose_1 = require("mongoose");
 const quran_entry_model_1 = require("../entry/quran-entry.model");
 const quran_student_model_1 = require("../student/quran-student.model");
@@ -2392,6 +2392,244 @@ const getComparativeReport = (filters) => __awaiter(void 0, void 0, void 0, func
     };
 });
 exports.getComparativeReport = getComparativeReport;
+// ---------- 7.5 Predictive Metrics & Alerts ----------
+const ALERTS_CURRENT_WEEKS = 4;
+const ALERTS_PREVIOUS_WEEKS = 4;
+function getAlertsDateRanges(filters) {
+    const now = new Date();
+    let currentEnd;
+    let currentStart;
+    if (filters.startDate && filters.endDate) {
+        currentStart = new Date(filters.startDate);
+        currentEnd = new Date(filters.endDate);
+    }
+    else {
+        currentEnd = new Date(now);
+        currentStart = new Date(now);
+        currentStart.setDate(currentStart.getDate() - ALERTS_CURRENT_WEEKS * 7);
+    }
+    const previousEnd = new Date(currentStart);
+    previousEnd.setDate(previousEnd.getDate() - 1);
+    const previousStart = new Date(previousEnd);
+    previousStart.setDate(previousStart.getDate() - ALERTS_PREVIOUS_WEEKS * 7);
+    return { currentStart, currentEnd, previousStart, previousEnd };
+}
+function calculateRiskScore(factors) {
+    const WEIGHTS = {
+        attendanceDecline: 0.25,
+        mistakesIncrease: 0.3,
+        streakBroken: 0.15,
+        recentGaps: 0.2,
+        tajweedSeverity: 0.1,
+    };
+    let riskScore = 0;
+    riskScore += Math.min(factors.attendanceDecline * 2, 100) * WEIGHTS.attendanceDecline;
+    riskScore += Math.min(factors.mistakesIncrease * 2, 100) * WEIGHTS.mistakesIncrease;
+    riskScore += (factors.streakBroken ? 100 : 0) * WEIGHTS.streakBroken;
+    riskScore += Math.min(factors.recentGaps * 25, 100) * WEIGHTS.recentGaps;
+    riskScore += Math.min(factors.tajweedSeverity, 100) * WEIGHTS.tajweedSeverity;
+    return Math.round(riskScore);
+}
+function getRiskLevel(score) {
+    if (score < 25)
+        return 'low';
+    if (score < 50)
+        return 'medium';
+    if (score < 75)
+        return 'high';
+    return 'critical';
+}
+/** Alerts report (7.5): risk scores, factors, recommendations */
+const getAlertsReport = (filters) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    const { currentStart, currentEnd, previousStart, previousEnd } = getAlertsDateRanges(filters);
+    const limit = Math.min((_a = filters.limit) !== null && _a !== void 0 ? _a : 20, 100);
+    const studentMatch = { 'studentDoc.active': true };
+    if (filters.class)
+        studentMatch['studentDoc.class'] = filters.class;
+    const pipeline = [
+        {
+            $match: {
+                reportDate: { $gte: previousStart, $lte: currentEnd },
+            },
+        },
+        {
+            $lookup: {
+                from: 'quranstudents',
+                localField: 'student',
+                foreignField: '_id',
+                as: 'studentDoc',
+            },
+        },
+        { $unwind: '$studentDoc' },
+        { $match: studentMatch },
+        {
+            $group: {
+                _id: '$student',
+                studentDoc: { $first: '$studentDoc' },
+                entries: {
+                    $push: {
+                        reportDate: '$reportDate',
+                        totalMistakes: '$totalMistakes',
+                        testsGiven: '$testsGiven',
+                        tajweedNotes: '$tajweedNotes',
+                    },
+                },
+            },
+        },
+    ];
+    const grouped = yield quran_entry_model_1.QuranEntry.aggregate(pipeline);
+    const alerts = [];
+    const allWeeksCurrent = getAllWeeksInRange(currentStart, currentEnd);
+    const allWeeksPrevious = getAllWeeksInRange(previousStart, previousEnd);
+    for (const row of grouped) {
+        const entries = row.entries;
+        const student = row.studentDoc;
+        const currentEntries = entries.filter((e) => e.reportDate >= currentStart && e.reportDate <= currentEnd);
+        const previousEntries = entries.filter((e) => e.reportDate >= previousStart && e.reportDate <= previousEnd);
+        const weeksWithEntryCurrent = new Set(currentEntries.map((e) => getWeekStart(new Date(e.reportDate)).toISOString().slice(0, 10)));
+        const weeksWithEntryPrevious = new Set(previousEntries.map((e) => getWeekStart(new Date(e.reportDate)).toISOString().slice(0, 10)));
+        const attendanceCurrent = allWeeksCurrent.length > 0 ? (weeksWithEntryCurrent.size / allWeeksCurrent.length) * 100 : 0;
+        const attendancePrevious = allWeeksPrevious.length > 0 ? (weeksWithEntryPrevious.size / allWeeksPrevious.length) * 100 : 0;
+        const attendanceDecline = Math.max(0, attendancePrevious - attendanceCurrent);
+        const avgMistakesCurrent = currentEntries.length > 0
+            ? currentEntries.reduce((s, e) => s + e.totalMistakes, 0) / currentEntries.length
+            : 0;
+        const avgMistakesPrevious = previousEntries.length > 0
+            ? previousEntries.reduce((s, e) => s + e.totalMistakes, 0) / previousEntries.length
+            : 0;
+        const mistakesIncrease = avgMistakesPrevious > 0
+            ? Math.max(0, ((avgMistakesCurrent - avgMistakesPrevious) / avgMistakesPrevious) * 100)
+            : avgMistakesCurrent > 0 ? 100 : 0;
+        const { currentStreak, consecutiveMissedWeeks } = calculateStreaks(currentEntries.map((e) => ({ reportDate: e.reportDate })), currentStart, currentEnd);
+        const streakBroken = currentStreak === 0 && previousEntries.length > 0;
+        const recentGaps = consecutiveMissedWeeks;
+        const entriesWithTajweed = entries.filter((e) => {
+            var _a, _b, _c, _d, _e, _f, _g, _h;
+            const t = e.tajweedNotes;
+            if (!t)
+                return false;
+            const len = ((_b = (_a = t.harf) === null || _a === void 0 ? void 0 : _a.length) !== null && _b !== void 0 ? _b : 0) + ((_d = (_c = t.ghunna) === null || _c === void 0 ? void 0 : _c.length) !== null && _d !== void 0 ? _d : 0) + ((_f = (_e = t.madd) === null || _e === void 0 ? void 0 : _e.length) !== null && _f !== void 0 ? _f : 0) + ((_h = (_g = t.other) === null || _g === void 0 ? void 0 : _g.length) !== null && _h !== void 0 ? _h : 0);
+            return len > 0;
+        });
+        const totalNoteLength = entries.reduce((s, e) => {
+            var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+            const t = (_a = e.tajweedNotes) !== null && _a !== void 0 ? _a : {};
+            return s + ((_c = (_b = t.harf) === null || _b === void 0 ? void 0 : _b.length) !== null && _c !== void 0 ? _c : 0) + ((_e = (_d = t.ghunna) === null || _d === void 0 ? void 0 : _d.length) !== null && _e !== void 0 ? _e : 0) + ((_g = (_f = t.madd) === null || _f === void 0 ? void 0 : _f.length) !== null && _g !== void 0 ? _g : 0) + ((_j = (_h = t.other) === null || _h === void 0 ? void 0 : _h.length) !== null && _j !== void 0 ? _j : 0);
+        }, 0);
+        const avgNoteLength = entries.length > 0 ? totalNoteLength / entries.length : 0;
+        let tajweedSeverity = 0;
+        if (entriesWithTajweed.length > 0) {
+            const pctWithNotes = (entriesWithTajweed.length / entries.length) * 100;
+            if (pctWithNotes >= 50 && avgNoteLength > 40)
+                tajweedSeverity = 100;
+            else if (pctWithNotes >= 25 || avgNoteLength > 20)
+                tajweedSeverity = 50;
+            else
+                tajweedSeverity = 20;
+        }
+        const factors = {
+            attendanceDecline,
+            mistakesIncrease,
+            streakBroken,
+            recentGaps,
+            tajweedSeverity,
+        };
+        const riskScore = calculateRiskScore(factors);
+        const riskLevel = getRiskLevel(riskScore);
+        const studentPojo = {
+            _id: String(student._id),
+            studentId: student.studentId,
+            nameEn: student.nameEn,
+            nameBn: student.nameBn,
+            class: student.class,
+            supervision: student.supervision,
+            active: (_b = student.active) !== null && _b !== void 0 ? _b : true,
+        };
+        const attendanceDesc = attendanceDecline > 0
+            ? `Attendance dropped ${attendanceDecline.toFixed(0)}% (current ${attendanceCurrent.toFixed(0)}% vs previous ${attendancePrevious.toFixed(0)}%)`
+            : 'Attendance stable or improved';
+        const mistakesDesc = mistakesIncrease > 0
+            ? `Mistakes increased by ${mistakesIncrease.toFixed(0)}% (current avg ${avgMistakesCurrent.toFixed(1)} vs previous ${avgMistakesPrevious.toFixed(1)})`
+            : 'Mistakes stable or decreased';
+        const streakDesc = streakBroken ? 'Streak broken (no entry in recent weeks)' : 'Streak maintained';
+        const gapsDesc = recentGaps > 0 ? `Missed ${recentGaps} consecutive week(s)` : 'No recent gaps';
+        const tajweedDesc = tajweedSeverity >= 80 ? 'Major pronunciation issues noted' : tajweedSeverity >= 50 ? 'Moderate tajweed issues' : tajweedSeverity >= 20 ? 'Minor tajweed notes' : 'No significant tajweed issues';
+        const recommendations = [];
+        if (riskLevel === 'critical') {
+            if (attendanceDecline > 30)
+                recommendations.push({ action: 'Contact parent, schedule 1:1 session', priority: 'immediate', assignTo: 'ustad' });
+            if (mistakesIncrease > 50)
+                recommendations.push({ action: 'Review weak surahs with student', priority: 'immediate', assignTo: 'ustad' });
+            if (recentGaps >= 2)
+                recommendations.push({ action: 'Follow up on missed weeks', priority: 'immediate', assignTo: 'admin' });
+            if (tajweedSeverity >= 50)
+                recommendations.push({ action: 'Review with senior ustad', priority: 'soon', assignTo: 'ustad' });
+        }
+        else if (riskLevel === 'high') {
+            if (attendanceDecline > 20)
+                recommendations.push({ action: 'Check in with student', priority: 'soon', assignTo: 'ustad' });
+            if (mistakesIncrease > 30)
+                recommendations.push({ action: 'Assign revision focus', priority: 'soon', assignTo: 'ustad' });
+            recommendations.push({ action: 'Monitor next 2 weeks', priority: 'routine', assignTo: 'ustad' });
+        }
+        if (recommendations.length === 0 && riskLevel !== 'low') {
+            recommendations.push({ action: 'Routine follow-up', priority: 'routine', assignTo: 'ustad' });
+        }
+        alerts.push({
+            student: studentPojo,
+            riskScore,
+            riskLevel,
+            factors: {
+                attendanceDecline: { value: attendanceDecline, description: attendanceDesc },
+                mistakesIncrease: { value: mistakesIncrease, description: mistakesDesc },
+                streakBroken: { value: streakBroken, description: streakDesc },
+                recentGaps: { value: recentGaps, description: gapsDesc },
+                tajweedSeverity: { value: tajweedSeverity, description: tajweedDesc },
+            },
+            recommendations,
+            history: {
+                previousRiskLevel: 'unknown',
+                riskTrend: 'stable',
+                lastAlertDate: null,
+            },
+        });
+    }
+    const summary = {
+        totalStudents: grouped.length,
+        lowRisk: alerts.filter((a) => a.riskLevel === 'low').length,
+        mediumRisk: alerts.filter((a) => a.riskLevel === 'medium').length,
+        highRisk: alerts.filter((a) => a.riskLevel === 'high').length,
+        criticalRisk: alerts.filter((a) => a.riskLevel === 'critical').length,
+    };
+    let filtered = alerts;
+    if (filters.riskLevel && filters.riskLevel !== 'all') {
+        filtered = alerts.filter((a) => a.riskLevel === filters.riskLevel);
+    }
+    filtered.sort((a, b) => b.riskScore - a.riskScore);
+    const limited = filtered.slice(0, limit);
+    const focusRecommendations = limited
+        .filter((a) => a.riskLevel === 'high' || a.riskLevel === 'critical')
+        .map((a) => ({
+        student: a.student,
+        content: [
+            {
+                type: 'surah',
+                number: 0,
+                name: 'General revision',
+                reason: `High risk score (${a.riskScore}). Review recent material and weak areas.`,
+                priority: a.riskLevel === 'critical' ? 'high' : 'medium',
+            },
+        ],
+    }));
+    return {
+        summary,
+        alerts: limited,
+        focusRecommendations,
+        interventions: [],
+    };
+});
+exports.getAlertsReport = getAlertsReport;
 exports.QuranReportsServices = {
     getOverallReport: exports.getOverallReport,
     getWeeklySummary: exports.getWeeklySummary,
@@ -2411,4 +2649,5 @@ exports.QuranReportsServices = {
     getConsistencyReport: exports.getConsistencyReport,
     getProgressReport: exports.getProgressReport,
     getComparativeReport: exports.getComparativeReport,
+    getAlertsReport: exports.getAlertsReport,
 };

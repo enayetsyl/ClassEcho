@@ -23,6 +23,8 @@ import {
   IProgressReport,
   IQuranComparativeFilters,
   IComparativeReport,
+  IQuranAlertsFilters,
+  IAlertsReport,
 } from "@/types/quran.types";
 
 const BASE = "quran/reports";
@@ -227,5 +229,16 @@ export const getComparativeReport = async (
     message: string;
     data: IComparativeReport;
   }>(`${BASE}/comparative`, { params });
+  return res.data.data;
+};
+
+export const getAlertsReport = async (
+  params?: IQuranAlertsFilters,
+): Promise<IAlertsReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IAlertsReport;
+  }>(`${BASE}/alerts`, { params });
   return res.data.data;
 };

@@ -1,7 +1,7 @@
 "use strict";
 // src/app/modules/quran/reports/quran-reports.validation.ts
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getComparativeReportValidation = exports.getProgressReportValidation = exports.getConsistencyReportValidation = exports.getStudentContentValidation = exports.getStudentTrendValidation = exports.getSupervisionDetailedValidation = exports.getPerformersValidation = exports.getJuzAnalysisValidation = exports.getSurahAnalysisValidation = exports.getTimeAnalysisValidation = exports.getTestTypeAnalysisValidation = exports.getQuranUstadSummaryValidation = exports.getQuranSupervisionReportValidation = exports.getQuranWeeklySupervisionValidation = exports.getQuranStudentReportValidation = exports.getQuranClassBreakdownValidation = exports.getQuranWeeklySummaryValidation = exports.getQuranOverallReportValidation = void 0;
+exports.getAlertsReportValidation = exports.getComparativeReportValidation = exports.getProgressReportValidation = exports.getConsistencyReportValidation = exports.getStudentContentValidation = exports.getStudentTrendValidation = exports.getSupervisionDetailedValidation = exports.getPerformersValidation = exports.getJuzAnalysisValidation = exports.getSurahAnalysisValidation = exports.getTimeAnalysisValidation = exports.getTestTypeAnalysisValidation = exports.getQuranUstadSummaryValidation = exports.getQuranSupervisionReportValidation = exports.getQuranWeeklySupervisionValidation = exports.getQuranStudentReportValidation = exports.getQuranClassBreakdownValidation = exports.getQuranWeeklySummaryValidation = exports.getQuranOverallReportValidation = void 0;
 const zod_1 = require("zod");
 const mongoIdSchema = zod_1.z
     .string()
@@ -130,4 +130,28 @@ const comparativeReportQuery = reportFiltersBase
 }, { message: 'startDate must be before or equal to endDate', path: ['startDate'] });
 exports.getComparativeReportValidation = zod_1.z.object({
     query: comparativeReportQuery,
+});
+const alertsReportQuery = zod_1.z
+    .object({
+    class: zod_1.z.string().optional(),
+    riskLevel: zod_1.z.enum(['low', 'medium', 'high', 'critical', 'all']).optional(),
+    limit: zod_1.z.string().optional().transform((v) => (v ? parseInt(v, 10) : undefined)),
+    startDate: zod_1.z
+        .string()
+        .optional()
+        .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid startDate' }),
+    endDate: zod_1.z
+        .string()
+        .optional()
+        .refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid endDate' }),
+})
+    .refine((data) => {
+    if (!data.startDate || !data.endDate)
+        return true;
+    const start = Date.parse(data.startDate);
+    const end = Date.parse(data.endDate);
+    return !isNaN(start) && !isNaN(end) && start <= end;
+}, { message: 'startDate must be before or equal to endDate', path: ['startDate'] });
+exports.getAlertsReportValidation = zod_1.z.object({
+    query: alertsReportQuery,
 });

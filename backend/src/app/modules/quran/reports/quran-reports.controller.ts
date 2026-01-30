@@ -5,7 +5,7 @@ import catchAsync from '../../../utils/catch-async';
 import sendResponse from '../../../utils/send-response';
 import { pickFields } from '../../../utils/pick';
 import { QuranReportsServices } from './quran-reports.service';
-import { TQuranReportFilters, TQuranReportFiltersExtended, TQuranConsistencyFilters, TQuranProgressFilters, TQuranComparativeFilters } from './quran-reports.type';
+import { TQuranReportFilters, TQuranReportFiltersExtended, TQuranConsistencyFilters, TQuranProgressFilters, TQuranComparativeFilters, TQuranAlertsFilters } from './quran-reports.type';
 
 function getReportFilters(req: Request): TQuranReportFilters {
   const query = req.query as Record<string, string | undefined>;
@@ -195,6 +195,25 @@ const getComparativeReport = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, { statusCode: 200, success: true, message: 'Comparative report retrieved successfully', data });
 });
 
+function getAlertsFilters(req: Request): TQuranAlertsFilters {
+  const query = req.query as Record<string, string | undefined>;
+  const result: TQuranAlertsFilters = {};
+  if (query.class) result.class = query.class;
+  if (query.riskLevel === 'low' || query.riskLevel === 'medium' || query.riskLevel === 'high' || query.riskLevel === 'critical' || query.riskLevel === 'all') {
+    result.riskLevel = query.riskLevel;
+  }
+  if (query.limit) result.limit = parseInt(query.limit, 10) || 20;
+  if (query.startDate) result.startDate = query.startDate;
+  if (query.endDate) result.endDate = query.endDate;
+  return result;
+}
+
+const getAlertsReport = catchAsync(async (req: Request, res: Response) => {
+  const filters = getAlertsFilters(req);
+  const data = await QuranReportsServices.getAlertsReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Alerts report retrieved successfully', data });
+});
+
 export const QuranReportsControllers = {
   getOverallReport,
   getWeeklySummary,
@@ -214,4 +233,5 @@ export const QuranReportsControllers = {
   getConsistencyReport,
   getProgressReport,
   getComparativeReport,
+  getAlertsReport,
 };
