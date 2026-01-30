@@ -1,7 +1,7 @@
 "use strict";
 // src/app/modules/quran/reports/quran-reports.validation.ts
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getProgressReportValidation = exports.getConsistencyReportValidation = exports.getStudentContentValidation = exports.getStudentTrendValidation = exports.getSupervisionDetailedValidation = exports.getPerformersValidation = exports.getJuzAnalysisValidation = exports.getSurahAnalysisValidation = exports.getTimeAnalysisValidation = exports.getTestTypeAnalysisValidation = exports.getQuranUstadSummaryValidation = exports.getQuranSupervisionReportValidation = exports.getQuranWeeklySupervisionValidation = exports.getQuranStudentReportValidation = exports.getQuranClassBreakdownValidation = exports.getQuranWeeklySummaryValidation = exports.getQuranOverallReportValidation = void 0;
+exports.getComparativeReportValidation = exports.getProgressReportValidation = exports.getConsistencyReportValidation = exports.getStudentContentValidation = exports.getStudentTrendValidation = exports.getSupervisionDetailedValidation = exports.getPerformersValidation = exports.getJuzAnalysisValidation = exports.getSurahAnalysisValidation = exports.getTimeAnalysisValidation = exports.getTestTypeAnalysisValidation = exports.getQuranUstadSummaryValidation = exports.getQuranSupervisionReportValidation = exports.getQuranWeeklySupervisionValidation = exports.getQuranStudentReportValidation = exports.getQuranClassBreakdownValidation = exports.getQuranWeeklySummaryValidation = exports.getQuranOverallReportValidation = void 0;
 const zod_1 = require("zod");
 const mongoIdSchema = zod_1.z
     .string()
@@ -116,4 +116,18 @@ exports.getConsistencyReportValidation = zod_1.z.object({
 });
 exports.getProgressReportValidation = zod_1.z.object({
     query: reportFiltersQuery,
+});
+const comparativeReportQuery = reportFiltersBase
+    .extend({
+    compareBy: zod_1.z.enum(['class', 'supervision', 'all']).optional(),
+})
+    .refine((data) => {
+    if (!data.startDate || !data.endDate)
+        return true;
+    const start = Date.parse(data.startDate);
+    const end = Date.parse(data.endDate);
+    return !isNaN(start) && !isNaN(end) && start <= end;
+}, { message: 'startDate must be before or equal to endDate', path: ['startDate'] });
+exports.getComparativeReportValidation = zod_1.z.object({
+    query: comparativeReportQuery,
 });

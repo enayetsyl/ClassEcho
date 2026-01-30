@@ -605,3 +605,82 @@ export interface IProgressReport {
     F: number;
   };
 }
+
+/** Filters for comparative report (7.3) */
+export type TQuranComparativeFilters = TQuranReportFilters & {
+  compareBy?: 'class' | 'supervision' | 'all';
+};
+
+/** Comparative report (7.3): class rankings, student rankings, peer comparison, ustad effectiveness, distribution */
+export interface IComparativeReport {
+  filters: {
+    dateRange: { start: string; end: string };
+    class?: string;
+    studentId?: string;
+    compareBy?: 'class' | 'supervision' | 'all';
+  };
+
+  classRankings: Array<{
+    class: string;
+    rank: number;
+    totalStudents: number;
+    avgMistakes: number;
+    avgMasteryScore: number;
+    topPerformer: IQuranStudent;
+    mostImproved: IQuranStudent;
+  }>;
+
+  studentRankings: Array<{
+    rank: number;
+    student: IQuranStudent;
+    avgMistakes: number;
+    masteryScore: number;
+    percentile: number;
+    rankChange: number;
+  }>;
+
+  peerComparison?: {
+    targetStudent: {
+      _id: string;
+      metrics: {
+        avgTanbih: number;
+        avgFath: number;
+        masteryScore: number;
+        testCompletionRate: number;
+      };
+    };
+    classAverage: {
+      avgTanbih: number;
+      avgFath: number;
+      masteryScore: number;
+      testCompletionRate: number;
+    };
+    topQuartile: {
+      avgTanbih: number;
+      avgFath: number;
+      masteryScore: number;
+    };
+    comparison: {
+      vsTanbihAvg: number;
+      vsFathAvg: number;
+      vsMasteryAvg: number;
+      vsCompletionAvg: number;
+      overallPosition: string;
+    };
+  };
+
+  ustadComparison: Array<{
+    ustadName: string;
+    studentsCount: number;
+    entriesCount: number;
+    avgStudentMistakes: number;
+    avgStudentImprovement: number;
+    testCompletionRate: number;
+    effectiveness: 'high' | 'medium' | 'low';
+  }>;
+
+  distribution: {
+    mistakesHistogram: Array<{ range: string; count: number }>;
+    masteryHistogram: Array<{ range: string; count: number }>;
+  };
+}

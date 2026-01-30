@@ -5,7 +5,7 @@ import catchAsync from '../../../utils/catch-async';
 import sendResponse from '../../../utils/send-response';
 import { pickFields } from '../../../utils/pick';
 import { QuranReportsServices } from './quran-reports.service';
-import { TQuranReportFilters, TQuranReportFiltersExtended, TQuranConsistencyFilters, TQuranProgressFilters } from './quran-reports.type';
+import { TQuranReportFilters, TQuranReportFiltersExtended, TQuranConsistencyFilters, TQuranProgressFilters, TQuranComparativeFilters } from './quran-reports.type';
 
 function getReportFilters(req: Request): TQuranReportFilters {
   const query = req.query as Record<string, string | undefined>;
@@ -179,6 +179,22 @@ const getProgressReport = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, { statusCode: 200, success: true, message: 'Progress report retrieved successfully', data });
 });
 
+function getComparativeFilters(req: Request): TQuranComparativeFilters {
+  const base = getReportFilters(req);
+  const query = req.query as Record<string, string | undefined>;
+  const result = { ...base } as TQuranComparativeFilters;
+  if (query.compareBy === 'class' || query.compareBy === 'supervision' || query.compareBy === 'all') {
+    result.compareBy = query.compareBy;
+  }
+  return result;
+}
+
+const getComparativeReport = catchAsync(async (req: Request, res: Response) => {
+  const filters = getComparativeFilters(req);
+  const data = await QuranReportsServices.getComparativeReport(filters);
+  sendResponse(res, { statusCode: 200, success: true, message: 'Comparative report retrieved successfully', data });
+});
+
 export const QuranReportsControllers = {
   getOverallReport,
   getWeeklySummary,
@@ -197,4 +213,5 @@ export const QuranReportsControllers = {
   getSupervisionDetailed,
   getConsistencyReport,
   getProgressReport,
+  getComparativeReport,
 };

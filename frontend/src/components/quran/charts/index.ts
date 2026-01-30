@@ -60,3 +60,18 @@ export type {
   ImprovementLeaderboardProps,
   ImprovementLeaderboardItem,
 } from "./ImprovementLeaderboard";
+
+export { ClassRankingChart } from "./ClassRankingChart";
+export type { ClassRankingChartProps } from "./ClassRankingChart";
+
+export { PeerComparisonRadar } from "./PeerComparisonRadar";
+export type { PeerComparisonRadarProps } from "./PeerComparisonRadar";
+
+export { PercentileGauge } from "./PercentileGauge";
+export type { PercentileGaugeProps } from "./PercentileGauge";
+
+export { UstadEffectivenessChart } from "./UstadEffectivenessChart";
+export type { UstadEffectivenessChartProps } from "./UstadEffectivenessChart";
+
+export { DistributionHistogram } from "./DistributionHistogram";
+export type { DistributionHistogramProps } from "./DistributionHistogram";

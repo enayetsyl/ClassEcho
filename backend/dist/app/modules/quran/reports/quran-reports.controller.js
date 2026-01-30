@@ -181,6 +181,20 @@ const getProgressReport = (0, catch_async_1.default)((req, res) => __awaiter(voi
     const data = yield quran_reports_service_1.QuranReportsServices.getProgressReport(filters);
     (0, send_response_1.default)(res, { statusCode: 200, success: true, message: 'Progress report retrieved successfully', data });
 }));
+function getComparativeFilters(req) {
+    const base = getReportFilters(req);
+    const query = req.query;
+    const result = Object.assign({}, base);
+    if (query.compareBy === 'class' || query.compareBy === 'supervision' || query.compareBy === 'all') {
+        result.compareBy = query.compareBy;
+    }
+    return result;
+}
+const getComparativeReport = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const filters = getComparativeFilters(req);
+    const data = yield quran_reports_service_1.QuranReportsServices.getComparativeReport(filters);
+    (0, send_response_1.default)(res, { statusCode: 200, success: true, message: 'Comparative report retrieved successfully', data });
+}));
 exports.QuranReportsControllers = {
     getOverallReport,
     getWeeklySummary,
@@ -199,4 +213,5 @@ exports.QuranReportsControllers = {
     getSupervisionDetailed,
     getConsistencyReport,
     getProgressReport,
+    getComparativeReport,
 };

@@ -31,6 +31,8 @@ import {
   IConsistencyReport,
   TQuranProgressFilters,
   IProgressReport,
+  TQuranComparativeFilters,
+  IComparativeReport,
 } from './quran-reports.type';
 import { getSurahByNumber } from '../reference/surah-data';
 import { IQuranStudent } from '../student/quran-student.type';
@@ -2279,6 +2281,413 @@ export const getConsistencyReport = async (
   };
 };
 
+/** Calculate percentile: 0 = worst, 100 = best (higher score = better position) */
+function calculatePercentile(studentScore: number, allScores: number[], higherIsBetter: boolean): number {
+  if (allScores.length === 0) return 0;
+  const sorted = [...allScores].sort((a, b) => a - b);
+  const index = sorted.findIndex((score) => (higherIsBetter ? score >= studentScore : score <= studentScore));
+  const pos = index < 0 ? (higherIsBetter ? 0 : sorted.length) : index;
+  return higherIsBetter
+    ? Math.round((pos / sorted.length) * 100)
+    : Math.round((1 - pos / sorted.length) * 100);
+}
+
+/** Comparative report (7.3): class rankings, student rankings, peer comparison, ustad effectiveness, distribution */
+export const getComparativeReport = async (
+  filters: TQuranComparativeFilters,
+): Promise<IComparativeReport> => {
+  const dateRange = getDateRange(filters);
+  const startStr = dateRange.start.toISOString().slice(0, 10);
+  const endStr = dateRange.end.toISOString().slice(0, 10);
+  const compareBy = filters.compareBy ?? 'all';
+
+  const studentMatch: Record<string, unknown> = { 'studentDoc.active': true };
+  if (filters.class) (studentMatch as Record<string, unknown>)['studentDoc.class'] = filters.class;
+  if (typeof filters.supervision === 'boolean') (studentMatch as Record<string, unknown>)['studentDoc.supervision'] = filters.supervision;
+
+  const pipeline: PipelineStage[] = [
+    { $match: { reportDate: { $gte: dateRange.start, $lte: dateRange.end } } },
+    {
+      $lookup: {
+        from: 'quranstudents',
+        localField: 'student',
+        foreignField: '_id',
+        as: 'studentDoc',
+      },
+    },
+    { $unwind: '$studentDoc' },
+    { $match: studentMatch },
+    {
+      $group: {
+        _id: '$student',
+        studentDoc: { $first: '$studentDoc' },
+        entries: {
+          $push: {
+            reportDate: '$reportDate',
+            totalTanbih: '$totalTanbih',
+            totalFath: '$totalFath',
+            totalMistakes: '$totalMistakes',
+            testsGiven: '$testsGiven',
+          },
+        },
+      },
+    },
+    { $match: { $expr: { $gte: [{ $size: '$entries' }, 1] } } },
+  ];
+
+  type StudentRow = {
+    _id: Types.ObjectId;
+    studentDoc: IQuranStudent & { _id: Types.ObjectId };
+    entries: IEntryForProgress[];
+  };
+
+  const grouped = await QuranEntry.aggregate<StudentRow>(pipeline);
+
+  const studentMetricsList: Array<{
+    student: IQuranStudent & { _id: Types.ObjectId };
+    avgTanbih: number;
+    avgFath: number;
+    avgMistakes: number;
+    masteryScore: number;
+    testCompletionRate: number;
+    improvementVelocity: number;
+  }> = [];
+
+  for (const row of grouped) {
+    const entries = row.entries as IEntryForProgress[];
+    const student = row.studentDoc;
+    const avgTanbih = entries.length > 0
+      ? entries.reduce((s, e) => s + e.totalTanbih, 0) / entries.length
+      : 0;
+    const avgFath = entries.length > 0
+      ? entries.reduce((s, e) => s + e.totalFath, 0) / entries.length
+      : 0;
+    const avgMistakes = entries.length > 0
+      ? entries.reduce((s, e) => s + e.totalMistakes, 0) / entries.length
+      : 0;
+    const testsPossible = entries.length * 3;
+    const testsGiven = entries.reduce((s, e) => s + (e.testsGiven ?? 0), 0);
+    const testCompletionRate = testsPossible > 0 ? (testsGiven / testsPossible) * 100 : 0;
+    const masteryScore = calculateMasteryScore(entries);
+    const improvementVelocity = calculateImprovementVelocity(entries);
+    studentMetricsList.push({
+      student,
+      avgTanbih: Number(avgTanbih.toFixed(2)),
+      avgFath: Number(avgFath.toFixed(2)),
+      avgMistakes: Number(avgMistakes.toFixed(2)),
+      masteryScore,
+      testCompletionRate: Number(testCompletionRate.toFixed(2)),
+      improvementVelocity,
+    });
+  }
+
+  const previousPeriodLength = dateRange.end.getTime() - dateRange.start.getTime();
+  const previousEnd = new Date(dateRange.start.getTime() - 1);
+  const previousStart = new Date(previousEnd.getTime() - previousPeriodLength);
+
+  const previousPipeline: PipelineStage[] = [
+    { $match: { reportDate: { $gte: previousStart, $lte: previousEnd } } },
+    {
+      $lookup: {
+        from: 'quranstudents',
+        localField: 'student',
+        foreignField: '_id',
+        as: 'studentDoc',
+      },
+    },
+    { $unwind: '$studentDoc' },
+    { $match: studentMatch },
+    {
+      $group: {
+        _id: '$student',
+        entries: { $push: { reportDate: '$reportDate', totalMistakes: '$totalMistakes' } },
+      },
+    },
+  ];
+
+  const previousGrouped = await QuranEntry.aggregate<{ _id: Types.ObjectId; entries: Array<{ reportDate: Date; totalMistakes: number }> }>(previousPipeline);
+  const previousMasteryByStudent = new Map<string, number>();
+  for (const row of previousGrouped) {
+    const entries = row.entries.map((e) => ({
+      reportDate: e.reportDate,
+      totalTanbih: 0,
+      totalFath: 0,
+      totalMistakes: e.totalMistakes,
+      testsGiven: 3,
+    })) as IEntryForProgress[];
+    const score = calculateMasteryScore(entries);
+    previousMasteryByStudent.set(String(row._id), score);
+  }
+
+  const masteryScores = studentMetricsList.map((m) => m.masteryScore);
+  const mistakeScores = studentMetricsList.map((m) => m.avgMistakes);
+
+  const sortedByMastery = [...studentMetricsList].sort((a, b) => b.masteryScore - a.masteryScore);
+  const studentRankings: IComparativeReport['studentRankings'] = sortedByMastery.map((m, i) => {
+    const rank = i + 1;
+    const percentile = masteryScores.length > 0
+      ? Math.round((1 - (rank - 1) / masteryScores.length) * 100)
+      : 0;
+    const prevMastery = previousMasteryByStudent.get(String(m.student._id));
+    const prevRanks = prevMastery != null
+      ? sortedByMastery.filter((x) => previousMasteryByStudent.get(String(x.student._id)) != null).length
+      : 0;
+    const prevSorted = [...studentMetricsList]
+      .filter((x) => previousMasteryByStudent.has(String(x.student._id)))
+      .sort((a, b) => (previousMasteryByStudent.get(String(b.student._id)) ?? 0) - (previousMasteryByStudent.get(String(a.student._id)) ?? 0));
+    const prevRank = prevSorted.findIndex((x) => String(x.student._id) === String(m.student._id)) + 1;
+    const rankChange = prevRank > 0 ? prevRank - rank : 0;
+
+    const studentPojo: IQuranStudent = {
+      _id: String(m.student._id),
+      studentId: m.student.studentId,
+      nameEn: m.student.nameEn,
+      nameBn: m.student.nameBn,
+      class: m.student.class,
+      supervision: m.student.supervision,
+      active: m.student.active ?? true,
+    };
+    return {
+      rank,
+      student: studentPojo,
+      avgMistakes: m.avgMistakes,
+      masteryScore: m.masteryScore,
+      percentile,
+      rankChange,
+    };
+  });
+
+  const byClass = new Map<string, typeof studentMetricsList>();
+  for (const m of studentMetricsList) {
+    const c = m.student.class;
+    if (!byClass.has(c)) byClass.set(c, []);
+    byClass.get(c)!.push(m);
+  }
+
+  const classRankingsData: Array<{
+    class: string;
+    totalStudents: number;
+    avgMistakes: number;
+    avgMasteryScore: number;
+    topPerformer: typeof studentMetricsList[0];
+    mostImproved: typeof studentMetricsList[0];
+  }> = [];
+  for (const [cls, list] of byClass.entries()) {
+    if (filters.class && cls !== filters.class) continue;
+    const totalStudents = list.length;
+    const avgMistakes = list.length > 0
+      ? list.reduce((s, x) => s + x.avgMistakes, 0) / list.length
+      : 0;
+    const avgMasteryScore = list.length > 0
+      ? list.reduce((s, x) => s + x.masteryScore, 0) / list.length
+      : 0;
+    const topPerformer = list.reduce((a, b) => (a.masteryScore >= b.masteryScore ? a : b));
+    const mostImproved = list.reduce((a, b) => (a.improvementVelocity >= b.improvementVelocity ? a : b));
+    classRankingsData.push({
+      class: cls,
+      totalStudents,
+      avgMistakes: Number(avgMistakes.toFixed(2)),
+      avgMasteryScore: Number(avgMasteryScore.toFixed(1)),
+      topPerformer,
+      mostImproved,
+    });
+  }
+  classRankingsData.sort((a, b) => b.avgMasteryScore - a.avgMasteryScore);
+  const classRankings: IComparativeReport['classRankings'] = classRankingsData.map((row, i) => ({
+    class: row.class,
+    rank: i + 1,
+    totalStudents: row.totalStudents,
+    avgMistakes: row.avgMistakes,
+    avgMasteryScore: row.avgMasteryScore,
+    topPerformer: {
+      _id: String(row.topPerformer.student._id),
+      studentId: row.topPerformer.student.studentId,
+      nameEn: row.topPerformer.student.nameEn,
+      nameBn: row.topPerformer.student.nameBn,
+      class: row.topPerformer.student.class,
+      supervision: row.topPerformer.student.supervision,
+      active: row.topPerformer.student.active ?? true,
+    },
+    mostImproved: {
+      _id: String(row.mostImproved.student._id),
+      studentId: row.mostImproved.student.studentId,
+      nameEn: row.mostImproved.student.nameEn,
+      nameBn: row.mostImproved.student.nameBn,
+      class: row.mostImproved.student.class,
+      supervision: row.mostImproved.student.supervision,
+      active: row.mostImproved.student.active ?? true,
+    },
+  }));
+
+  let peerComparison: IComparativeReport['peerComparison'];
+  if (filters.studentId) {
+    const target = studentMetricsList.find((m) => String(m.student._id) === filters.studentId);
+    if (target) {
+      const targetClass = target.student.class;
+      const classMates = studentMetricsList.filter((m) => m.student.class === targetClass);
+      const classAvgTanbih = classMates.length > 0
+        ? classMates.reduce((s, x) => s + x.avgTanbih, 0) / classMates.length
+        : 0;
+      const classAvgFath = classMates.length > 0
+        ? classMates.reduce((s, x) => s + x.avgFath, 0) / classMates.length
+        : 0;
+      const classAvgMastery = classMates.length > 0
+        ? classMates.reduce((s, x) => s + x.masteryScore, 0) / classMates.length
+        : 0;
+      const classAvgCompletion = classMates.length > 0
+        ? classMates.reduce((s, x) => s + x.testCompletionRate, 0) / classMates.length
+        : 0;
+      const topQuartileList = [...classMates].sort((a, b) => b.masteryScore - a.masteryScore).slice(0, Math.max(1, Math.ceil(classMates.length / 4)));
+      const topQuartile = {
+        avgTanbih: topQuartileList.length > 0 ? topQuartileList.reduce((s, x) => s + x.avgTanbih, 0) / topQuartileList.length : 0,
+        avgFath: topQuartileList.length > 0 ? topQuartileList.reduce((s, x) => s + x.avgFath, 0) / topQuartileList.length : 0,
+        masteryScore: topQuartileList.length > 0 ? topQuartileList.reduce((s, x) => s + x.masteryScore, 0) / topQuartileList.length : 0,
+      };
+      const vsTanbihAvg = classAvgTanbih > 0 ? Number((((classAvgTanbih - target.avgTanbih) / classAvgTanbih) * 100).toFixed(1)) : 0;
+      const vsFathAvg = classAvgFath > 0 ? Number((((classAvgFath - target.avgFath) / classAvgFath) * 100).toFixed(1)) : 0;
+      const vsMasteryAvg = classAvgMastery > 0 ? Number(((target.masteryScore - classAvgMastery) / classAvgMastery * 100).toFixed(1)) : 0;
+      const vsCompletionAvg = classAvgCompletion > 0 ? Number(((target.testCompletionRate - classAvgCompletion) / classAvgCompletion * 100).toFixed(1)) : 0;
+      const classSortedByMastery = [...classMates].sort((a, b) => b.masteryScore - a.masteryScore);
+      const targetRankInClass = classSortedByMastery.findIndex((x) => String(x.student._id) === filters.studentId) + 1;
+      const percentileInClass = classMates.length > 0 ? Math.round((1 - (targetRankInClass - 1) / classMates.length) * 100) : 0;
+      let overallPosition: string;
+      if (percentileInClass >= 90) overallPosition = 'Top 10%';
+      else if (percentileInClass >= 75) overallPosition = 'Top 25%';
+      else if (percentileInClass >= 50) overallPosition = 'Above Average';
+      else if (percentileInClass >= 25) overallPosition = 'Below Average';
+      else overallPosition = 'Needs Improvement';
+      peerComparison = {
+        targetStudent: {
+          _id: String(target.student._id),
+          metrics: {
+            avgTanbih: target.avgTanbih,
+            avgFath: target.avgFath,
+            masteryScore: target.masteryScore,
+            testCompletionRate: target.testCompletionRate,
+          },
+        },
+        classAverage: {
+          avgTanbih: Number(classAvgTanbih.toFixed(2)),
+          avgFath: Number(classAvgFath.toFixed(2)),
+          masteryScore: Number(classAvgMastery.toFixed(1)),
+          testCompletionRate: Number(classAvgCompletion.toFixed(2)),
+        },
+        topQuartile: {
+          avgTanbih: Number(topQuartile.avgTanbih.toFixed(2)),
+          avgFath: Number(topQuartile.avgFath.toFixed(2)),
+          masteryScore: Number(topQuartile.masteryScore.toFixed(1)),
+        },
+        comparison: {
+          vsTanbihAvg,
+          vsFathAvg,
+          vsMasteryAvg,
+          vsCompletionAvg,
+          overallPosition,
+        },
+      };
+    }
+  }
+
+  const ustadPipeline: PipelineStage[] = [
+    { $match: { reportDate: { $gte: dateRange.start, $lte: dateRange.end } } },
+    ...(filters.class || typeof filters.supervision === 'boolean'
+      ? [
+          { $lookup: { from: 'quranstudents', localField: 'student', foreignField: '_id', as: 'studentDoc' } },
+          { $unwind: '$studentDoc' },
+          ...(filters.class ? [{ $match: { 'studentDoc.class': filters.class } }] : []),
+          ...(typeof filters.supervision === 'boolean' ? [{ $match: { 'studentDoc.supervision': filters.supervision } }] : []),
+        ]
+      : []),
+    {
+      $group: {
+        _id: { ustad: { $ifNull: ['$ustadName', '(Unspecified)'] }, student: '$student' },
+        totalMistakes: { $sum: '$totalMistakes' },
+        testsGiven: { $sum: '$testsGiven' },
+        entriesCount: { $sum: 1 },
+        entries: { $push: { reportDate: '$reportDate', totalMistakes: '$totalMistakes', testsGiven: '$testsGiven' } },
+      },
+    },
+    {
+      $group: {
+        _id: '$_id.ustad',
+        studentsCount: { $addToSet: '$_id.student' },
+        entriesCount: { $sum: '$entriesCount' },
+        studentMistakes: { $push: { totalMistakes: '$totalMistakes', entriesCount: '$entriesCount', entries: '$entries', testsGiven: '$testsGiven' } },
+      },
+    },
+  ];
+  const ustadRows = await QuranEntry.aggregate(ustadPipeline as PipelineStage[]);
+  const ustadComparison: IComparativeReport['ustadComparison'] = [];
+  for (const ur of ustadRows as Array<{
+    _id: string;
+    studentsCount: unknown[];
+    entriesCount: number;
+    studentMistakes: Array<{ totalMistakes: number; entriesCount: number; entries: unknown[]; testsGiven: number }>;
+  }>) {
+    const studentsCount = ur.studentsCount?.length ?? 0;
+    const entriesCount = ur.entriesCount ?? 0;
+    const possibleTests = entriesCount * 3;
+    const testsGiven = ur.studentMistakes.reduce((s, x) => s + (x.testsGiven ?? 0), 0);
+    const testCompletionRate = possibleTests > 0 ? (testsGiven / possibleTests) * 100 : 0;
+    const avgStudentMistakes = ur.studentMistakes.length > 0
+      ? ur.studentMistakes.reduce((s, x) => s + (x.totalMistakes / (x.entriesCount || 1)), 0) / ur.studentMistakes.length
+      : 0;
+    const improvements: number[] = [];
+    for (const sm of ur.studentMistakes) {
+      const entries = (sm.entries as Array<{ reportDate: Date; totalMistakes: number }>).sort(
+        (a, b) => new Date(a.reportDate).getTime() - new Date(b.reportDate).getTime(),
+      );
+      if (entries.length >= 2) {
+        const mid = Math.floor(entries.length / 2);
+        const firstAvg = entries.slice(0, mid).reduce((s, e) => s + e.totalMistakes, 0) / mid;
+        const secondAvg = entries.slice(mid).reduce((s, e) => s + e.totalMistakes, 0) / (entries.length - mid);
+        if (firstAvg > 0) improvements.push(((firstAvg - secondAvg) / firstAvg) * 100);
+      }
+    }
+    const avgStudentImprovement = improvements.length > 0 ? improvements.reduce((a, b) => a + b, 0) / improvements.length : 0;
+    let effectiveness: 'high' | 'medium' | 'low' = 'medium';
+    if (avgStudentImprovement > 10 && testCompletionRate >= 70) effectiveness = 'high';
+    else if (avgStudentImprovement < -5 || testCompletionRate < 50) effectiveness = 'low';
+    ustadComparison.push({
+      ustadName: ur._id,
+      studentsCount,
+      entriesCount,
+      avgStudentMistakes: Number(avgStudentMistakes.toFixed(2)),
+      avgStudentImprovement: Number(avgStudentImprovement.toFixed(1)),
+      testCompletionRate: Number(testCompletionRate.toFixed(2)),
+      effectiveness,
+    });
+  }
+  ustadComparison.sort((a, b) => b.avgStudentImprovement - a.avgStudentImprovement);
+
+  const mistakeBuckets = ['0-2', '2-5', '5-10', '10-20', '20+'];
+  const masteryBuckets = ['0-60', '60-70', '70-80', '80-90', '90-100'];
+  const mistakesHistogram = mistakeBuckets.map((range) => {
+    const [lo, hi] = range === '20+' ? [20, 999] : range.split('-').map(Number);
+    const count = studentMetricsList.filter((m) => (hi === 999 ? m.avgMistakes >= lo : m.avgMistakes >= lo && m.avgMistakes < hi)).length;
+    return { range, count };
+  });
+  const masteryHistogram = masteryBuckets.map((range) => {
+    const [lo, hi] = range.split('-').map(Number);
+    const count = studentMetricsList.filter((m) => m.masteryScore >= lo && (hi === 100 ? m.masteryScore <= 100 : m.masteryScore < hi)).length;
+    return { range, count };
+  });
+
+  return {
+    filters: {
+      dateRange: { start: startStr, end: endStr },
+      ...(filters.class && { class: filters.class }),
+      ...(filters.studentId && { studentId: filters.studentId }),
+      compareBy,
+    },
+    classRankings,
+    studentRankings,
+    peerComparison,
+    ustadComparison,
+    distribution: { mistakesHistogram, masteryHistogram },
+  };
+};
+
 export const QuranReportsServices = {
   getOverallReport,
   getWeeklySummary,
@@ -2297,4 +2706,5 @@ export const QuranReportsServices = {
   getSupervisionDetailedReport,
   getConsistencyReport,
   getProgressReport,
+  getComparativeReport,
 };

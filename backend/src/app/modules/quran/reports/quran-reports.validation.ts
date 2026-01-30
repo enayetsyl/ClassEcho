@@ -139,3 +139,21 @@ export const getConsistencyReportValidation = z.object({
 export const getProgressReportValidation = z.object({
   query: reportFiltersQuery,
 });
+
+const comparativeReportQuery = reportFiltersBase
+  .extend({
+    compareBy: z.enum(['class', 'supervision', 'all']).optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.startDate || !data.endDate) return true;
+      const start = Date.parse(data.startDate);
+      const end = Date.parse(data.endDate);
+      return !isNaN(start) && !isNaN(end) && start <= end;
+    },
+    { message: 'startDate must be before or equal to endDate', path: ['startDate'] },
+  );
+
+export const getComparativeReportValidation = z.object({
+  query: comparativeReportQuery,
+});
