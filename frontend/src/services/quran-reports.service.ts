@@ -1,6 +1,7 @@
 import apiClient from "@/lib/api-client";
 import {
   IQuranReportFilters,
+  IQuranReportFiltersExtended,
   IQuranOverallReport,
   IQuranWeeklyTrendReport,
   IQuranWeeklySupervisionReport,
@@ -8,6 +9,14 @@ import {
   IQuranStudentReport,
   IQuranSupervisionComparison,
   IQuranUstadSummaryItem,
+  ITestTypeAnalysisReport,
+  ITimeAnalysisReport,
+  IStudentTrendReport,
+  IStudentContentReport,
+  ISurahAnalysisReport,
+  IJuzAnalysisReport,
+  IPerformersReport,
+  ISupervisionDetailedReport,
 } from "@/types/quran.types";
 
 const BASE = "quran/reports";
@@ -87,5 +96,97 @@ export const getQuranUstadSummary = async (
     message: string;
     data: IQuranUstadSummaryItem[];
   }>(`${BASE}/ustad-summary`, { params });
+  return res.data.data;
+};
+
+// ----- Phase 2 report endpoints -----
+
+export const getTestTypeAnalysisReport = async (
+  params?: IQuranReportFiltersExtended,
+): Promise<ITestTypeAnalysisReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: ITestTypeAnalysisReport;
+  }>(`${BASE}/test-type-analysis`, { params });
+  return res.data.data;
+};
+
+export const getTimeAnalysisReport = async (
+  params?: IQuranReportFiltersExtended,
+): Promise<ITimeAnalysisReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: ITimeAnalysisReport;
+  }>(`${BASE}/time-analysis`, { params });
+  return res.data.data;
+};
+
+export const getStudentTrendReport = async (
+  studentId: string,
+  params?: IQuranReportFiltersExtended,
+): Promise<IStudentTrendReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IStudentTrendReport;
+  }>(`${BASE}/student-trend/${studentId}`, { params });
+  return res.data.data;
+};
+
+export const getStudentContentReport = async (
+  studentId: string,
+  params?: IQuranReportFiltersExtended,
+): Promise<IStudentContentReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IStudentContentReport;
+  }>(`${BASE}/student-content/${studentId}`, { params });
+  return res.data.data;
+};
+
+export const getSurahAnalysisReport = async (
+  params?: IQuranReportFiltersExtended,
+): Promise<ISurahAnalysisReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: ISurahAnalysisReport;
+  }>(`${BASE}/surah-analysis`, { params });
+  return res.data.data;
+};
+
+export const getJuzAnalysisReport = async (
+  params?: IQuranReportFiltersExtended,
+): Promise<IJuzAnalysisReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IJuzAnalysisReport;
+  }>(`${BASE}/juz-analysis`, { params });
+  return res.data.data;
+};
+
+export const getPerformersReport = async (
+  params?: IQuranReportFiltersExtended,
+): Promise<IPerformersReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: IPerformersReport;
+  }>(`${BASE}/performers`, { params });
+  return res.data.data;
+};
+
+export const getSupervisionDetailedReport = async (
+  params?: IQuranReportFiltersExtended,
+): Promise<ISupervisionDetailedReport> => {
+  const res = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: ISupervisionDetailedReport;
+  }>(`${BASE}/supervision-detailed`, { params });
   return res.data.data;
 };
