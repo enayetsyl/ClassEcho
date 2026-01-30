@@ -129,6 +129,16 @@ const getManagementDashboard = (0, catch_async_1.default)((req, res) => __awaite
         data: result,
     });
 }));
+const getPendingVideos = (0, catch_async_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const filters = (0, pick_1.pickFields)(req.query, ['dateFrom', 'dateTo']);
+    const result = yield reports_service_1.ReportsServices.getPendingVideos(filters);
+    (0, send_response_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Pending videos report retrieved successfully',
+        data: result,
+    });
+}));
 exports.ReportsControllers = {
     getStatusDistribution,
     getTurnaroundTime,
@@ -141,4 +151,5 @@ exports.ReportsControllers = {
     getOperationalEfficiency,
     getQualityMetrics,
     getManagementDashboard,
+    getPendingVideos,
 };

@@ -8,6 +8,7 @@ const section_routes_1 = require("../modules/master/section/section.routes");
 const subject_routes_1 = require("../modules/master/subject/subject.routes");
 const video_routes_1 = require("../modules/master/video/video.routes");
 const reports_routes_1 = require("../modules/reports/reports.routes");
+const quran_routes_1 = require("../modules/quran/quran.routes");
 const router = (0, express_1.Router)();
 const moduleRoutes = [
     {
@@ -37,6 +38,10 @@ const moduleRoutes = [
     {
         path: '/admin/reports',
         route: reports_routes_1.ReportsRoutes,
+    },
+    {
+        path: '/quran',
+        route: quran_routes_1.QuranRoutes,
     },
 ];
 moduleRoutes.forEach((route) => router.use(route.path, route.route)); // This will automatically loop your routes that you will add in the moduleRoutes array
