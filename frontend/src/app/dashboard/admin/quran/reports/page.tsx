@@ -108,12 +108,15 @@ export default function QuranReportsPage() {
               Overall dashboard and analytics
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Link href="/dashboard/admin/quran/reports/weekly">
               <Button variant="outline">Weekly summary</Button>
             </Link>
             <Link href="/dashboard/admin/quran/reports/class">
               <Button variant="outline">Class breakdown</Button>
+            </Link>
+            <Link href="/dashboard/admin/quran/students">
+              <Button variant="outline">Student report (pick student)</Button>
             </Link>
           </div>
         </div>

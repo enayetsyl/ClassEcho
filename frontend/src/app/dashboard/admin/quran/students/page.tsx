@@ -208,6 +208,13 @@ export default function QuranStudentListPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right space-x-2">
+                        <Link
+                          href={`/dashboard/admin/quran/reports/student/${s._id}`}
+                        >
+                          <Button variant="ghost" size="sm">
+                            Report
+                          </Button>
+                        </Link>
                         <Link href={`/dashboard/admin/quran/students/${s._id}`}>
                           <Button variant="outline" size="sm">
                             Edit
