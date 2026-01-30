@@ -23,7 +23,7 @@ export interface QuranClassComparisonChartProps {
   emptyMessage?: string;
 }
 
-export function QuranClassComparisonChart({
+function QuranClassComparisonChartInner({
   data,
   height = 280,
   emptyMessage = "No class data",
@@ -72,3 +72,5 @@ export function QuranClassComparisonChart({
     </ResponsiveContainer>
   );
 }
+
+export const QuranClassComparisonChart = React.memo(QuranClassComparisonChartInner);

@@ -19,7 +19,6 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -33,6 +32,7 @@ import { ProtectedRoute } from "@/route/ProtectedRoute";
 import type { IQuranReportFiltersExtended } from "@/types/quran.types";
 import { LeaderboardTable } from "@/components/quran/charts";
 import { QuranClassComparisonChart } from "@/components/quran/charts";
+import { ReportPageSkeleton, ReportErrorAlert, EmptyState } from "@/components/quran/reports";
 import { isValidDateRange } from "@/lib/validation";
 import { getApiErrorMessage } from "@/lib/api-error";
 
@@ -61,8 +61,18 @@ export default function ContentAnalysisPage() {
     };
   }, [startDate, endDate, classFilter, dateRangeValidation.valid]);
 
-  const { data: surahReport, isLoading: surahLoading, isError: surahError, error: surahErr } = useSurahAnalysisQuery(contentType === "surah" ? filters : undefined);
-  const { data: juzReport, isLoading: juzLoading, isError: juzError, error: juzErr } = useJuzAnalysisQuery(contentType === "juz" ? filters : undefined);
+  const surahQuery = useSurahAnalysisQuery(contentType === "surah" ? filters : undefined);
+  const juzQuery = useJuzAnalysisQuery(contentType === "juz" ? filters : undefined);
+  const surahReport = surahQuery.data;
+  const juzReport = juzQuery.data;
+  const surahLoading = surahQuery.isLoading;
+  const juzLoading = juzQuery.isLoading;
+  const surahError = surahQuery.isError;
+  const juzError = juzQuery.isError;
+  const surahErr = surahQuery.error;
+  const juzErr = juzQuery.error;
+  const surahRefetch = surahQuery.refetch;
+  const juzRefetch = juzQuery.refetch;
 
   const report = contentType === "surah" ? surahReport : juzReport;
   const isLoading = contentType === "surah" ? surahLoading : juzLoading;
@@ -128,13 +138,15 @@ export default function ContentAnalysisPage() {
 
   const overview = contentType === "surah" ? (report as typeof surahReport)?.surahOverview : (report as typeof juzReport)?.juzOverview;
 
+  const refetch = contentType === "surah" ? surahRefetch : juzRefetch;
+
   return (
     <ProtectedRoute>
-      <div className="p-4 space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Content analysis (Surah / Juz)</h1>
-            <p className="text-sm text-muted-foreground">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-6xl mx-auto">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold truncate sm:text-2xl">Content analysis (Surah / Juz)</h1>
+            <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
               Performance by surah or juz, top/worst performers, by class
             </p>
           </div>
@@ -149,7 +161,7 @@ export default function ContentAnalysisPage() {
             <CardDescription>Date range, content type, class</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-4 mb-4">
+            <div className="flex flex-wrap gap-2 sm:gap-4 mb-4">
               <Select value={contentType} onValueChange={(v) => setContentType(v as "surah" | "juz")}>
                 <SelectTrigger className="max-w-[140px]">
                   <SelectValue placeholder="Type" />
@@ -168,16 +180,15 @@ export default function ContentAnalysisPage() {
               <p className="text-destructive text-sm mb-4">{dateRangeValidation.message}</p>
             )}
             {isError && (
-              <p className="text-destructive text-sm mb-4">
-                {error ? getApiErrorMessage(error) : "Failed to load."}
-              </p>
+              <ReportErrorAlert
+                message={error ? getApiErrorMessage(error) : "Failed to load."}
+                onRetry={() => refetch()}
+                className="mb-4"
+              />
             )}
 
             {isLoading ? (
-              <div className="space-y-6">
-                <Skeleton className="h-[240px] w-full" />
-                <Skeleton className="h-[200px] w-full" />
-              </div>
+              <ReportPageSkeleton filterCount={4} statCount={0} chartCount={2} chartHeight={280} />
             ) : report ? (
               <>
                 {overview && overview.length > 0 && (
@@ -186,7 +197,7 @@ export default function ContentAnalysisPage() {
                       <CardTitle className="text-base">{contentType === "surah" ? "Surah" : "Juz"} overview</CardTitle>
                       <CardDescription>Scrollable table</CardDescription>
                     </CardHeader>
-                    <CardContent className="overflow-x-auto max-h-[400px] overflow-y-auto">
+                    <CardContent className="overflow-x-auto max-h-[400px] overflow-y-auto min-w-0">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -244,7 +255,10 @@ export default function ContentAnalysisPage() {
                 )}
               </>
             ) : (
-              <p className="text-muted-foreground py-4">No report data. Adjust filters or ensure entries with content exist.</p>
+              <EmptyState
+                title="No report data"
+                description="Adjust filters or ensure entries with content exist."
+              />
             )}
           </CardContent>
         </Card>

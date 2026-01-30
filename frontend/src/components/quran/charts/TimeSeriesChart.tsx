@@ -22,7 +22,7 @@ export interface TimeSeriesChartProps {
   emptyMessage?: string;
 }
 
-export function TimeSeriesChart({
+function TimeSeriesChartInner({
   data,
   granularity,
   height = 300,
@@ -60,3 +60,5 @@ export function TimeSeriesChart({
     </ResponsiveContainer>
   );
 }
+
+export const TimeSeriesChart = React.memo(TimeSeriesChartInner);

@@ -26,6 +26,7 @@ import {
   QuranMistakeDistributionChart,
   QuranMistakesByTestTypeChart,
 } from "@/components/quran/charts";
+import { ReportErrorAlert, EmptyState } from "@/components/quran/reports";
 import { isValidDateRange } from "@/lib/validation";
 import { getApiErrorMessage } from "@/lib/api-error";
 
@@ -87,6 +88,7 @@ export default function QuranReportsPage() {
     isLoading,
     isError,
     error,
+    refetch,
   } = useQuranOverallReportQuery(filters);
 
   const clearFilters = () => {
@@ -124,15 +126,15 @@ export default function QuranReportsPage() {
 
   return (
     <ProtectedRoute>
-      <div className="p-4 space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Quran Reports</h1>
-            <p className="text-sm text-muted-foreground">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-6xl mx-auto">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold truncate sm:text-2xl">Quran Reports</h1>
+            <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
               Overall dashboard and analytics
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap shrink-0">
             <Link href="/dashboard/admin/quran/reports/weekly">
               <Button variant="outline">Weekly summary</Button>
             </Link>
@@ -172,26 +174,26 @@ export default function QuranReportsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-4 mb-6">
+            <div className="flex flex-wrap gap-2 sm:gap-4 mb-6">
               <Input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 placeholder="From"
-                className="max-w-[180px]"
+                className="w-full min-w-0 max-w-[180px]"
               />
               <Input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 placeholder="To"
-                className="max-w-[180px]"
+                className="w-full min-w-0 max-w-[180px]"
               />
               <Input
                 placeholder="Class"
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
-                className="max-w-[180px]"
+                className="w-full min-w-0 max-w-[180px]"
               />
               <Select
                 value={supervisionFilter}
@@ -199,7 +201,7 @@ export default function QuranReportsPage() {
                   setSupervisionFilter(v as "all" | "true" | "false")
                 }
               >
-                <SelectTrigger className="max-w-[180px]">
+                <SelectTrigger className="w-full min-w-0 max-w-[180px]">
                   <SelectValue placeholder="Supervision" />
                 </SelectTrigger>
                 <SelectContent>
@@ -220,9 +222,11 @@ export default function QuranReportsPage() {
             )}
 
             {isError && (
-              <p className="text-destructive text-sm mb-4">
-                {error ? getApiErrorMessage(error) : "Failed to load report."}
-              </p>
+              <ReportErrorAlert
+                message={error ? getApiErrorMessage(error) : "Failed to load report."}
+                onRetry={() => refetch()}
+                className="mb-4"
+              />
             )}
 
             {isLoading ? (
@@ -409,10 +413,10 @@ export default function QuranReportsPage() {
                 </div>
               </>
             ) : (
-              <p className="text-muted-foreground py-4">
-                No report data. Adjust filters or ensure entries exist for the
-                period.
-              </p>
+              <EmptyState
+                title="No report data"
+                description="Adjust filters or ensure entries exist for the period."
+              />
             )}
           </CardContent>
         </Card>

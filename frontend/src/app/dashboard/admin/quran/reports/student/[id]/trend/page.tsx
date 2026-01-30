@@ -80,11 +80,11 @@ export default function StudentTrendPage() {
 
   return (
     <ProtectedRoute>
-      <div className="p-4 space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Student trend</h1>
-            <p className="text-sm text-muted-foreground">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-6xl mx-auto">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold truncate sm:text-2xl">Student trend</h1>
+            <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
               Progress over time and moving average
             </p>
           </div>
@@ -137,7 +137,7 @@ export default function StudentTrendPage() {
                   </CardHeader>
                 </Card>
 
-                <div className="grid gap-4 md:grid-cols-4 mb-6">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-6">
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold">{report.overallSummary.totalEntries}</div>
@@ -183,7 +183,7 @@ export default function StudentTrendPage() {
                     <CardTitle className="text-base">By test type</CardTitle>
                     <CardDescription>Avg Tanbih / Fath and trend per type</CardDescription>
                   </CardHeader>
-                  <CardContent className="grid gap-4 md:grid-cols-3">
+                  <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
                     <div className="rounded border p-4">
                       <p className="font-medium text-sm">New</p>
                       <p className="text-muted-foreground text-sm">Tanbih: {report.byTestType.new.avgTanbih.toFixed(1)} · Fath: {report.byTestType.new.avgFath.toFixed(1)}</p>

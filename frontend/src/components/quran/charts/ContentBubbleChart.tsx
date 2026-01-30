@@ -23,7 +23,7 @@ export interface ContentBubbleChartProps {
   emptyMessage?: string;
 }
 
-export function ContentBubbleChart({
+function ContentBubbleChartInner({
   data,
   height = 280,
   emptyMessage = "No content data",
@@ -62,3 +62,5 @@ export function ContentBubbleChart({
     </ResponsiveContainer>
   );
 }
+
+export const ContentBubbleChart = React.memo(ContentBubbleChartInner);

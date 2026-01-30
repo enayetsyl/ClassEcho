@@ -22,10 +22,28 @@ export interface LeaderboardTableProps {
   titleWorst?: string;
 }
 
-function TrendBadge({ trend }: { trend: string }) {
+const TrendBadge = React.memo(function TrendBadge({ trend }: { trend: string }) {
   const v = trend === "improving" ? "default" : trend === "declining" ? "destructive" : "secondary";
   return <Badge variant={v as "default" | "destructive" | "secondary"} className="capitalize text-xs">{trend}</Badge>;
-}
+});
+
+const PerformerRow = React.memo(function PerformerRow({ r }: { r: PerformerRow }) {
+  return (
+    <TableRow>
+      <TableCell className="font-medium">{r.rank}</TableCell>
+      <TableCell>
+        <span className="truncate">{r.student.nameEn}</span>
+        <span className="text-muted-foreground text-xs ml-1">({r.student.class})</span>
+      </TableCell>
+      <TableCell className="text-right">{r.stats.entriesCount}</TableCell>
+      <TableCell className="text-right">{r.stats.avgTanbih.toFixed(1)}</TableCell>
+      <TableCell className="text-right">{r.stats.avgFath.toFixed(1)}</TableCell>
+      <TableCell className="text-right">{r.stats.avgMistakes.toFixed(1)}</TableCell>
+      <TableCell className="text-right">{(r.stats.testCompletionRate * 100).toFixed(0)}%</TableCell>
+      <TableCell><TrendBadge trend={r.trend} /></TableCell>
+    </TableRow>
+  );
+});
 
 function PerformerTable({ rows, title }: { rows: PerformerRow[]; title: string }) {
   if (rows.length === 0) {
@@ -38,7 +56,7 @@ function PerformerTable({ rows, title }: { rows: PerformerRow[]; title: string }
   }
 
   return (
-    <div>
+    <div className="min-w-0 overflow-x-auto">
       <h3 className="font-medium mb-2">{title}</h3>
       <Table>
         <TableHeader>
@@ -55,19 +73,7 @@ function PerformerTable({ rows, title }: { rows: PerformerRow[]; title: string }
         </TableHeader>
         <TableBody>
           {rows.map((r) => (
-            <TableRow key={r.student._id}>
-              <TableCell className="font-medium">{r.rank}</TableCell>
-              <TableCell>
-                {r.student.nameEn}
-                <span className="text-muted-foreground text-xs ml-1">({r.student.class})</span>
-              </TableCell>
-              <TableCell className="text-right">{r.stats.entriesCount}</TableCell>
-              <TableCell className="text-right">{r.stats.avgTanbih.toFixed(1)}</TableCell>
-              <TableCell className="text-right">{r.stats.avgFath.toFixed(1)}</TableCell>
-              <TableCell className="text-right">{r.stats.avgMistakes.toFixed(1)}</TableCell>
-              <TableCell className="text-right">{(r.stats.testCompletionRate * 100).toFixed(0)}%</TableCell>
-              <TableCell><TrendBadge trend={r.trend} /></TableCell>
-            </TableRow>
+            <PerformerRow key={r.student._id} r={r} />
           ))}
         </TableBody>
       </Table>
@@ -75,16 +81,18 @@ function PerformerTable({ rows, title }: { rows: PerformerRow[]; title: string }
   );
 }
 
-export function LeaderboardTable({
+function LeaderboardTableInner({
   top,
   worst,
   titleTop = "Top performers",
   titleWorst = "Need improvement",
 }: LeaderboardTableProps) {
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 overflow-x-auto">
       <PerformerTable rows={top} title={titleTop} />
       <PerformerTable rows={worst} title={titleWorst} />
     </div>
   );
 }
+
+export const LeaderboardTable = React.memo(LeaderboardTableInner);

@@ -22,7 +22,7 @@ export interface StudentProgressChartProps {
   emptyMessage?: string;
 }
 
-export function StudentProgressChart({
+function StudentProgressChartInner({
   timeline,
   movingAverage,
   height = 300,
@@ -62,3 +62,5 @@ export function StudentProgressChart({
     </ResponsiveContainer>
   );
 }
+
+export const StudentProgressChart = React.memo(StudentProgressChartInner);

@@ -21,7 +21,7 @@ export interface SupervisionComparisonAreaProps {
   emptyMessage?: string;
 }
 
-export function SupervisionComparisonArea({
+function SupervisionComparisonAreaInner({
   data,
   height = 260,
   emptyMessage = "No supervision data",
@@ -56,3 +56,5 @@ export function SupervisionComparisonArea({
     </ResponsiveContainer>
   );
 }
+
+export const SupervisionComparisonArea = React.memo(SupervisionComparisonAreaInner);

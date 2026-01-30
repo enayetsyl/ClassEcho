@@ -29,7 +29,7 @@ export interface QuranMistakesByTestTypeChartProps {
   emptyMessage?: string;
 }
 
-export function QuranMistakesByTestTypeChart({
+function QuranMistakesByTestTypeChartInner({
   data,
   height = 240,
   emptyMessage = "No test data in this period",
@@ -70,3 +70,5 @@ export function QuranMistakesByTestTypeChart({
     </ResponsiveContainer>
   );
 }
+
+export const QuranMistakesByTestTypeChart = React.memo(QuranMistakesByTestTypeChartInner);

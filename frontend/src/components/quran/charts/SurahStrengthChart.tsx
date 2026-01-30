@@ -24,7 +24,7 @@ export interface SurahStrengthChartProps {
 const STRONG_COLOR = "#10B981";
 const WEAK_COLOR = "#EF4444";
 
-export function SurahStrengthChart({
+function SurahStrengthChartInner({
   strong,
   weak,
   height = 320,
@@ -59,3 +59,5 @@ export function SurahStrengthChart({
     </ResponsiveContainer>
   );
 }
+
+export const SurahStrengthChart = React.memo(SurahStrengthChartInner);

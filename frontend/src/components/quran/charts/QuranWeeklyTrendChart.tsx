@@ -39,7 +39,7 @@ function formatWeekLabel(weekStart: string): string {
   }
 }
 
-export function QuranWeeklyTrendChart({
+function QuranWeeklyTrendChartInner({
   weeks,
   height = 280,
   emptyMessage = "No weekly data",
@@ -96,3 +96,5 @@ export function QuranWeeklyTrendChart({
     </ResponsiveContainer>
   );
 }
+
+export const QuranWeeklyTrendChart = React.memo(QuranWeeklyTrendChartInner);

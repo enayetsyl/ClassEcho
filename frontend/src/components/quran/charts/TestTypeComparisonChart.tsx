@@ -25,7 +25,7 @@ export interface TestTypeComparisonChartProps {
   emptyMessage?: string;
 }
 
-export function TestTypeComparisonChart({
+function TestTypeComparisonChartInner({
   byTestType,
   height = 280,
   emptyMessage = "No test type data",
@@ -59,3 +59,5 @@ export function TestTypeComparisonChart({
     </ResponsiveContainer>
   );
 }
+
+export const TestTypeComparisonChart = React.memo(TestTypeComparisonChartInner);

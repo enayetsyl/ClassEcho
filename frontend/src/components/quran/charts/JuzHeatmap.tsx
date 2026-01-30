@@ -19,7 +19,7 @@ function getColor(avgMistakes: number, maxMistakes: number): string {
   return "bg-red-500/80 text-white";
 }
 
-export function JuzHeatmap({
+function JuzHeatmapInner({
   data,
   height = 200,
   emptyMessage = "No juz data",
@@ -65,3 +65,5 @@ export function JuzHeatmap({
     </div>
   );
 }
+
+export const JuzHeatmap = React.memo(JuzHeatmapInner);

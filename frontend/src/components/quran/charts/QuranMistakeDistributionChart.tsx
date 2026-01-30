@@ -16,7 +16,7 @@ export interface QuranMistakeDistributionChartProps {
   emptyMessage?: string;
 }
 
-export function QuranMistakeDistributionChart({
+function QuranMistakeDistributionChartInner({
   totalTanbih,
   totalFath,
   height = 240,
@@ -60,3 +60,5 @@ export function QuranMistakeDistributionChart({
     </ResponsiveContainer>
   );
 }
+
+export const QuranMistakeDistributionChart = React.memo(QuranMistakeDistributionChartInner);

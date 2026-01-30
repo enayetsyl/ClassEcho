@@ -71,11 +71,11 @@ export default function StudentContentPage() {
 
   return (
     <ProtectedRoute>
-      <div className="p-4 space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Student content analysis</h1>
-            <p className="text-sm text-muted-foreground">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-6xl mx-auto">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold truncate sm:text-2xl">Student content analysis</h1>
+            <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
               Strong/weak surahs and juz, recommendations
             </p>
           </div>

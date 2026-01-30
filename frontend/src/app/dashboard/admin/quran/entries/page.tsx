@@ -134,9 +134,9 @@ export default function QuranEntryListPage() {
 
   return (
     <ProtectedRoute>
-      <div className="p-4 space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <h1 className="text-2xl font-semibold">Quran Entries</h1>
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-6xl mx-auto min-w-0">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-xl font-semibold truncate sm:text-2xl">Quran Entries</h1>
           <Link href="/dashboard/admin/quran/entries/add">
             <Button className="w-full md:w-auto">Add Entry</Button>
           </Link>

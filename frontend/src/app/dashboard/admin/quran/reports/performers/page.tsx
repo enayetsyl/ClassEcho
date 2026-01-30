@@ -19,10 +19,10 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ProtectedRoute } from "@/route/ProtectedRoute";
 import type { IQuranReportFiltersExtended } from "@/types/quran.types";
 import { LeaderboardTable } from "@/components/quran/charts";
+import { ReportPageSkeleton, ReportErrorAlert, EmptyState } from "@/components/quran/reports";
 import { isValidDateRange } from "@/lib/validation";
 import { getApiErrorMessage } from "@/lib/api-error";
 
@@ -56,7 +56,7 @@ export default function PerformersPage() {
     };
   }, [startDate, endDate, classFilter, supervisionFilter, testType, metric, dateRangeValidation.valid]);
 
-  const { data: report, isLoading, isError, error } = usePerformersQuery(filters);
+  const { data: report, isLoading, isError, error, refetch } = usePerformersQuery(filters);
 
   const clearFilters = () => {
     setStartDate("");
@@ -67,11 +67,11 @@ export default function PerformersPage() {
 
   return (
     <ProtectedRoute>
-      <div className="p-4 space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Performers</h1>
-            <p className="text-sm text-muted-foreground">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-6xl mx-auto">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold truncate sm:text-2xl">Performers</h1>
+            <p className="text-xs text-muted-foreground sm:text-sm mt-0.5">
               Top and worst performers by metric and test type
             </p>
           </div>
@@ -86,7 +86,7 @@ export default function PerformersPage() {
             <CardDescription>Date range, test type, metric, class, supervision</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-4 mb-4">
+            <div className="flex flex-wrap gap-2 sm:gap-4 mb-4">
               <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} placeholder="From" className="max-w-[180px]" />
               <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} placeholder="To" className="max-w-[180px]" />
               <Select value={testType} onValueChange={setTestType}>
@@ -128,15 +128,15 @@ export default function PerformersPage() {
               <p className="text-destructive text-sm mb-4">{dateRangeValidation.message}</p>
             )}
             {isError && (
-              <p className="text-destructive text-sm mb-4">
-                {error ? getApiErrorMessage(error) : "Failed to load."}
-              </p>
+              <ReportErrorAlert
+                message={error ? getApiErrorMessage(error) : "Failed to load."}
+                onRetry={() => refetch()}
+                className="mb-4"
+              />
             )}
 
             {isLoading ? (
-              <div className="space-y-6">
-                <Skeleton className="h-[320px] w-full" />
-              </div>
+              <ReportPageSkeleton filterCount={6} statCount={0} chartCount={1} chartHeight={320} />
             ) : report ? (
               <>
                 <Card className="mb-6">
@@ -157,7 +157,7 @@ export default function PerformersPage() {
                 </Card>
               </>
             ) : (
-              <p className="text-muted-foreground py-4">No report data. Adjust filters or ensure entries exist.</p>
+              <EmptyState title="No report data" description="Adjust filters or ensure entries exist." />
             )}
           </CardContent>
         </Card>
