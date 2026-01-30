@@ -27,12 +27,24 @@ import {
 import { ProtectedRoute } from "@/route/ProtectedRoute";
 import { getApiErrorMessage } from "@/lib/api-error";
 import type { IQuranEntry, IQuranStudent } from "@/types/quran.types";
+import { ContentSelector } from "@/components/quran/forms";
+
+const contentSchema = z.object({
+  type: z.enum(["surah", "juz", "custom"]),
+  surahNumber: z.number().min(1).max(114).optional(),
+  surahName: z.string().optional(),
+  ayahStart: z.number().min(1).optional(),
+  ayahEnd: z.number().min(1).optional(),
+  juzNumber: z.number().min(1).max(30).optional(),
+  customDescription: z.string().max(200).optional(),
+});
 
 const testSchema = z.object({
   given: z.boolean(),
   tanbih: z.coerce.number().int().min(0),
   fath: z.coerce.number().int().min(0),
   note: z.string().optional(),
+  content: contentSchema.optional(),
 });
 
 const tajweedSchema = z.object({
@@ -54,7 +66,23 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const defaultTest = { given: false, tanbih: 0, fath: 0, note: "" };
+const defaultContent = {
+  type: "surah" as const,
+  surahNumber: undefined as number | undefined,
+  surahName: undefined as string | undefined,
+  ayahStart: undefined as number | undefined,
+  ayahEnd: undefined as number | undefined,
+  juzNumber: undefined as number | undefined,
+  customDescription: undefined as string | undefined,
+};
+
+const defaultTest = {
+  given: false,
+  tanbih: 0,
+  fath: 0,
+  note: "",
+  content: defaultContent,
+};
 const defaultTajweed = { harf: "", ghunna: "", madd: "", other: "" };
 
 function getStudentDisplay(entry: IQuranEntry): string {
@@ -133,6 +161,23 @@ function TestSection({
       </div>
       <FormField
         control={form.control}
+        name={`${prefix}.content`}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Content</FormLabel>
+            <FormControl>
+              <ContentSelector
+                value={field.value ?? defaultContent}
+                onChange={field.onChange}
+                testType={prefix === "newTest" ? "new" : prefix === "recentTest" ? "recent" : "older"}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
         name={`${prefix}.note`}
         render={({ field }) => (
           <FormItem>
@@ -146,6 +191,33 @@ function TestSection({
       />
     </div>
   );
+}
+
+function buildContentPayload(content: FormValues["newTest"]["content"]) {
+  if (!content?.type) return undefined;
+  const base = { type: content.type };
+  if (content.type === "surah") {
+    return {
+      ...base,
+      ...(content.surahNumber != null && { surahNumber: content.surahNumber }),
+      ...(content.surahName && { surahName: content.surahName }),
+      ...(content.ayahStart != null && { ayahStart: content.ayahStart }),
+      ...(content.ayahEnd != null && { ayahEnd: content.ayahEnd }),
+    };
+  }
+  if (content.type === "juz") {
+    return {
+      ...base,
+      ...(content.juzNumber != null && { juzNumber: content.juzNumber }),
+    };
+  }
+  if (content.type === "custom") {
+    return {
+      ...base,
+      ...(content.customDescription && { customDescription: content.customDescription }),
+    };
+  }
+  return base;
 }
 
 export default function EditQuranEntryPage() {
@@ -171,24 +243,40 @@ export default function EditQuranEntryPage() {
 
   useEffect(() => {
     if (entry) {
+      const toContent = (t: IQuranEntry["newTest"]) =>
+        t?.content?.type
+          ? {
+              type: t.content.type,
+              surahNumber: t.content.surahNumber,
+              surahName: t.content.surahName,
+              ayahStart: t.content.ayahStart,
+              ayahEnd: t.content.ayahEnd,
+              juzNumber: t.content.juzNumber,
+              customDescription: t.content.customDescription,
+            }
+          : defaultContent;
+
       form.reset({
         newTest: {
           given: entry.newTest?.given ?? false,
           tanbih: entry.newTest?.tanbih ?? 0,
           fath: entry.newTest?.fath ?? 0,
           note: entry.newTest?.note ?? "",
+          content: toContent(entry.newTest),
         },
         recentTest: {
           given: entry.recentTest?.given ?? false,
           tanbih: entry.recentTest?.tanbih ?? 0,
           fath: entry.recentTest?.fath ?? 0,
           note: entry.recentTest?.note ?? "",
+          content: toContent(entry.recentTest),
         },
         olderTest: {
           given: entry.olderTest?.given ?? false,
           tanbih: entry.olderTest?.tanbih ?? 0,
           fath: entry.olderTest?.fath ?? 0,
           note: entry.olderTest?.note ?? "",
+          content: toContent(entry.olderTest),
         },
         tajweedNotes: {
           harf: entry.tajweedNotes?.harf ?? "",
@@ -206,9 +294,18 @@ export default function EditQuranEntryPage() {
   const onSubmit = (values: FormValues) => {
     if (!id) return;
     const payload = {
-      newTest: values.newTest,
-      recentTest: values.recentTest,
-      olderTest: values.olderTest,
+      newTest: {
+        ...values.newTest,
+        content: buildContentPayload(values.newTest.content),
+      },
+      recentTest: {
+        ...values.recentTest,
+        content: buildContentPayload(values.recentTest.content),
+      },
+      olderTest: {
+        ...values.olderTest,
+        content: buildContentPayload(values.olderTest.content),
+      },
       tajweedNotes: Object.fromEntries(
         Object.entries(values.tajweedNotes).filter(
           ([, v]) => v != null && v !== "",
