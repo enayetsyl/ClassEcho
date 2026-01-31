@@ -32,7 +32,7 @@ export default function PerformersPage() {
   const [classFilter, setClassFilter] = useState("");
   const [supervisionFilter, setSupervisionFilter] = useState<"all" | "true" | "false">("all");
   const [testType, setTestType] = useState<string>("all");
-  const [metric, setMetric] = useState<string>("avgMistakes");
+  const [metric, setMetric] = useState<"tanbih" | "fath" | "total" | "completion_rate">("total");
 
   const dateRangeValidation = useMemo(
     () =>
@@ -100,15 +100,15 @@ export default function PerformersPage() {
                   <SelectItem value="older">Older</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={metric} onValueChange={setMetric}>
+              <Select value={metric} onValueChange={(v) => setMetric(v as typeof metric)}>
                 <SelectTrigger className="max-w-[160px]">
                   <SelectValue placeholder="Metric" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="avgMistakes">Avg mistakes</SelectItem>
-                  <SelectItem value="testCompletionRate">Completion rate</SelectItem>
-                  <SelectItem value="avgTanbih">Avg Tanbih</SelectItem>
-                  <SelectItem value="avgFath">Avg Fath</SelectItem>
+                  <SelectItem value="total">Avg mistakes (total)</SelectItem>
+                  <SelectItem value="completion_rate">Completion rate</SelectItem>
+                  <SelectItem value="tanbih">Avg Tanbih</SelectItem>
+                  <SelectItem value="fath">Avg Fath</SelectItem>
                 </SelectContent>
               </Select>
               <Input placeholder="Class" value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="max-w-[180px]" />

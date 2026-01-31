@@ -99,7 +99,7 @@ export default function ContentAnalysisPage() {
   const topPerformers =
     report?.performers?.top?.map((p, i) => ({
       rank: i + 1,
-      student: p.student,
+      student: { ...p.student, supervision: ("supervision" in p.student ? p.student.supervision : false) as boolean },
       stats: {
         entriesCount: p.testsCount,
         testsGiven: p.testsCount,
@@ -119,7 +119,7 @@ export default function ContentAnalysisPage() {
   const worstPerformers =
     report?.performers?.worst?.map((p, i) => ({
       rank: i + 1,
-      student: p.student,
+      student: { ...p.student, supervision: ("supervision" in p.student ? p.student.supervision : false) as boolean },
       stats: {
         entriesCount: p.testsCount,
         testsGiven: p.testsCount,

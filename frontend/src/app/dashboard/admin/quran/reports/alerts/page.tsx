@@ -19,6 +19,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { ProtectedRoute } from "@/route/ProtectedRoute";
 import type { IQuranAlertsFilters } from "@/types/quran.types";
 import {

@@ -80,7 +80,6 @@ export function ClassDistributionStacked({
             <BarChart
               data={masteryData}
               margin={{ top: 4, right: 8, left: 8, bottom: 4 }}
-              stackOffset="stack"
             >
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="name" className="text-xs" tick={{ fontSize: 10 }} />
@@ -105,7 +104,6 @@ export function ClassDistributionStacked({
             <BarChart
               data={riskData}
               margin={{ top: 4, right: 8, left: 8, bottom: 4 }}
-              stackOffset="stack"
             >
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="name" className="text-xs" tick={{ fontSize: 10 }} />
